@@ -46,6 +46,28 @@
 #include "servers/spatial_sound_2d_server.h"
 #include "viewport.h"
 
+void SceneTreeTimer::_bind_methods() {
+
+	ObjectTypeDB::bind_method(_MD("set_time_left","time"),&SceneTreeTimer::set_time_left);
+	ObjectTypeDB::bind_method(_MD("get_time_left"),&SceneTreeTimer::get_time_left);
+
+	ADD_SIGNAL(MethodInfo("timeout"));
+}
+
+
+void SceneTreeTimer::set_time_left(float p_time) {
+	time_left=p_time;
+}
+
+float SceneTreeTimer::get_time_left() const {
+	return time_left;
+}
+
+
+SceneTreeTimer::SceneTreeTimer() {
+	time_left=0;
+}
+
 
 void SceneTree::tree_changed() {
 
@@ -531,6 +553,23 @@ bool SceneTree::idle(float p_time) {
 	root_lock--;
 
 	_flush_delete_queue();
+
+	//go through timers
+
+	for (List<Ref<SceneTreeTimer> >::Element *E=timers.front();E;) {
+
+		List<Ref<SceneTreeTimer> >::Element *N = E->next();
+
+		float time_left = E->get()->get_time_left();
+		time_left-=p_time;
+		E->get()->set_time_left(time_left);
+
+		if (time_left<0) {
+			E->get()->emit_signal("timeout");
+			timers.erase(E);
+		}
+		E=N;
+	}
 
 	return _quit;
 }
@@ -1614,6 +1653,7 @@ void SceneTree::set_refuse_new_network_connections(bool p_refuse) {
 	network_peer->set_refuse_new_connections(p_refuse);
 }
 
+
 bool SceneTree::is_refusing_new_network_connections() const {
 
 	ERR_FAIL_COND_V(!network_peer.is_valid(),false);
@@ -2030,6 +2070,14 @@ void SceneTree::_network_poll() {
 
 }
 
+Ref<SceneTreeTimer> SceneTree::create_timer(float p_delay_sec) {
+
+	Ref<SceneTreeTimer> stt;
+	stt.instance();
+	stt->set_time_left(p_delay_sec);
+	timers.push_back(stt);
+	return stt;
+}
 
 void SceneTree::_bind_methods() {
 
@@ -2060,6 +2108,8 @@ void SceneTree::_bind_methods() {
 	ObjectTypeDB::bind_method(_MD("is_paused"), &SceneTree::is_paused);
 	ObjectTypeDB::bind_method(_MD("set_input_as_handled"), &SceneTree::set_input_as_handled);
 	ObjectTypeDB::bind_method(_MD("is_input_handled"), &SceneTree::is_input_handled);
+
+	ObjectTypeDB::bind_method(_MD("create_timer:SceneTreeTimer","time_sec"),&SceneTree::create_timer);
 
 	ObjectTypeDB::bind_method(_MD("get_node_count"), &SceneTree::get_node_count);
 	ObjectTypeDB::bind_method(_MD("get_frame"), &SceneTree::get_frame);
