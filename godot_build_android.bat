@@ -6,6 +6,7 @@ call "C:\Program Files (x86)\Microsoft Visual Studio 12.0\VC\vcvarsall.bat"
 IF "%1" == "debug" goto build_DEBUG
 IF "%1" == "release" goto build_RELEASE
 IF "%1" == "release_debug" goto build_RELEASE_DEBUG
+IF "%1" == "all" goto build_ALL
  
 goto end
  
@@ -17,22 +18,34 @@ goto end
 :build_RELEASE_DEBUG
 echo Building Release_Debug!
 call scons platform=android target=release_debug tools=no -j 7
-copy ".\bin\libgodot.android.opt.debug.armv7.neon.so" ".\platform\android\java\libs\armeabi\libgodot_android.so"
+::copy ".\bin\libgodot.android.opt.debug.armv7.neon.so" ".\platform\android\java\libs\armeabi\libgodot_android.so"
 cd platform/android/java/
 call gradlew.bat build
-copy ".\build\outputs\apk\java-release-unsigned.apk" "..\..\..\templates\android_debug.apk"
+::copy ".\build\outputs\apk\java-release-unsigned.apk" "..\..\..\templates\android_debug.apk"
 cd ..\..\..
 goto end
  
 :build_RELEASE
 echo Building Release!
 call scons platform=android target=release tools=no -j 7
-copy ".\bin\libgodot.android.opt.armv7.neon.so" ".\platform\android\java\libs\armeabi\libgodot_android.so"
+::copy ".\bin\libgodot.android.opt.armv7.neon.so" ".\platform\android\java\libs\armeabi\libgodot_android.so"
 cd platform/android/java/
 call gradlew.bat build
-copy ".\build\outputs\apk\java-release-unsigned.apk" "..\..\..\templates\android_release.apk"
+::copy ".\build\outputs\apk\java-release-unsigned.apk" "..\..\..\templates\android_release.apk"
 cd ..\..\..
- 
+goto end
+
+:build_ALL
+echo Building Release_Debug!
+call scons platform=android target=release_debug tools=no -j 7
+echo Building Release!
+call scons platform=android target=release tools=no -j 7
+cd platform/android/java/
+call gradlew.bat build
+cd ..\..\..
+copy "bin\android_debug.apk"  "templates\android_debug.apk"
+copy "bin\android_release.apk" "templates\android_release.apk"
+
 :end
 ENDLOCAL
 echo.
