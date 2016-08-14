@@ -44,37 +44,7 @@
 #include "servers/physics_server.h"
 #include "servers/spatial_sound_2d_server.h"
 #include "viewport.h"
-<<<<<<< HEAD
-#include <stdio.h>
-=======
-#include "scene/resources/packed_scene.h"
-#include "scene/resources/material.h"
-#include "scene/resources/mesh.h"
-#include "io/marshalls.h"
 
-void SceneTreeTimer::_bind_methods() {
-
-	ObjectTypeDB::bind_method(_MD("set_time_left","time"),&SceneTreeTimer::set_time_left);
-	ObjectTypeDB::bind_method(_MD("get_time_left"),&SceneTreeTimer::get_time_left);
-
-	ADD_SIGNAL(MethodInfo("timeout"));
-}
-
-
-void SceneTreeTimer::set_time_left(float p_time) {
-	time_left=p_time;
-}
-
-float SceneTreeTimer::get_time_left() const {
-	return time_left;
-}
-
-
-SceneTreeTimer::SceneTreeTimer() {
-	time_left=0;
-}
-
->>>>>>> cbbcf7270... -High Level protocol optimization (should be smaller)
 
 void SceneTree::tree_changed() {
 

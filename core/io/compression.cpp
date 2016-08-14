@@ -55,7 +55,6 @@ int Compression::compress(uint8_t *p_dst, const uint8_t *p_src, int p_src_size, 
 			strm.zalloc = zipio_alloc;
 			strm.zfree = zipio_free;
 			strm.opaque = Z_NULL;
-<<<<<<< HEAD
 			int err = deflateInit(&strm, Z_DEFAULT_COMPRESSION);
 			if (err != Z_OK)
 				return -1;
@@ -66,22 +65,7 @@ int Compression::compress(uint8_t *p_dst, const uint8_t *p_src, int p_src_size, 
 			strm.next_in = (Bytef *)p_src;
 			strm.next_out = p_dst;
 			deflate(&strm, Z_FINISH);
-=======
-			int err = deflateInit(&strm,Z_DEFAULT_COMPRESSION);
-			if (err!=Z_OK)
-			    return -1;
 
-			strm.avail_in=p_src_size;
-			int aout = deflateBound(&strm,p_src_size);;
-			/*if (aout>p_src_size) {
-				deflateEnd(&strm);
-				return -1;
-			}*/
-			strm.avail_out=aout;
-			strm.next_in=(Bytef*)p_src;
-			strm.next_out=p_dst;
-			deflate(&strm,Z_FINISH);
->>>>>>> cbbcf7270... -High Level protocol optimization (should be smaller)
 			aout = aout - strm.avail_out;
 			deflateEnd(&strm);
 			return aout;
@@ -121,19 +105,6 @@ int Compression::get_max_compressed_buffer_size(int p_src_size, Mode p_mode) {
 	ERR_FAIL_V(-1);
 }
 
-void Compression::decompress(uint8_t *p_dst, int p_dst_max_size, const uint8_t *p_src, int p_src_size, Mode p_mode) {
-
-<<<<<<< HEAD
-	switch (p_mode) {
-		case MODE_FASTLZ: {
-
-			if (p_dst_max_size < 16) {
-				uint8_t dst[16];
-				fastlz_decompress(p_src, p_src_size, dst, 16);
-				copymem(p_dst, dst, p_dst_max_size);
-			} else {
-				fastlz_decompress(p_src, p_src_size, p_dst, p_dst_max_size);
-=======
 
 int Compression::decompress(uint8_t *p_dst, int p_dst_max_size, const uint8_t *p_src, int p_src_size,Mode p_mode){
 
@@ -148,7 +119,6 @@ int Compression::decompress(uint8_t *p_dst, int p_dst_max_size, const uint8_t *p
 				copymem(p_dst,dst,p_dst_max_size);
 			} else {
 				ret_size = fastlz_decompress(p_src,p_src_size,p_dst,p_dst_max_size);
->>>>>>> cbbcf7270... -High Level protocol optimization (should be smaller)
 			}
 			return ret_size;
 		} break;
@@ -161,29 +131,19 @@ int Compression::decompress(uint8_t *p_dst, int p_dst_max_size, const uint8_t *p
 			strm.avail_in = 0;
 			strm.next_in = Z_NULL;
 			int err = inflateInit(&strm);
-<<<<<<< HEAD
-			ERR_FAIL_COND(err != Z_OK);
-=======
+
 			ERR_FAIL_COND_V(err!=Z_OK,-1);
->>>>>>> cbbcf7270... -High Level protocol optimization (should be smaller)
 
 			strm.avail_in = p_src_size;
 			strm.avail_out = p_dst_max_size;
 			strm.next_in = (Bytef *)p_src;
 			strm.next_out = p_dst;
 
-<<<<<<< HEAD
-			err = inflate(&strm, Z_FINISH);
-			inflateEnd(&strm);
-			ERR_FAIL_COND(err != Z_STREAM_END);
-			return;
-=======
 			err = inflate(&strm,Z_FINISH);
 			int total = strm.total_out;
 			inflateEnd(&strm);
 			ERR_FAIL_COND_V(err!=Z_STREAM_END,-1);
 			return total;
->>>>>>> cbbcf7270... -High Level protocol optimization (should be smaller)
 		} break;
 	}
 
