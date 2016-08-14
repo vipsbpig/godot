@@ -38,6 +38,7 @@
 
 VARIANT_ENUM_CAST(Node::PauseMode);
 VARIANT_ENUM_CAST(Node::NetworkMode);
+VARIANT_ENUM_CAST(Node::RPCMode);
 
 void Node::_notification(int p_notification) {
 
@@ -473,26 +474,6 @@ bool Node::is_network_master() const {
 	return false;
 }
 
-void Node::allow_remote_call(const StringName& p_method) {
-
-	data.allowed_remote_calls.insert(p_method);
-}
-
-void Node::disallow_remote_call(const StringName& p_method){
-
-	data.allowed_remote_calls.erase(p_method);
-
-}
-
-void Node::allow_remote_set(const StringName& p_property){
-
-	data.allowed_remote_set.insert(p_property);
-
-}
-void Node::disallow_remote_set(const StringName& p_property){
-
-	data.allowed_remote_set.erase(p_property);
-}
 
 
 void Node::_propagate_network_owner(Node*p_owner) {
@@ -506,8 +487,29 @@ void Node::_propagate_network_owner(Node*p_owner) {
 	}
 }
 
-void Node::remote_call_reliable(const StringName& p_method,VARIANT_ARG_DECLARE) {
+/***** RPC CONFIG ********/
 
+void Node::rpc_config(const StringName& p_method,RPCMode p_mode) {
+
+	if (p_mode==RPC_MODE_DISABLED) {
+		data.rpc_methods.erase(p_method);
+	} else {
+		data.rpc_methods[p_method]=p_mode;
+	};
+}
+
+void Node::rset_config(const StringName& p_property,RPCMode p_mode) {
+
+	if (p_mode==RPC_MODE_DISABLED) {
+		data.rpc_properties.erase(p_property);
+	} else {
+		data.rpc_properties[p_property]=p_mode;
+	};
+}
+
+/***** RPC FUNCTIONS ********/
+
+void Node::rpc(const StringName& p_method,VARIANT_ARG_DECLARE) {
 
 	VARIANT_ARGPTRS;
 
@@ -518,16 +520,11 @@ void Node::remote_call_reliable(const StringName& p_method,VARIANT_ARG_DECLARE) 
 		argc++;
 	}
 
-	remote_call_reliablep(p_method,argptr,argc);
+	rpcp(0,false,p_method,argptr,argc);
 }
 
-void Node::remote_call_reliablep(const StringName& p_method,const Variant** p_arg,int p_argcount){
 
-	ERR_FAIL_COND(!is_inside_tree());
-	get_tree()->_remote_call(this,true,false,p_method,p_arg,p_argcount);
-}
-
-void Node::remote_call_unreliable(const StringName& p_method,VARIANT_ARG_DECLARE){
+void Node::rpc_id(int p_peer_id,const StringName& p_method,VARIANT_ARG_DECLARE) {
 
 	VARIANT_ARGPTRS;
 
@@ -538,35 +535,41 @@ void Node::remote_call_unreliable(const StringName& p_method,VARIANT_ARG_DECLARE
 		argc++;
 	}
 
-	remote_call_unreliablep(p_method,argptr,argc);
-
+	rpcp(p_peer_id,false,p_method,argptr,argc);
 }
 
-void Node::remote_call_unreliablep(const StringName& p_method,const Variant** p_arg,int p_argcount){
 
-	ERR_FAIL_COND(!is_inside_tree());
+void Node::rpc_unreliable(const StringName& p_method,VARIANT_ARG_DECLARE) {
 
-	get_tree()->_remote_call(this,false,false,p_method,p_arg,p_argcount);
+	VARIANT_ARGPTRS;
+
+	int argc=0;
+	for(int i=0;i<VARIANT_ARG_MAX;i++) {
+		if (argptr[i]->get_type()==Variant::NIL)
+			break;
+		argc++;
+	}
+
+	rpcp(0,true,p_method,argptr,argc);
 }
 
-void Node::remote_set_reliable(const StringName& p_property,const Variant& p_value) {
 
+void Node::rpc_unreliable_id(int p_peer_id,const StringName& p_method,VARIANT_ARG_DECLARE) {
 
-	ERR_FAIL_COND(!is_inside_tree());
-	const Variant *ptr=&p_value;
+	VARIANT_ARGPTRS;
 
-	get_tree()->_remote_call(this,true,true,p_property,&ptr,1);
+	int argc=0;
+	for(int i=0;i<VARIANT_ARG_MAX;i++) {
+		if (argptr[i]->get_type()==Variant::NIL)
+			break;
+		argc++;
+	}
+
+	rpcp(p_peer_id,true,p_method,argptr,argc);
 }
 
-void Node::remote_set_unreliable(const StringName& p_property,const Variant& p_value){
 
-	ERR_FAIL_COND(!is_inside_tree());
-	const Variant *ptr=&p_value;
-
-	get_tree()->_remote_call(this,false,true,p_property,&ptr,1);
-}
-
-Variant Node::_remote_call_reliable_bind(const Variant** p_args, int p_argcount, Variant::CallError& r_error) {
+Variant Node::_rpc_bind(const Variant** p_args, int p_argcount, Variant::CallError& r_error) {
 
 	if (p_argcount<1) {
 		r_error.error=Variant::CallError::CALL_ERROR_TOO_FEW_ARGUMENTS;
@@ -583,12 +586,46 @@ Variant Node::_remote_call_reliable_bind(const Variant** p_args, int p_argcount,
 
 	StringName method = *p_args[0];
 
-	remote_call_reliablep(method,&p_args[1],p_argcount-1);
+	rpcp(0,false,method,&p_args[1],p_argcount-1);
 
+	r_error.error=Variant::CallError::CALL_OK;
+	return Variant();
 }
 
 
-Variant Node::_remote_call_unreliable_bind(const Variant** p_args, int p_argcount, Variant::CallError& r_error) {
+Variant Node::_rpc_id_bind(const Variant** p_args, int p_argcount, Variant::CallError& r_error) {
+
+	if (p_argcount<2) {
+		r_error.error=Variant::CallError::CALL_ERROR_TOO_FEW_ARGUMENTS;
+		r_error.argument=2;
+		return Variant();
+	}
+
+	if (p_args[0]->get_type()!=Variant::INT) {
+		r_error.error=Variant::CallError::CALL_ERROR_INVALID_ARGUMENT;
+		r_error.argument=0;
+		r_error.expected=Variant::INT;
+		return Variant();
+	}
+
+	if (p_args[1]->get_type()!=Variant::STRING) {
+		r_error.error=Variant::CallError::CALL_ERROR_INVALID_ARGUMENT;
+		r_error.argument=1;
+		r_error.expected=Variant::STRING;
+		return Variant();
+	}
+
+	int peer_id = *p_args[0];
+	StringName method = *p_args[1];
+
+	rpcp(peer_id,false,method,&p_args[2],p_argcount-2);
+
+	r_error.error=Variant::CallError::CALL_OK;
+	return Variant();
+}
+
+
+Variant Node::_rpc_unreliable_bind(const Variant** p_args, int p_argcount, Variant::CallError& r_error) {
 
 	if (p_argcount<1) {
 		r_error.error=Variant::CallError::CALL_ERROR_TOO_FEW_ARGUMENTS;
@@ -605,8 +642,412 @@ Variant Node::_remote_call_unreliable_bind(const Variant** p_args, int p_argcoun
 
 	StringName method = *p_args[0];
 
-	remote_call_unreliablep(method,&p_args[1],p_argcount-1);
+	rpcp(0,true,method,&p_args[1],p_argcount-1);
 
+	r_error.error=Variant::CallError::CALL_OK;
+	return Variant();
+}
+
+
+Variant Node::_rpc_unreliable_id_bind(const Variant** p_args, int p_argcount, Variant::CallError& r_error) {
+
+	if (p_argcount<2) {
+		r_error.error=Variant::CallError::CALL_ERROR_TOO_FEW_ARGUMENTS;
+		r_error.argument=2;
+		return Variant();
+	}
+
+	if (p_args[0]->get_type()!=Variant::INT) {
+		r_error.error=Variant::CallError::CALL_ERROR_INVALID_ARGUMENT;
+		r_error.argument=0;
+		r_error.expected=Variant::INT;
+		return Variant();
+	}
+
+	if (p_args[1]->get_type()!=Variant::STRING) {
+		r_error.error=Variant::CallError::CALL_ERROR_INVALID_ARGUMENT;
+		r_error.argument=1;
+		r_error.expected=Variant::STRING;
+		return Variant();
+	}
+
+	int peer_id = *p_args[0];
+	StringName method = *p_args[1];
+
+	rpcp(peer_id,true,method,&p_args[2],p_argcount-2);
+
+	r_error.error=Variant::CallError::CALL_OK;
+	return Variant();
+}
+
+#if 0
+Variant Node::_rpc_bind(const Variant** p_args, int p_argcount, Variant::CallError& r_error) {
+
+	if (p_argcount<1) {
+		r_error.error=Variant::CallError::CALL_ERROR_TOO_FEW_ARGUMENTS;
+		r_error.argument=1;
+		return Variant();
+	}
+
+	if (p_args[0]->get_type()!=Variant::STRING) {
+		r_error.error=Variant::CallError::CALL_ERROR_INVALID_ARGUMENT;
+		r_error.argument=0;
+		r_error.expected=Variant::STRING;
+		return Variant();
+	}
+
+	StringName method = *p_args[0];
+
+	rpcp(method,&p_args[1],p_argcount-1);
+
+	r_error.error=Variant::CallError::CALL_OK;
+	return Variant();
+}
+
+#endif
+void Node::rpcp(int p_peer_id,bool p_unreliable,const StringName& p_method,const Variant** p_arg,int p_argcount) {
+
+	ERR_FAIL_COND(!is_inside_tree());
+
+	bool skip_rpc=false;
+
+	if (p_peer_id==0 || p_peer_id==get_tree()->get_network_unique_id() || (p_peer_id<0 && p_peer_id!=-get_tree()->get_network_unique_id())) {
+		//check that send mode can use local call
+
+
+		bool call_local=false;
+
+
+
+		Map<StringName,RPCMode>::Element *E = data.rpc_methods.find(p_method);
+		if (E) {
+
+			switch(E->get()) {
+
+				case RPC_MODE_DISABLED: {
+					//do nothing
+				} break;
+				case RPC_MODE_REMOTE: {
+					//do nothing also, no need to call local
+				} break;
+				case RPC_MODE_SYNC: {
+					//call it, sync always results in call
+					call_local=true;
+				} break;
+				case RPC_MODE_MASTER: {
+					call_local=is_network_master();
+					if (call_local) {
+						skip_rpc=true; //no other master so..
+					}
+				} break;
+				case RPC_MODE_SLAVE: {
+					call_local=!is_network_master();
+				} break;
+
+			}
+		}
+
+
+		if (call_local) {
+			Variant::CallError ce;
+			call(p_method,p_arg,p_argcount,ce);
+			if (ce.error!=Variant::CallError::CALL_OK) {
+				String error = Variant::get_call_error_text(this,p_method,p_arg,p_argcount,ce);
+				error="rpc() aborted in local call:  - "+error;
+				ERR_PRINTS(error);
+				return;
+			}
+		} else if (get_script_instance()){
+			//attempt with script
+			ScriptInstance::RPCMode rpc_mode = get_script_instance()->get_rpc_mode(p_method);
+
+			switch(rpc_mode) {
+
+				case ScriptInstance::RPC_MODE_DISABLED: {
+					//do nothing
+				} break;
+				case ScriptInstance::RPC_MODE_REMOTE: {
+					//do nothing also, no need to call local
+				} break;
+				case ScriptInstance::RPC_MODE_SYNC: {
+					//call it, sync always results in call
+					call_local=true;
+				} break;
+				case ScriptInstance::RPC_MODE_MASTER: {
+					call_local=is_network_master();
+					if (call_local) {
+						skip_rpc=true; //no other master so..
+					}
+				} break;
+				case ScriptInstance::RPC_MODE_SLAVE: {
+					call_local=!is_network_master();
+				} break;
+			}
+
+			if (call_local) {
+				Variant::CallError ce;
+				ce.error=Variant::CallError::CALL_OK;
+				get_script_instance()->call(p_method,p_arg,p_argcount,ce);
+				if (ce.error!=Variant::CallError::CALL_OK) {
+					String error = Variant::get_call_error_text(this,p_method,p_arg,p_argcount,ce);
+					error="rpc() aborted in script local call:  - "+error;
+					ERR_PRINTS(error);
+					return;
+				}
+			}
+		}
+	}
+
+	if (skip_rpc)
+		return;
+
+
+	get_tree()->_rpc(this,p_peer_id,p_unreliable,false,p_method,p_arg,p_argcount);
+
+}
+
+
+/******** RSET *********/
+
+
+void Node::rsetp(int p_peer_id,bool p_unreliable,const StringName& p_property,const Variant& p_value) {
+
+	ERR_FAIL_COND(!is_inside_tree());
+
+	bool skip_rset=false;
+
+	if (p_peer_id==0 || p_peer_id==get_tree()->get_network_unique_id() || (p_peer_id<0 && p_peer_id!=-get_tree()->get_network_unique_id())) {
+		//check that send mode can use local call
+
+
+		bool set_local=false;
+
+		Map<StringName,RPCMode>::Element *E = data.rpc_properties.find(p_property);
+		if (E) {
+
+			switch(E->get()) {
+
+				case RPC_MODE_DISABLED: {
+					//do nothing
+				} break;
+				case RPC_MODE_REMOTE: {
+					//do nothing also, no need to call local
+				} break;
+				case RPC_MODE_SYNC: {
+					//call it, sync always results in call
+					set_local=true;
+				} break;
+				case RPC_MODE_MASTER: {
+					set_local=is_network_master();
+					if (set_local) {
+						skip_rset=true;
+					}
+
+				} break;
+				case RPC_MODE_SLAVE: {
+					set_local=!is_network_master();
+				} break;
+
+			}
+		}
+
+
+		if (set_local) {
+			bool valid;
+			set(p_property,p_value,&valid);
+
+			if (!valid) {
+				String error="rset() aborted in local set, property not found:  - "+String(p_property);
+				ERR_PRINTS(error);
+				return;
+			}
+		} else if (get_script_instance()){
+			//attempt with script
+			ScriptInstance::RPCMode rpc_mode = get_script_instance()->get_rset_mode(p_property);
+
+			switch(rpc_mode) {
+
+				case ScriptInstance::RPC_MODE_DISABLED: {
+					//do nothing
+				} break;
+				case ScriptInstance::RPC_MODE_REMOTE: {
+					//do nothing also, no need to call local
+				} break;
+				case ScriptInstance::RPC_MODE_SYNC: {
+					//call it, sync always results in call
+					set_local=true;
+				} break;
+				case ScriptInstance::RPC_MODE_MASTER: {
+					set_local=is_network_master();
+					if (set_local) {
+						skip_rset=true;
+					}
+				} break;
+				case ScriptInstance::RPC_MODE_SLAVE: {
+					set_local=!is_network_master();
+				} break;
+			}
+
+			if (set_local) {
+
+				bool valid = get_script_instance()->set(p_property,p_value);
+
+				if (!valid) {
+					String error="rset() aborted in local script set, property not found:  - "+String(p_property);
+					ERR_PRINTS(error);
+					return;
+				}
+			}
+
+		}
+	}
+
+	if (skip_rset)
+		return;
+
+	const Variant*vptr = &p_value;
+
+	get_tree()->_rpc(this,p_peer_id,p_unreliable,true,p_property,&vptr,1);
+
+}
+
+
+
+void Node::rset(const StringName& p_property,const Variant& p_value) {
+
+	rsetp(0,false,p_property,p_value);
+
+}
+
+void Node::rset_id(int p_peer_id,const StringName& p_property,const Variant& p_value) {
+
+	rsetp(p_peer_id,false,p_property,p_value);
+
+}
+
+void Node::rset_unreliable(const StringName& p_property,const Variant& p_value) {
+
+	rsetp(0,true,p_property,p_value);
+
+}
+
+void Node::rset_unreliable_id(int p_peer_id,const StringName& p_property,const Variant& p_value) {
+
+	rsetp(p_peer_id,true,p_property,p_value);
+
+}
+
+//////////// end of rpc
+
+bool Node::can_call_rpc(const StringName& p_method) const {
+
+	const Map<StringName,RPCMode>::Element *E = data.rpc_methods.find(p_method);
+	if (E) {
+
+		switch(E->get()) {
+
+			case RPC_MODE_DISABLED: {
+				return false;
+			} break;
+			case RPC_MODE_REMOTE: {
+				return true;
+			} break;
+			case RPC_MODE_SYNC: {
+				return true;
+			} break;
+			case RPC_MODE_MASTER: {
+				return is_network_master();
+			} break;
+			case RPC_MODE_SLAVE: {
+				return !is_network_master();
+			} break;
+		}
+	}
+
+
+	if (get_script_instance()){
+		//attempt with script
+		ScriptInstance::RPCMode rpc_mode = get_script_instance()->get_rpc_mode(p_method);
+
+		switch(rpc_mode) {
+
+			case ScriptInstance::RPC_MODE_DISABLED: {
+				return false;
+			} break;
+			case ScriptInstance::RPC_MODE_REMOTE: {
+				return true;
+			} break;
+			case ScriptInstance::RPC_MODE_SYNC: {
+				return true;
+			} break;
+			case ScriptInstance::RPC_MODE_MASTER: {
+				return is_network_master();
+			} break;
+			case ScriptInstance::RPC_MODE_SLAVE: {
+				return !is_network_master();
+			} break;
+		}
+
+	}
+
+	ERR_PRINTS("RPC on unauthorized method attempted: "+String(p_method)+" on base: "+String(Variant(this)));
+	return false;
+}
+
+bool Node::can_call_rset(const StringName& p_property) const {
+
+	const Map<StringName,RPCMode>::Element *E = data.rpc_properties.find(p_property);
+	if (E) {
+
+		switch(E->get()) {
+
+			case RPC_MODE_DISABLED: {
+				return false;
+			} break;
+			case RPC_MODE_REMOTE: {
+				return true;
+			} break;
+			case RPC_MODE_SYNC: {
+				return true;
+			} break;
+			case RPC_MODE_MASTER: {
+				return is_network_master();
+			} break;
+			case RPC_MODE_SLAVE: {
+				return !is_network_master();
+			} break;
+		}
+	}
+
+
+	if (get_script_instance()){
+		//attempt with script
+		ScriptInstance::RPCMode rpc_mode = get_script_instance()->get_rset_mode(p_property);
+
+		switch(rpc_mode) {
+
+			case ScriptInstance::RPC_MODE_DISABLED: {
+				return false;
+			} break;
+			case ScriptInstance::RPC_MODE_REMOTE: {
+				return true;
+			} break;
+			case ScriptInstance::RPC_MODE_SYNC: {
+				return true;
+			} break;
+			case ScriptInstance::RPC_MODE_MASTER: {
+				return is_network_master();
+			} break;
+			case ScriptInstance::RPC_MODE_SLAVE: {
+				return !is_network_master();
+			} break;
+		}
+
+	}
+
+	ERR_PRINTS("RSET on unauthorized property attempted: "+String(p_property)+" on base: "+String(Variant(this)));
+
+	return false;
 }
 
 
@@ -1372,15 +1813,12 @@ NodePath Node::get_path_to(const Node *p_node) const {
 
 NodePath Node::get_path() const {
 
-<<<<<<< HEAD
+
 	ERR_FAIL_COND_V(!is_inside_tree(), NodePath());
-=======
-	ERR_FAIL_COND_V(!is_inside_tree(),NodePath());
 
 	if (data.path_cache)
 		return *data.path_cache;
 
->>>>>>> 3db36684b... Added high level networked multiplayer to Godot.
 	const Node *n = this;
 
 	Vector<StringName> path;
@@ -1392,13 +1830,10 @@ NodePath Node::get_path() const {
 
 	path.invert();
 
-<<<<<<< HEAD
-	return NodePath(path, true);
-=======
 	data.path_cache = memnew( NodePath( path, true ) );
 
 	return *data.path_cache;
->>>>>>> 3db36684b... Added high level networked multiplayer to Godot.
+
 }
 
 bool Node::is_in_group(const StringName &p_identifier) const {
@@ -2296,7 +2731,6 @@ void Node::_bind_methods() {
 	ObjectTypeDB::bind_method(_MD("add_child", "node:Node", "legible_unique_name"), &Node::add_child, DEFVAL(false));
 	ObjectTypeDB::bind_method(_MD("remove_child", "node:Node"), &Node::remove_child);
 	//ObjectTypeDB::bind_method(_MD("remove_and_delete_child","node:Node"),&Node::remove_and_delete_child);
-<<<<<<< HEAD
 	ObjectTypeDB::bind_method(_MD("get_child_count"), &Node::get_child_count);
 	ObjectTypeDB::bind_method(_MD("get_children"), &Node::_get_children);
 	ObjectTypeDB::bind_method(_MD("get_child:Node", "idx"), &Node::get_child);
@@ -2357,80 +2791,14 @@ void Node::_bind_methods() {
 	ObjectTypeDB::bind_method(_MD("get_viewport"), &Node::get_viewport);
 
 	ObjectTypeDB::bind_method(_MD("queue_free"), &Node::queue_delete);
-=======
-	ObjectTypeDB::bind_method(_MD("get_child_count"),&Node::get_child_count);
-	ObjectTypeDB::bind_method(_MD("get_children"),&Node::_get_children);
-	ObjectTypeDB::bind_method(_MD("get_child:Node","idx"),&Node::get_child);
-	ObjectTypeDB::bind_method(_MD("has_node","path"),&Node::has_node);
-	ObjectTypeDB::bind_method(_MD("get_node:Node","path"),&Node::get_node);
-	ObjectTypeDB::bind_method(_MD("get_parent:Node"),&Node::get_parent);
-	ObjectTypeDB::bind_method(_MD("find_node:Node","mask","recursive","owned"),&Node::find_node,DEFVAL(true),DEFVAL(true));
-	ObjectTypeDB::bind_method(_MD("has_node_and_resource","path"),&Node::has_node_and_resource);
-	ObjectTypeDB::bind_method(_MD("get_node_and_resource","path"),&Node::_get_node_and_resource);
-
-	ObjectTypeDB::bind_method(_MD("is_inside_tree"),&Node::is_inside_tree);
-	ObjectTypeDB::bind_method(_MD("is_a_parent_of","node:Node"),&Node::is_a_parent_of);
-	ObjectTypeDB::bind_method(_MD("is_greater_than","node:Node"),&Node::is_greater_than);
-	ObjectTypeDB::bind_method(_MD("get_path"),&Node::get_path);
-	ObjectTypeDB::bind_method(_MD("get_path_to","node:Node"),&Node::get_path_to);
-	ObjectTypeDB::bind_method(_MD("add_to_group","group","persistent"),&Node::add_to_group,DEFVAL(false));
-	ObjectTypeDB::bind_method(_MD("remove_from_group","group"),&Node::remove_from_group);
-	ObjectTypeDB::bind_method(_MD("is_in_group","group"),&Node::is_in_group);
-	ObjectTypeDB::bind_method(_MD("move_child","child_node:Node","to_pos"),&Node::move_child);
-	ObjectTypeDB::bind_method(_MD("get_groups"),&Node::_get_groups);
-	ObjectTypeDB::bind_method(_MD("raise"),&Node::raise);
-	ObjectTypeDB::bind_method(_MD("set_owner","owner:Node"),&Node::set_owner);
-	ObjectTypeDB::bind_method(_MD("get_owner:Node"),&Node::get_owner);
-	ObjectTypeDB::bind_method(_MD("remove_and_skip"),&Node::remove_and_skip);
-	ObjectTypeDB::bind_method(_MD("get_index"),&Node::get_index);
-	ObjectTypeDB::bind_method(_MD("print_tree"),&Node::print_tree);
-	ObjectTypeDB::bind_method(_MD("set_filename","filename"),&Node::set_filename);
-	ObjectTypeDB::bind_method(_MD("get_filename"),&Node::get_filename);
-	ObjectTypeDB::bind_method(_MD("propagate_notification","what"),&Node::propagate_notification);
-	ObjectTypeDB::bind_method(_MD("set_fixed_process","enable"),&Node::set_fixed_process);
-	ObjectTypeDB::bind_method(_MD("get_fixed_process_delta_time"),&Node::get_fixed_process_delta_time);
-	ObjectTypeDB::bind_method(_MD("is_fixed_processing"),&Node::is_fixed_processing);
-	ObjectTypeDB::bind_method(_MD("set_process","enable"),&Node::set_process);
-	ObjectTypeDB::bind_method(_MD("get_process_delta_time"),&Node::get_process_delta_time);
-	ObjectTypeDB::bind_method(_MD("is_processing"),&Node::is_processing);
-	ObjectTypeDB::bind_method(_MD("set_process_input","enable"),&Node::set_process_input);
-	ObjectTypeDB::bind_method(_MD("is_processing_input"),&Node::is_processing_input);
-	ObjectTypeDB::bind_method(_MD("set_process_unhandled_input","enable"),&Node::set_process_unhandled_input);
-	ObjectTypeDB::bind_method(_MD("is_processing_unhandled_input"),&Node::is_processing_unhandled_input);
-	ObjectTypeDB::bind_method(_MD("set_process_unhandled_key_input","enable"),&Node::set_process_unhandled_key_input);
-	ObjectTypeDB::bind_method(_MD("is_processing_unhandled_key_input"),&Node::is_processing_unhandled_key_input);
-	ObjectTypeDB::bind_method(_MD("set_pause_mode","mode"),&Node::set_pause_mode);
-	ObjectTypeDB::bind_method(_MD("get_pause_mode"),&Node::get_pause_mode);
-	ObjectTypeDB::bind_method(_MD("can_process"),&Node::can_process);
-	ObjectTypeDB::bind_method(_MD("print_stray_nodes"),&Node::_print_stray_nodes);
-	ObjectTypeDB::bind_method(_MD("get_position_in_parent"),&Node::get_position_in_parent);
-	ObjectTypeDB::bind_method(_MD("set_display_folded","fold"),&Node::set_display_folded);
-	ObjectTypeDB::bind_method(_MD("is_displayed_folded"),&Node::is_displayed_folded);
-
-	ObjectTypeDB::bind_method(_MD("get_tree:SceneTree"),&Node::get_tree);
-
-	ObjectTypeDB::bind_method(_MD("duplicate:Node","use_instancing"),&Node::duplicate,DEFVAL(false));
-	ObjectTypeDB::bind_method(_MD("replace_by","node:Node","keep_data"),&Node::replace_by,DEFVAL(false));
-
-	ObjectTypeDB::bind_method(_MD("set_scene_instance_load_placeholder","load_placeholder"),&Node::set_scene_instance_load_placeholder);
-	ObjectTypeDB::bind_method(_MD("get_scene_instance_load_placeholder"),&Node::get_scene_instance_load_placeholder);
-
-
-	ObjectTypeDB::bind_method(_MD("get_viewport"),&Node::get_viewport);
-
-	ObjectTypeDB::bind_method(_MD("queue_free"),&Node::queue_delete);
-
-	ObjectTypeDB::bind_method(_MD("set_network_mode","mode"),&Node::set_network_mode);
-	ObjectTypeDB::bind_method(_MD("get_network_mode"),&Node::get_network_mode);
-
-	ObjectTypeDB::bind_method(_MD("is_network_master"),&Node::is_network_master);
-
-	ObjectTypeDB::bind_method(_MD("allow_remote_call","method"),&Node::allow_remote_call);
-	ObjectTypeDB::bind_method(_MD("disallow_remote_call","method"),&Node::disallow_remote_call);
-
-	ObjectTypeDB::bind_method(_MD("allow_remote_set","method"),&Node::allow_remote_set);
-	ObjectTypeDB::bind_method(_MD("disallow_remote_set","method"),&Node::disallow_remote_set);
->>>>>>> 3db36684b... Added high level networked multiplayer to Godot.
+    
+    ObjectTypeDB::bind_method(_MD("set_network_mode","mode"),&Node::set_network_mode);
+    ObjectTypeDB::bind_method(_MD("get_network_mode"),&Node::get_network_mode);
+    
+    ObjectTypeDB::bind_method(_MD("is_network_master"),&Node::is_network_master);
+    
+    ObjectTypeDB::bind_method(_MD("rpc_config","method","mode"),&Node::rpc_config);
+    ObjectTypeDB::bind_method(_MD("rset_config","property","mode"),&Node::rset_config);
 
 #ifdef TOOLS_ENABLED
 	ObjectTypeDB::bind_method(_MD("_set_import_path", "import_path"), &Node::set_import_path);
@@ -2438,8 +2806,28 @@ void Node::_bind_methods() {
 	ADD_PROPERTYNZ(PropertyInfo(Variant::NODE_PATH, "_import_path", PROPERTY_HINT_NONE, "", PROPERTY_USAGE_NOEDITOR), _SCS("_set_import_path"), _SCS("_get_import_path"));
 
 #endif
+    
+    {
+        MethodInfo mi;
+        
+        mi.arguments.push_back( PropertyInfo( Variant::STRING, "method"));
+        
+        
+        mi.name="rpc";
+        ObjectTypeDB::bind_native_method(METHOD_FLAGS_DEFAULT,"rpc",&Node::_rpc_bind,mi);
+        mi.name="rpc_unreliable";
+        ObjectTypeDB::bind_native_method(METHOD_FLAGS_DEFAULT,"rpc_unreliable",&Node::_rpc_unreliable_bind,mi);
+        
+        mi.arguments.push_front( PropertyInfo( Variant::INT, "peer_") );
+        
+        mi.name="rpc_id";
+        ObjectTypeDB::bind_native_method(METHOD_FLAGS_DEFAULT,"rpc_id",&Node::_rpc_id_bind,mi);
+        mi.name="rpc_unreliable_id";
+        ObjectTypeDB::bind_native_method(METHOD_FLAGS_DEFAULT,"rpc_unreliable_id",&Node::_rpc_unreliable_id_bind,mi);
+        
+        
+    }
 
-<<<<<<< HEAD
 	BIND_CONSTANT(NOTIFICATION_ENTER_TREE);
 	BIND_CONSTANT(NOTIFICATION_EXIT_TREE);
 	BIND_CONSTANT(NOTIFICATION_MOVED_IN_PARENT);
@@ -2472,7 +2860,8 @@ void Node::_bind_methods() {
 	//ADD_PROPERTYNZ( PropertyInfo( Variant::BOOL, "process/input" ), _SCS("set_process_input"),_SCS("is_processing_input" ) );
 	//ADD_PROPERTYNZ( PropertyInfo( Variant::BOOL, "process/unhandled_input" ), _SCS("set_process_unhandled_input"),_SCS("is_processing_unhandled_input" ) );
 	ADD_PROPERTYNZ(PropertyInfo(Variant::INT, "process/pause_mode", PROPERTY_HINT_ENUM, "Inherit,Stop,Process"), _SCS("set_pause_mode"), _SCS("get_pause_mode"));
-	ADD_PROPERTYNZ(PropertyInfo(Variant::BOOL, "editor/display_folded", PROPERTY_HINT_NONE, "", PROPERTY_USAGE_NOEDITOR), _SCS("set_display_folded"), _SCS("is_displayed_folded"));
+    ADD_PROPERTYNZ( PropertyInfo( Variant::INT, "process/network_mode",PROPERTY_HINT_ENUM,"Inherit,Master,Slave" ), _SCS("set_network_mode"),_SCS("get_network_mode" ) );
+    ADD_PROPERTYNZ(PropertyInfo(Variant::BOOL, "editor/display_folded", PROPERTY_HINT_NONE, "", PROPERTY_USAGE_NOEDITOR), _SCS("set_display_folded"), _SCS("is_displayed_folded"));
 
 	BIND_VMETHOD(MethodInfo("_process", PropertyInfo(Variant::REAL, "delta")));
 	BIND_VMETHOD(MethodInfo("_fixed_process", PropertyInfo(Variant::REAL, "delta")));
@@ -2482,68 +2871,6 @@ void Node::_bind_methods() {
 	BIND_VMETHOD(MethodInfo("_input", PropertyInfo(Variant::INPUT_EVENT, "event")));
 	BIND_VMETHOD(MethodInfo("_unhandled_input", PropertyInfo(Variant::INPUT_EVENT, "event")));
 	BIND_VMETHOD(MethodInfo("_unhandled_key_input", PropertyInfo(Variant::INPUT_EVENT, "key_event")));
-=======
-	{
-		MethodInfo mi;
-		mi.name="remote_call_reliable";
-		mi.arguments.push_back( PropertyInfo( Variant::STRING, "method"));
-
-
-		ObjectTypeDB::bind_native_method(METHOD_FLAGS_DEFAULT,"remote_call_reliable",&Node::_remote_call_reliable_bind,mi);
-
-		mi.name="remote_call_unreliable";
-		ObjectTypeDB::bind_native_method(METHOD_FLAGS_DEFAULT,"remote_call_unreliable",&Node::_remote_call_unreliable_bind,mi);
-
-	}
-
-	ObjectTypeDB::bind_method(_MD("remote_set_reliable","property","value:Variant"),&Node::remote_set_reliable);
-	ObjectTypeDB::bind_method(_MD("remote_set_unreliable","property","value:Variant"),&Node::remote_set_unreliable);
-
-
-	BIND_CONSTANT( NOTIFICATION_ENTER_TREE );
-	BIND_CONSTANT( NOTIFICATION_EXIT_TREE );
-	BIND_CONSTANT( NOTIFICATION_MOVED_IN_PARENT );
-	//BIND_CONSTANT( NOTIFICATION_PARENT_DECONFIGURED );
-	BIND_CONSTANT( NOTIFICATION_READY );
-	BIND_CONSTANT( NOTIFICATION_FIXED_PROCESS );
-	BIND_CONSTANT( NOTIFICATION_PROCESS );
-	BIND_CONSTANT( NOTIFICATION_PARENTED );
-	BIND_CONSTANT( NOTIFICATION_UNPARENTED );
-	BIND_CONSTANT( NOTIFICATION_PAUSED );
-	BIND_CONSTANT( NOTIFICATION_UNPAUSED );
-	BIND_CONSTANT( NOTIFICATION_INSTANCED );
-	BIND_CONSTANT( NOTIFICATION_DRAG_BEGIN );
-	BIND_CONSTANT( NOTIFICATION_DRAG_END );
-	BIND_CONSTANT( NOTIFICATION_PATH_CHANGED);
-
-
-
-
-	BIND_CONSTANT( PAUSE_MODE_INHERIT );
-	BIND_CONSTANT( PAUSE_MODE_STOP );
-	BIND_CONSTANT( PAUSE_MODE_PROCESS );
-
-	ADD_SIGNAL( MethodInfo("renamed") );
-	ADD_SIGNAL( MethodInfo("enter_tree") );
-	ADD_SIGNAL( MethodInfo("exit_tree") );
-
-//	ADD_PROPERTYNZ( PropertyInfo( Variant::BOOL, "process/process" ),_SCS("set_process"),_SCS("is_processing") );
-//	ADD_PROPERTYNZ( PropertyInfo( Variant::BOOL, "process/fixed_process" ), _SCS("set_fixed_process"),_SCS("is_fixed_processing") );
-	//ADD_PROPERTYNZ( PropertyInfo( Variant::BOOL, "process/input" ), _SCS("set_process_input"),_SCS("is_processing_input" ) );
-	//ADD_PROPERTYNZ( PropertyInfo( Variant::BOOL, "process/unhandled_input" ), _SCS("set_process_unhandled_input"),_SCS("is_processing_unhandled_input" ) );
-	ADD_PROPERTYNZ( PropertyInfo( Variant::INT, "process/pause_mode",PROPERTY_HINT_ENUM,"Inherit,Stop,Process" ), _SCS("set_pause_mode"),_SCS("get_pause_mode" ) );
-	ADD_PROPERTYNZ( PropertyInfo( Variant::INT, "process/network_mode",PROPERTY_HINT_ENUM,"Inherit,Master,Slave" ), _SCS("set_network_mode"),_SCS("get_network_mode" ) );
-	ADD_PROPERTYNZ( PropertyInfo( Variant::BOOL, "editor/display_folded",PROPERTY_HINT_NONE,"",PROPERTY_USAGE_NOEDITOR ), _SCS("set_display_folded"),_SCS("is_displayed_folded" ) );
-
-	BIND_VMETHOD( MethodInfo("_process",PropertyInfo(Variant::REAL,"delta")) );
-	BIND_VMETHOD( MethodInfo("_fixed_process",PropertyInfo(Variant::REAL,"delta")) );
-	BIND_VMETHOD( MethodInfo("_enter_tree") );
-	BIND_VMETHOD( MethodInfo("_exit_tree") );
-	BIND_VMETHOD( MethodInfo("_ready") );
-	BIND_VMETHOD( MethodInfo("_input",PropertyInfo(Variant::INPUT_EVENT,"event")) );
-	BIND_VMETHOD( MethodInfo("_unhandled_input",PropertyInfo(Variant::INPUT_EVENT,"event")) );
-	BIND_VMETHOD( MethodInfo("_unhandled_key_input",PropertyInfo(Variant::INPUT_EVENT,"key_event")) );
->>>>>>> 3db36684b... Added high level networked multiplayer to Godot.
 
 	//ObjectTypeDB::bind_method(_MD("get_child",&Node::get_child,PH("index")));
 	//ObjectTypeDB::bind_method(_MD("get_node",&Node::get_node,PH("path")));
@@ -2551,7 +2878,6 @@ void Node::_bind_methods() {
 
 Node::Node() {
 
-<<<<<<< HEAD
 	data.pos = -1;
 	data.depth = -1;
 	data.blocked = 0;
@@ -2570,37 +2896,14 @@ Node::Node() {
 	data.pause_mode = PAUSE_MODE_INHERIT;
 	data.pause_owner = NULL;
 	data.parent_owned = false;
+    data.network_mode = NETWORK_MODE_INHERIT;
+    data.network_owner = NULL;
+    data.path_cache = NULL;
 	data.in_constructor = true;
 	data.viewport = NULL;
 	data.use_placeholder = false;
 	data.display_folded = false;
-=======
-	data.pos=-1;
-	data.depth=-1;
-	data.blocked=0;
-	data.parent=NULL;
-	data.tree=NULL;
-	data.fixed_process=false;
-	data.idle_process=false;
-	data.inside_tree=false;
 
-	data.owner=NULL;
-	data.OW=NULL;
-	data.input=false;
-	data.unhandled_input=false;
-	data.unhandled_key_input=false;
-	data.pause_mode=PAUSE_MODE_INHERIT;
-	data.pause_owner=NULL;
-	data.network_mode=NETWORK_MODE_INHERIT;
-	data.network_owner=NULL;
-	data.path_cache=NULL;
-	data.parent_owned=false;
-	data.in_constructor=true;
-	data.viewport=NULL;
-	data.use_placeholder=false;
-	data.display_folded=false;
-
->>>>>>> 3db36684b... Added high level networked multiplayer to Godot.
 }
 
 Node::~Node() {
