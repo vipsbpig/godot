@@ -93,9 +93,11 @@ bool InputDefault::is_joy_button_pressed(int p_device, int p_button) {
 	return joy_buttons_pressed.has(_combine_device(p_button, p_device));
 }
 
-bool InputDefault::is_action_pressed(const StringName &p_action) {
+bool InputDefault::is_action_pressed(const StringName &p_action){
 
-	if (custom_action_press.has(p_action))
+	return action_state.has(p_action) && action_state[p_action].pressed;
+#if 0
+    if (custom_action_press.has(p_action))
 		return true; //simpler
 
 	const List<InputEvent> *alist = InputMap::get_singleton()->get_action_list(p_action);
@@ -142,9 +144,37 @@ bool InputDefault::is_action_pressed(const StringName &p_action) {
 	}
 
 	return false;
+#endif
 }
 
-float InputDefault::get_joy_axis(int p_device, int p_axis) {
+bool InputDefault::is_action_just_pressed(const StringName& p_action) const {
+
+	const Map<StringName,Action>::Element *E=action_state.find(p_action);
+	if (!E)
+		return false;
+
+	if (OS::get_singleton()->is_in_fixed_frame()) {
+		return E->get().pressed && E->get().fixed_frame==OS::get_singleton()->get_fixed_frames();
+	} else {
+		return E->get().pressed && E->get().idle_frame==OS::get_singleton()->get_idle_frames();
+	}
+}
+
+bool InputDefault::is_action_just_released(const StringName& p_action) const{
+
+	const Map<StringName,Action>::Element *E=action_state.find(p_action);
+	if (!E)
+		return false;
+
+	if (OS::get_singleton()->is_in_fixed_frame()) {
+		return !E->get().pressed && E->get().fixed_frame==OS::get_singleton()->get_fixed_frames();
+	} else {
+		return !E->get().pressed && E->get().idle_frame==OS::get_singleton()->get_idle_frames();
+	}
+}
+
+
+float InputDefault::get_joy_axis(int p_device,int p_axis) const{
 
 	_THREAD_SAFE_METHOD_
 	int c = _combine_device(p_axis, p_device);
@@ -241,25 +271,25 @@ void InputDefault::joy_connection_changed(int p_idx, bool p_connected, String p_
 	emit_signal("joy_connection_changed", p_idx, p_connected);
 };
 
-Vector3 InputDefault::get_gravity() {
+Vector3 InputDefault::get_gravity() const{
 
 	_THREAD_SAFE_METHOD_
 	return gravity;
 }
 
-Vector3 InputDefault::get_accelerometer() {
+Vector3 InputDefault::get_accelerometer() const{
 
 	_THREAD_SAFE_METHOD_
 	return accelerometer;
 }
 
-Vector3 InputDefault::get_magnetometer() {
+Vector3 InputDefault::get_magnetometer() const{
 
 	_THREAD_SAFE_METHOD_
 	return magnetometer;
 }
 
-Vector3 InputDefault::get_gyroscope() {
+Vector3 InputDefault::get_gyroscope() const{
 
 	_THREAD_SAFE_METHOD_
 	return gyroscope;
@@ -345,8 +375,24 @@ void InputDefault::parse_input_event(const InputEvent &p_event) {
 		} break;
 	}
 
-	if (main_loop)
-		main_loop->input_event(p_event);
+    if (!p_event.is_echo()) {
+        for (const Map<StringName,InputMap::Action>::Element *E=InputMap::get_singleton()->get_action_map().front();E;E=E->next()) {
+
+            if (InputMap::get_singleton()->event_is_action(p_event,E->key())) {
+
+                Action action;
+                action.fixed_frame=OS::get_singleton()->get_fixed_frames();
+                action.idle_frame=OS::get_singleton()->get_idle_frames();
+                action.pressed=p_event.is_pressed();
+
+                action_state[E->key()]=action;
+
+            }
+        }
+    }
+
+    if (main_loop)
+        main_loop->input_event(p_event);
 }
 
 void InputDefault::set_joy_axis(int p_device, int p_axis, float p_value) {
@@ -470,22 +516,27 @@ void InputDefault::iteration(float p_step) {
 
 void InputDefault::action_press(const StringName &p_action) {
 
-	if (custom_action_press.has(p_action)) {
+    Action action;
 
-		custom_action_press[p_action]++;
-	} else {
-		custom_action_press[p_action] = 1;
-	}
+    action.fixed_frame=OS::get_singleton()->get_fixed_frames();
+    action.idle_frame=OS::get_singleton()->get_idle_frames();
+    action.pressed=true;
+
+    action_state[p_action]=action;
+
 }
 
 void InputDefault::action_release(const StringName &p_action) {
 
-	ERR_FAIL_COND(!custom_action_press.has(p_action));
-	custom_action_press[p_action]--;
-	if (custom_action_press[p_action] == 0) {
-		custom_action_press.erase(p_action);
-	}
+    Action action;
+
+    action.fixed_frame=OS::get_singleton()->get_fixed_frames();
+    action.idle_frame=OS::get_singleton()->get_idle_frames();
+    action.pressed=true;
+
+    action_state[p_action]=action;
 }
+
 
 void InputDefault::set_emulate_touch(bool p_emulate) {
 

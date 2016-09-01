@@ -220,6 +220,10 @@ bool InputMap::event_is_action(const InputEvent &p_event, const StringName &p_ac
 	return _find_event(E->get().inputs, p_event) != NULL;
 }
 
+const Map<StringName, InputMap::Action>& InputMap::get_action_map() const {
+	return input_map;
+}
+
 void InputMap::load_from_globals() {
 
 	input_map.clear();

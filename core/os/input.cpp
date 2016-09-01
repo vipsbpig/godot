@@ -5,8 +5,7 @@
 /*                           GODOT ENGINE                                */
 /*                    http://www.godotengine.org                         */
 /*************************************************************************/
-/* Copyright (c) 2007-2017 Juan Linietsky, Ariel Manzur.                 */
-/* Copyright (c) 2014-2017 Godot Engine contributors (cf. AUTHORS.md)    */
+/* Copyright (c) 2007-2016 Juan Linietsky, Ariel Manzur.                 */
 /*                                                                       */
 /* Permission is hereby granted, free of charge, to any person obtaining */
 /* a copy of this software and associated documentation files (the       */
@@ -50,17 +49,19 @@ Input::MouseMode Input::get_mouse_mode() const {
 
 void Input::_bind_methods() {
 
-	ObjectTypeDB::bind_method(_MD("is_key_pressed", "scancode"), &Input::is_key_pressed);
-	ObjectTypeDB::bind_method(_MD("is_mouse_button_pressed", "button"), &Input::is_mouse_button_pressed);
-	ObjectTypeDB::bind_method(_MD("is_joy_button_pressed", "device", "button"), &Input::is_joy_button_pressed);
-	ObjectTypeDB::bind_method(_MD("is_action_pressed", "action"), &Input::is_action_pressed);
-	ObjectTypeDB::bind_method(_MD("add_joy_mapping", "mapping", "update_existing"), &Input::add_joy_mapping, DEFVAL(false));
-	ObjectTypeDB::bind_method(_MD("remove_joy_mapping", "guid"), &Input::remove_joy_mapping);
-	ObjectTypeDB::bind_method(_MD("is_joy_known", "device"), &Input::is_joy_known);
-	ObjectTypeDB::bind_method(_MD("get_joy_axis", "device", "axis"), &Input::get_joy_axis);
-	ObjectTypeDB::bind_method(_MD("get_joy_name", "device"), &Input::get_joy_name);
-	ObjectTypeDB::bind_method(_MD("get_joy_guid", "device"), &Input::get_joy_guid);
-	ObjectTypeDB::bind_method(_MD("get_connected_joysticks"), &Input::get_connected_joysticks);
+	ObjectTypeDB::bind_method(_MD("is_key_pressed","scancode"),&Input::is_key_pressed);
+	ObjectTypeDB::bind_method(_MD("is_mouse_button_pressed","button"),&Input::is_mouse_button_pressed);
+	ObjectTypeDB::bind_method(_MD("is_joy_button_pressed","device","button"),&Input::is_joy_button_pressed);
+	ObjectTypeDB::bind_method(_MD("is_action_pressed","action"),&Input::is_action_pressed);
+	ObjectTypeDB::bind_method(_MD("is_action_just_pressed","action"),&Input::is_action_just_pressed);
+	ObjectTypeDB::bind_method(_MD("is_action_just_released","action"),&Input::is_action_just_released);
+	ObjectTypeDB::bind_method(_MD("add_joy_mapping","mapping", "update_existing"),&Input::add_joy_mapping, DEFVAL(false));
+	ObjectTypeDB::bind_method(_MD("remove_joy_mapping","guid"),&Input::remove_joy_mapping);
+	ObjectTypeDB::bind_method(_MD("is_joy_known","device"),&Input::is_joy_known);
+	ObjectTypeDB::bind_method(_MD("get_joy_axis","device","axis"),&Input::get_joy_axis);
+	ObjectTypeDB::bind_method(_MD("get_joy_name","device"),&Input::get_joy_name);
+	ObjectTypeDB::bind_method(_MD("get_joy_guid","device"),&Input::get_joy_guid);
+	ObjectTypeDB::bind_method(_MD("get_connected_joysticks"),&Input::get_connected_joysticks);
 	ObjectTypeDB::bind_method(_MD("get_joy_vibration_strength", "device"), &Input::get_joy_vibration_strength);
 	ObjectTypeDB::bind_method(_MD("get_joy_vibration_duration", "device"), &Input::get_joy_vibration_duration);
 	ObjectTypeDB::bind_method(_MD("get_joy_button_string", "button_index"), &Input::get_joy_button_string);
@@ -111,6 +112,7 @@ void Input::get_argument_options(const StringName &p_function, int p_idx, List<S
 		}
 	}
 #endif
+
 }
 
 Input::Input() {
@@ -118,4 +120,6 @@ Input::Input() {
 	singleton = this;
 }
 
+
 //////////////////////////////////////////////////////////
+

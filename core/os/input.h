@@ -33,6 +33,7 @@
 #include "object.h"
 #include "os/main_loop.h"
 #include "os/thread_safe.h"
+#include "os/main_loop.h"
 
 class Input : public Object {
 
@@ -59,8 +60,10 @@ public:
 	virtual bool is_mouse_button_pressed(int p_button) = 0;
 	virtual bool is_joy_button_pressed(int p_device, int p_button) = 0;
 	virtual bool is_action_pressed(const StringName &p_action) = 0;
+	virtual bool is_action_just_pressed(const StringName& p_action) const=0;
+	virtual bool is_action_just_released(const StringName& p_action) const=0;
 
-	virtual float get_joy_axis(int p_device, int p_axis) = 0;
+    virtual float get_joy_axis(int p_device, int p_axis) const = 0;
 	virtual String get_joy_name(int p_idx) = 0;
 	virtual Array get_connected_joysticks() = 0;
 	virtual void joy_connection_changed(int p_idx, bool p_connected, String p_name, String p_guid) = 0;
@@ -81,10 +84,10 @@ public:
 	virtual void warp_mouse_pos(const Vector2 &p_to) = 0;
 	virtual Point2i warp_mouse_motion(const InputEventMouseMotion &p_motion, const Rect2 &p_rect) = 0;
 
-	virtual Vector3 get_gravity() = 0;
-	virtual Vector3 get_accelerometer() = 0;
-	virtual Vector3 get_magnetometer() = 0;
-	virtual Vector3 get_gyroscope() = 0;
+	virtual Vector3 get_gravity() const = 0;
+	virtual Vector3 get_accelerometer() const = 0;
+	virtual Vector3 get_magnetometer() const = 0;
+	virtual Vector3 get_gyroscope() const = 0;
 
 	virtual void action_press(const StringName &p_action) = 0;
 	virtual void action_release(const StringName &p_action) = 0;

@@ -5,8 +5,7 @@
 /*                           GODOT ENGINE                                */
 /*                    http://www.godotengine.org                         */
 /*************************************************************************/
-/* Copyright (c) 2007-2017 Juan Linietsky, Ariel Manzur.                 */
-/* Copyright (c) 2014-2017 Godot Engine contributors (cf. AUTHORS.md)    */
+/* Copyright (c) 2007-2016 Juan Linietsky, Ariel Manzur.                 */
 /*                                                                       */
 /* Permission is hereby granted, free of charge, to any person obtaining */
 /* a copy of this software and associated documentation files (the       */
@@ -30,17 +29,20 @@
 #ifndef INPUT_MAP_H
 #define INPUT_MAP_H
 
+
 #include "object.h"
 
 class InputMap : public Object {
 
-	OBJ_TYPE(InputMap, Object);
-	static InputMap *singleton;
-
+	OBJ_TYPE( InputMap, Object );
+public:
 	struct Action {
 		int id;
 		List<InputEvent> inputs;
 	};
+private:
+	static InputMap *singleton;
+
 	mutable Map<StringName, Action> input_map;
 	mutable Map<int, StringName> input_id_map;
 
@@ -51,8 +53,8 @@ class InputMap : public Object {
 
 protected:
 	static void _bind_methods();
-
 public:
+
 	static _FORCE_INLINE_ InputMap *get_singleton() { return singleton; }
 
 	bool has_action(const StringName &p_action) const;
@@ -69,6 +71,7 @@ public:
 	const List<InputEvent> *get_action_list(const StringName &p_action);
 	bool event_is_action(const InputEvent &p_event, const StringName &p_action) const;
 
+	const Map<StringName, Action>& get_action_map() const;
 	void load_from_globals();
 	void load_default();
 
