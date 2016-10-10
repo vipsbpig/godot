@@ -164,6 +164,7 @@ opts.Add('builtin_opus', "Use the builtin opus library (yes/no)", 'yes')
 opts.Add('builtin_speex', "Use the builtin speex library (yes/no)", 'yes')
 opts.Add('builtin_squish', "Use the builtin squish library (yes/no)", 'yes')
 opts.Add('builtin_zlib', "Use the builtin zlib library (yes/no)", 'yes')
+opts.Add('builtin_enet','Use the builtin ENet library (yes/no)','yes')
 
 # Environment setup
 opts.Add("CXX", "C++ compiler")
