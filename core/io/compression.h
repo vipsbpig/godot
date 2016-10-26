@@ -39,9 +39,16 @@ public:
 		MODE_DEFLATE
 	};
 
+<<<<<<< HEAD
 	static int compress(uint8_t *p_dst, const uint8_t *p_src, int p_src_size, Mode p_mode = MODE_FASTLZ);
 	static int get_max_compressed_buffer_size(int p_src_size, Mode p_mode = MODE_FASTLZ);
 	static void decompress(uint8_t *p_dst, int p_dst_max_size, const uint8_t *p_src, int p_src_size, Mode p_mode = MODE_FASTLZ);
+=======
+
+	static int compress(uint8_t *p_dst, const uint8_t *p_src, int p_src_size,Mode p_mode=MODE_FASTLZ);
+	static int get_max_compressed_buffer_size(int p_src_size,Mode p_mode=MODE_FASTLZ);
+	static int decompress(uint8_t *p_dst, int p_dst_max_size, const uint8_t *p_src, int p_src_size,Mode p_mode=MODE_FASTLZ);
+>>>>>>> cbbcf7270... -High Level protocol optimization (should be smaller)
 
 	Compression();
 };
