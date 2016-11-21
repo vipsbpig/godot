@@ -38,10 +38,12 @@ call scons platform=android target=release_debug tools=no -j 7
 echo Building Release!
 call scons platform=android target=release tools=no -j 7
 cd platform/android/java/
-call gradlew.bat build 
+call gradlew.bat build
 cd ..\..\..
 copy "bin\android_debug.apk"  "%USERPROFILE%\AppData\Roaming\Godot\templates\android_debug.apk"
+copy "bin\android_debug.apk"  "templates"
 copy "bin\android_release.apk"  "%USERPROFILE%\AppData\Roaming\Godot\templates\android_release.apk"
+copy "bin\android_release.apk"  "templates"
 
 :end
 ENDLOCAL
