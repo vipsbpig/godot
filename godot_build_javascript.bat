@@ -72,12 +72,10 @@ cd ..\..
 rmdir /s/q templates\html_fs
 
 mkdir templates\html_fs
-copy tools\dist\html_fs\godotfs.js templates\html_fs
-copy bin\godot.javascript.opt.exe.html templates\html_fs
+copy tools\dist\html_fs templates\html_fs
 copy bin\godot.javascript.opt.exe.html.mem templates\html_fs
 copy bin\godot.javascript.opt.exe.js templates\html_fs
 cd templates\html_fs
-rename godot.javascript.opt.exe.html godot.html
 rename godot.javascript.opt.exe.html.mem godot.mem
 rename godot.javascript.opt.exe.js godot.js
 7z a ..\javascript_release.zip godot.html godot.js godot.mem godotfs.js
