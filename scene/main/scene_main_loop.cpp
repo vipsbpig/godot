@@ -63,9 +63,19 @@ float SceneTreeTimer::get_time_left() const {
 	return time_left;
 }
 
+void SceneTreeTimer::set_pause_mode_process(bool p_pause_mode_process) {
+	if (process_pause != p_pause_mode_process) {
+		process_pause = p_pause_mode_process;
+	}
+}
+
+bool SceneTreeTimer::is_pause_mode_process() {
+	return process_pause;
+}
 
 SceneTreeTimer::SceneTreeTimer() {
 	time_left=0;
+	process_pause = true;
 }
 
 
@@ -559,12 +569,15 @@ bool SceneTree::idle(float p_time) {
 	for (List<Ref<SceneTreeTimer> >::Element *E=timers.front();E;) {
 
 		List<Ref<SceneTreeTimer> >::Element *N = E->next();
-
+		if (pause && !E->get()->is_pause_mode_process()) {
+			E=N;
+			continue;
+		}
 		float time_left = E->get()->get_time_left();
 		time_left-=p_time;
 		E->get()->set_time_left(time_left);
 
-		if (time_left<0) {
+        if (time_left<0) {
 			E->get()->emit_signal("timeout");
 			timers.erase(E);
 		}
@@ -2070,10 +2083,11 @@ void SceneTree::_network_poll() {
 
 }
 
-Ref<SceneTreeTimer> SceneTree::create_timer(float p_delay_sec) {
+Ref<SceneTreeTimer> SceneTree::create_timer(float p_delay_sec, bool p_process_pause) {
 
 	Ref<SceneTreeTimer> stt;
 	stt.instance();
+	stt->set_pause_mode_process(p_process_pause);
 	stt->set_time_left(p_delay_sec);
 	timers.push_back(stt);
 	return stt;
@@ -2109,7 +2123,7 @@ void SceneTree::_bind_methods() {
 	ObjectTypeDB::bind_method(_MD("set_input_as_handled"), &SceneTree::set_input_as_handled);
 	ObjectTypeDB::bind_method(_MD("is_input_handled"), &SceneTree::is_input_handled);
 
-	ObjectTypeDB::bind_method(_MD("create_timer:SceneTreeTimer","time_sec"),&SceneTree::create_timer);
+    ObjectTypeDB::bind_method(_MD("create_timer:SceneTreeTimer","time_sec", "pause_mode_process"),&SceneTree::create_timer, DEFVAL(true));
 
 	ObjectTypeDB::bind_method(_MD("get_node_count"), &SceneTree::get_node_count);
 	ObjectTypeDB::bind_method(_MD("get_frame"), &SceneTree::get_frame);
