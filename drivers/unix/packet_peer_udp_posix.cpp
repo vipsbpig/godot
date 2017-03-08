@@ -6,7 +6,6 @@
 /*                    http://www.godotengine.org                         */
 /*************************************************************************/
 /* Copyright (c) 2007-2017 Juan Linietsky, Ariel Manzur.                 */
-/* Copyright (c) 2014-2017 Godot Engine contributors (cf. AUTHORS.md)    */
 /*                                                                       */
 /* Permission is hereby granted, free of charge, to any person obtaining */
 /* a copy of this software and associated documentation files (the       */
@@ -108,10 +107,14 @@ Error PacketPeerUDPPosix::put_packet(const uint8_t *p_buffer, int p_buffer_size)
 	errno = 0;
 	int err;
 
+	_set_sock_blocking(blocking);
+
 	while ((err = sendto(sock, p_buffer, p_buffer_size, 0, (struct sockaddr *)&addr, addr_size)) != p_buffer_size) {
 
 		if (errno != EAGAIN) {
 			return FAILED;
+		} else if (!blocking) {
+			return ERR_UNAVAILABLE;
 		}
 	}
 
@@ -173,6 +176,8 @@ Error PacketPeerUDPPosix::_poll(bool p_wait) {
 	if (sockfd == -1) {
 		return FAILED;
 	}
+
+	_set_sock_blocking(p_wait);
 
 	struct sockaddr_storage from = { 0 };
 	socklen_t len = sizeof(struct sockaddr_storage);
@@ -244,10 +249,36 @@ int PacketPeerUDPPosix::_get_socket() {
 
 	sockfd = _socket_create(sock_type, SOCK_DGRAM, IPPROTO_UDP);
 
+	if (sockfd != -1)
+		_set_sock_blocking(false);
+
 	return sockfd;
 }
 
-void PacketPeerUDPPosix::set_send_address(const IP_Address &p_address, int p_port) {
+void PacketPeerUDPPosix::_set_sock_blocking(bool p_blocking) {
+
+	if (sock_blocking == p_blocking)
+		return;
+
+	sock_blocking = p_blocking;
+
+#ifndef NO_FCNTL
+	int opts = fcntl(sockfd, F_GETFL);
+	int ret = 0;
+	if (sock_blocking)
+		ret = fcntl(sockfd, F_SETFL, opts & ~O_NONBLOCK);
+	else
+		ret = fcntl(sockfd, F_SETFL, opts | O_NONBLOCK);
+	if (ret == -1)
+		perror("setting non-block mode");
+#else
+	int bval = sock_blocking ? 0 : 1;
+	if (ioctl(sockfd, FIONBIO, &bval) == -1)
+		perror("setting non-block mode");
+#endif
+}
+
+void PacketPeerUDPPosix::set_dest_address(const IP_Address &p_address, int p_port) {
 
 	peer_addr = p_address;
 	peer_port = p_port;
@@ -265,6 +296,8 @@ void PacketPeerUDPPosix::make_default() {
 
 PacketPeerUDPPosix::PacketPeerUDPPosix() {
 
+	blocking = true;
+	sock_blocking = true;
 	sockfd = -1;
 	packet_port = 0;
 	queue_count = 0;
