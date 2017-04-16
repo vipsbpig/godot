@@ -1093,7 +1093,7 @@ def update_version():
         print("Using custom revision: " + rev)
     import version
 
-    f = open("core/version.h", "wb")
+    f = open("core/version_generated.h", "wb")
     f.write("#define VERSION_SHORT_NAME " + str(version.short_name) + "\n")
     f.write("#define VERSION_NAME " + str(version.name) + "\n")
     f.write("#define VERSION_MAJOR " + str(version.major) + "\n")
@@ -1307,6 +1307,11 @@ def android_add_jni_dir(self, subpath):
     base_path = self.Dir(".").abspath + "/modules/" + self.current_module + "/" + subpath
     self.android_jni_dirs.append(base_path)
 
+def android_add_gradle_plugin(self, plugin):
+    self.android_gradle_plugins.append(plugin)
+
+def android_add_gradle_classpath(self, classpath):
+    self.android_gradle_classpath.append(classpath)
 
 def android_add_default_config(self, config):
     self.android_default_config.append(config)
