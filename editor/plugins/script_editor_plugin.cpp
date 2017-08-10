@@ -27,13 +27,13 @@
 /* SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.                */
 /*************************************************************************/
 #include "script_editor_plugin.h"
-#include "tools/editor/editor_settings.h"
+#include "editor/editor_settings.h"
 #include "io/resource_loader.h"
 #include "io/resource_saver.h"
 #include "os/keyboard.h"
 #include "os/os.h"
-#include "tools/editor/editor_node.h"
-#include "tools/editor/script_editor_debugger.h"
+#include "editor/editor_node.h"
+#include "editor/script_editor_debugger.h"
 #include "globals.h"
 #include "os/file_access.h"
 #include "scene/main/viewport.h"
