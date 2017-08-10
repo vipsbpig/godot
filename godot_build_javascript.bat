@@ -1,6 +1,8 @@
 @echo off
 SETLOCAL
 
+call set EMSCRIPTEN_ROOT=D:\develop\emsdk\emscripten\master
+
 
 IF "%1" == "debug" goto build_DEBUG
 IF "%1" == "release" goto build_RELEASE
