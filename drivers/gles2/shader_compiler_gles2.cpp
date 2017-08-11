@@ -512,8 +512,14 @@ String ShaderCompilerGLES2::dump_node_code(SL::Node *p_node, int p_level, bool p
 
 				code += "}" ENDL;
 
-			} else if (cfnode->flow_op == SL::FLOW_OP_RETURN) {
+			}
+			else if (cfnode->flow_op==SL::FLOW_OP_WHILE) {
+				// TODO: _LOOPNUM_ should be an int if possible
+				code+="{\n float _LOOPNUM_ = 0;\nwhile ( _LOOPNUM_ < 100 && ("+dump_node_code(cfnode->statements[0],p_level)+")) {"ENDL;
+				code+=dump_node_code(cfnode->statements[1],p_level+1)+"\n _LOOPNUM_ += 1;\n";
 
+				code+="}\n}"ENDL;
+			} else if (cfnode->flow_op==SL::FLOW_OP_RETURN) {
 				if (cfnode->statements.size()) {
 					code = "return " + dump_node_code(cfnode->statements[0], p_level);
 				} else {

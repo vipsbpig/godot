@@ -79,6 +79,7 @@ public:
 		TK_OP_ASSIGN_MUL,
 		TK_OP_ASSIGN_DIV,
 		TK_CF_IF,
+		TK_CF_WHILE,
 		TK_CF_ELSE,
 		TK_CF_RETURN,
 		TK_BRACKET_OPEN,
@@ -150,7 +151,7 @@ public:
 		FLOW_OP_IF,
 		FLOW_OP_RETURN,
 		//FLOW_OP_FOR,
-		//FLOW_OP_WHILE,
+		FLOW_OP_WHILE,
 		//FLOW_OP_DO,
 		//FLOW_OP_BREAK,
 		//FLOW_OP_CONTINUE,
@@ -416,6 +417,7 @@ private:
 	static Error parse_variable_declaration(Parser &parser, BlockNode *p_block);
 	static Error parse_function(Parser &parser, BlockNode *p_block);
 	static Error parse_flow_if(Parser &parser, Node *p_parent, Node **r_statement);
+	static Error parse_flow_while(Parser& parser,Node *p_parent,Node **r_statement);
 	static Error parse_flow_return(Parser &parser, Node *p_parent, Node **r_statement);
 	static Error parse_statement(Parser &parser, Node *p_parent, Node **r_statement);
 	static Error parse_block(Parser &parser, BlockNode *p_block);
