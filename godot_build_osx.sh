@@ -13,4 +13,4 @@ cp bin/godot.osx.opt.32 bin/osx_template.app/Contents/MacOS/
 #cp bin/godot.osx.opt.64 bin/osx_template.app/Contents/MacOS/
 #cp bin/godot.osx.opt.debug.64 bin/osx_template.app/Contents/MacOS/
 
-zip -r9 bin/osx.zip osx_template.app
+zip -r9 bin/osx.zip bin/osx_template.app
