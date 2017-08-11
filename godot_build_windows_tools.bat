@@ -1,7 +1,7 @@
 @echo off
 SETLOCAL
 
-call "C:\Program Files (x86)\Microsoft Visual Studio 12.0\VC\vcvarsall.bat" x86_amd64
+call "C:\Program Files (x86)\Microsoft Visual Studio 12.0\VC\vcvarsall.bat" x86
 
 IF "%1" == "debug" goto build_DEBUG
 IF "%1" == "release" goto build_RELEASE
@@ -10,16 +10,16 @@ IF "%1" == "release_debug" goto build_RELEASE_DEBUG
 goto end
 
 :build_DEBUG
-echo Building Debug 64bits!
+echo Building Debug 32bits!
 call scons platform=windows target=debug -j 7
-move ".\bin\godot.windows.tools.64.exe" ".\..\..\bin\godot.windows.tools.64.exe"
+move ".\bin\godot.windows.tools.32.exe" ".\..\..\bin\godot.windows.tools.32.exe"
 call upx -9 ".\..\..\bin\godot.windows.tools.64.exe"
 goto end
 
 :build_RELEASE_DEBUG
-echo Building Release_Debug 64bits!
+echo Building Release_Debug 32bits!
 call scons platform=windows target=release_debug -j 7
-move ".\bin\godot.windows.opt.tools.64.exe" ".\..\..\bin\godot.windows.opt.tools.64.exe"
+move ".\bin\godot.windows.opt.tools.32.exe" ".\..\..\bin\godot.windows.opt.tools.32.exe"
 call upx -9 ".\..\..\bin\godot.windows.opt.tools.64.exe"
 goto end
 
