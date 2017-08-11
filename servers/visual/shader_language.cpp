@@ -83,6 +83,7 @@ const char *ShaderLanguage::token_names[TK_MAX] = {
 	"OP_ASSIGN_MUL",
 	"OP_ASSIGN_DIV",
 	"CF_IF",
+	"CF_WHILE",
 	"CF_ELSE",
 	"CF_RETURN",
 	"BRACKET_OPEN",
@@ -419,10 +420,10 @@ ShaderLanguage::Token ShaderLanguage::read_token(const CharType *p_text, int p_l
 					{ TK_TYPE_MAT4, "mat4" },
 					{ TK_CF_IF, "if" },
 					{ TK_CF_ELSE, "else" },
-					/*
-					{TK_CF_FOR,"for"},
+
+                    //{TK_CF_FOR,"for"},
 					{TK_CF_WHILE,"while"},
-					{TK_CF_DO,"do"},
+                    /*{TK_CF_DO,"do"},
 					{TK_CF_SWITCH,"switch"},
 					{TK_CF_BREAK,"break"},
 					{TK_CF_CONTINUE,"continue"},*/
@@ -2346,6 +2347,73 @@ Error ShaderLanguage::parse_flow_if(Parser &parser, Node *p_parent, Node **r_sta
 	return OK;
 }
 
+Error ShaderLanguage::parse_flow_while(Parser& parser,Node *p_parent,Node **r_statement) {
+
+	ControlFlowNode *cf = parser.create_node<ControlFlowNode>(p_parent);
+
+	cf->flow_op=FLOW_OP_WHILE;
+
+	parser.advance();
+
+    if (parser.get_next_token_type()!=TK_PARENTHESIS_OPEN) {
+		parser.set_error("Expected '(' after 'while'");
+		return ERR_PARSE_ERROR;
+	}
+	parser.advance();
+
+	Node *expression=NULL;
+	Error err = parse_expression(parser,cf,&expression);
+	if (err)
+		return err;
+
+	if (compute_node_type(expression)!=TYPE_BOOL) {
+
+		parser.set_error("Expression for 'while' is not boolean");
+		return ERR_PARSE_ERROR;
+	}
+
+	cf->statements.push_back(expression);
+
+    if (parser.get_next_token_type()!=TK_PARENTHESIS_CLOSE) {
+		parser.set_error("Expected ')' after expression");
+		return ERR_PARSE_ERROR;
+	}
+
+	parser.advance();
+
+    if (parser.get_next_token_type() != TK_CURLY_BRACKET_OPEN) {
+		parser.set_error("Expected statement block after 'while()'");
+		return ERR_PARSE_ERROR;
+	}
+
+	Node *substatement=NULL;
+	err = parse_statement(parser,cf,&substatement);
+	if (err)
+		return err;
+
+
+	cf->statements.push_back(substatement);
+
+
+
+	/*if (parser.get_token_type()==TK_CF_ELSE) {
+
+		parser.advance();
+		substatement=NULL;
+		err = parse_statement(parser,cf,&substatement);
+		if (err)
+			return err;
+
+		cf->statements.push_back(substatement);
+	}*/
+
+
+
+	*r_statement=cf;
+
+	return OK;
+}
+
 Error ShaderLanguage::parse_flow_return(Parser &parser, Node *p_parent, Node **r_statement) {
 
 	FunctionNode *function = NULL;
@@ -2417,7 +2485,9 @@ Error ShaderLanguage::parse_statement(Parser &parser, Node *p_parent, Node **r_s
 		// empty ;
 		parser.advance();
 		return OK;
-	} else if (token_type == TK_CF_IF) {
+    } else if (token_type == TK_CF_WHILE) {
+        return parse_flow_while(parser, p_parent, r_statement);
+    } else if (token_type == TK_CF_IF) {
 		return parse_flow_if(parser, p_parent, r_statement);
 
 	} else if (token_type == TK_CF_RETURN) {
@@ -2609,6 +2679,7 @@ void ShaderLanguage::get_keyword_list(ShaderType p_type, List<String> *p_keyword
 	p_keywords->push_back("color");
 	p_keywords->push_back("if");
 	p_keywords->push_back("else");
+    p_keywords->push_back("while");
 
 	while (intrinsic_func_defs[idx].name) {
 
