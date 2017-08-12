@@ -1,6 +1,9 @@
 @echo off
 SETLOCAL
 
+call set ANDROID_HOME=D:\develop\android-sdk-windows
+call set ANDROID_NDK_ROOT=D:\develop\android-ndk-r12b
+
 IF "%1" == "debug" goto build_DEBUG
 IF "%1" == "release" goto build_RELEASE
 IF "%1" == "release_debug" goto build_RELEASE_DEBUG
