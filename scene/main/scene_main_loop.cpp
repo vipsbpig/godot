@@ -31,6 +31,7 @@
 
 #include "globals.h"
 #include "io/resource_loader.h"
+#include "io/marshalls.h"
 #include "message_queue.h"
 #include "node.h"
 #include "os/keyboard.h"
