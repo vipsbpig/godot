@@ -349,6 +349,7 @@ NodePath::NodePath(const String &p_path) {
 
 				from = i + 1;
 			}
+
 		}
 
 		path = path.substr(0, subpath_pos);
@@ -366,6 +367,8 @@ NodePath::NodePath(const String &p_path) {
 
 			last_is_slash = false;
 		}
+
+
 	}
 
 	if (slices == 0 && !absolute && !property)
@@ -399,6 +402,7 @@ NodePath::NodePath(const String &p_path) {
 		} else {
 			last_is_slash = false;
 		}
+
 	}
 }
 

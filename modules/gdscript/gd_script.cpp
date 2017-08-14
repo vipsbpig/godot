@@ -237,6 +237,50 @@ void GDScript::_update_placeholder(PlaceHolderScriptInstance *p_placeholder) {
 }*/
 #endif
 
+
+void GDScript::get_script_method_list(List<MethodInfo> *p_list) const {
+
+	for (const Map<StringName,GDFunction*>::Element *E=member_functions.front();E;E=E->next()) {
+		MethodInfo mi;
+		mi.name=E->key();
+		for(int i=0;i<E->get()->get_argument_count();i++) {
+			PropertyInfo arg;
+			arg.type=Variant::NIL; //variant
+			arg.name=E->get()->get_argument_name(i);
+			mi.arguments.push_back(arg);
+		}
+
+		mi.return_val.name="Variant";
+		p_list->push_back(mi);
+	}
+}
+
+bool GDScript::has_method(const StringName& p_method) const {
+
+	return member_functions.has(p_method);
+}
+
+MethodInfo GDScript::get_method_info(const StringName& p_method) const {
+
+	const Map<StringName,GDFunction*>::Element *E=member_functions.find(p_method);
+	if (!E)
+		return MethodInfo();
+
+	MethodInfo mi;
+	mi.name=E->key();
+	for(int i=0;i<E->get()->get_argument_count();i++) {
+		PropertyInfo arg;
+		arg.type=Variant::NIL; //variant
+		arg.name=E->get()->get_argument_name(i);
+		mi.arguments.push_back(arg);
+	}
+
+	mi.return_val.name="Variant";
+	return mi;
+
+}
+
+
 bool GDScript::get_property_default_value(const StringName &p_property, Variant &r_value) const {
 
 #ifdef TOOLS_ENABLED
@@ -1181,6 +1225,46 @@ ScriptLanguage *GDInstance::get_language() {
 	return GDScriptLanguage::get_singleton();
 }
 
+GDInstance::RPCMode GDInstance::get_rpc_mode(const StringName& p_method) const {
+
+	const GDScript *cscript = script.ptr();
+
+	while(cscript) {
+		const Map<StringName,GDFunction*>::Element *E=cscript->member_functions.find(p_method);
+		if (E) {
+
+			if (E->get()->get_rpc_mode()!=RPC_MODE_DISABLED) {
+				return E->get()->get_rpc_mode();
+			}
+
+		}
+		cscript=cscript->_base;
+	}
+
+	return RPC_MODE_DISABLED;
+}
+
+GDInstance::RPCMode GDInstance::get_rset_mode(const StringName& p_variable) const {
+
+	const GDScript *cscript = script.ptr();
+
+	while(cscript) {
+		const Map<StringName,GDScript::MemberInfo>::Element *E=cscript->member_indices.find(p_variable);
+		if (E) {
+
+			if (E->get().rpc_mode) {
+				return E->get().rpc_mode;
+			}
+
+		}
+		cscript=cscript->_base;
+	}
+
+	return RPC_MODE_DISABLED;
+}
+
+
+
 void GDInstance::reload_members() {
 
 #ifdef DEBUG_ENABLED
@@ -1666,6 +1750,10 @@ void GDScriptLanguage::get_reserved_words(List<String> *p_words) const {
 		"pass",
 		"return",
 		"while",
+		"remote",
+		"sync",
+		"master",
+		"slave",
 		0
 	};
 

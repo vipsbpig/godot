@@ -180,7 +180,8 @@ StringName::StringName(const char *p_name) {
 
 	ERR_FAIL_COND(!configured);
 
-	ERR_FAIL_COND(!p_name || !p_name[0]);
+	if (!p_name || p_name[0]==0)
+		return; //empty, ignore
 
 	_global_lock();
 
@@ -275,6 +276,9 @@ StringName::StringName(const String &p_name) {
 	_data = NULL;
 
 	ERR_FAIL_COND(!configured);
+
+	if (p_name==String())
+		return;
 
 	if (p_name.empty())
 		return;

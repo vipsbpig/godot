@@ -61,6 +61,7 @@ class GDScript : public Script {
 		int index;
 		StringName setter;
 		StringName getter;
+		ScriptInstance::RPCMode rpc_mode;
 	};
 
 	friend class GDInstance;
@@ -174,7 +175,13 @@ public:
 
 	Vector<uint8_t> get_as_byte_code() const;
 
+
 	bool get_property_default_value(const StringName &p_property, Variant &r_value) const;
+
+	virtual void get_script_method_list(List<MethodInfo> *p_list) const;
+	virtual bool has_method(const StringName& p_method) const;
+	virtual MethodInfo get_method_info(const StringName& p_method) const;
+
 
 	virtual ScriptLanguage *get_language() const;
 
@@ -224,6 +231,10 @@ public:
 
 	void reload_members();
 
+	virtual RPCMode get_rpc_mode(const StringName& p_method) const;
+	virtual RPCMode get_rset_mode(const StringName& p_variable) const;
+
+
 	GDInstance();
 	~GDInstance();
 };
@@ -234,6 +245,7 @@ class GDScriptLanguage : public ScriptLanguage {
 
 	Variant *_global_array;
 	Vector<Variant> global_array;
+
 	Map<StringName, int> globals;
 
 	struct CallLevel {

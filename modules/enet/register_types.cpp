@@ -1,12 +1,11 @@
 /*************************************************************************/
-/*  compression.h                                                        */
+/*  register_types.cpp                                                   */
 /*************************************************************************/
 /*                       This file is part of:                           */
 /*                           GODOT ENGINE                                */
 /*                    http://www.godotengine.org                         */
 /*************************************************************************/
-/* Copyright (c) 2007-2017 Juan Linietsky, Ariel Manzur.                 */
-/* Copyright (c) 2014-2017 Godot Engine contributors (cf. AUTHORS.md)    */
+/* Copyright (c) 2007-2016 Juan Linietsky, Ariel Manzur.                 */
 /*                                                                       */
 /* Permission is hereby granted, free of charge, to any person obtaining */
 /* a copy of this software and associated documentation files (the       */
@@ -27,23 +26,26 @@
 /* TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE     */
 /* SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.                */
 /*************************************************************************/
-#ifndef COMPRESSION_H
-#define COMPRESSION_H
+#include "register_types.h"
+#include "error_macros.h"
+#include "networked_multiplayer_enet.h"
 
-#include "typedefs.h"
+static bool enet_ok=false;
 
-class Compression {
-public:
-	enum Mode {
-		MODE_FASTLZ,
-		MODE_DEFLATE
-	};
+void register_enet_types() {
 
-	static int compress(uint8_t *p_dst, const uint8_t *p_src, int p_src_size, Mode p_mode = MODE_FASTLZ);
-	static int get_max_compressed_buffer_size(int p_src_size, Mode p_mode = MODE_FASTLZ);
-	static int decompress(uint8_t *p_dst, int p_dst_max_size, const uint8_t *p_src, int p_src_size,Mode p_mode=MODE_FASTLZ);
+	if (enet_initialize() !=0 ) {
+		ERR_PRINT("ENet initialization failure");
+	} else {
+		enet_ok=true;
+	}
 
-	Compression();
-};
+	ObjectTypeDB::register_type<NetworkedMultiplayerENet>();
+}
 
-#endif // COMPRESSION_H
+void unregister_enet_types() {
+
+	if (enet_ok)
+		enet_deinitialize();
+
+}
