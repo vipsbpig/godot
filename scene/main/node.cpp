@@ -2827,6 +2827,10 @@ void Node::_bind_methods() {
         
         
     }
+	ObjectTypeDB::bind_method(_MD("rset","property","value:Variant"),&Node::rset);
+	ObjectTypeDB::bind_method(_MD("rset_id","peer_id","property","value:Variant"),&Node::rset_id);
+	ObjectTypeDB::bind_method(_MD("rset_unreliable","property","value:Variant"),&Node::rset_unreliable);
+	ObjectTypeDB::bind_method(_MD("rset_unreliable_id","peer_id","property","value:Variant"),&Node::rset_unreliable_id);
 
 	BIND_CONSTANT(NOTIFICATION_ENTER_TREE);
 	BIND_CONSTANT(NOTIFICATION_EXIT_TREE);
@@ -2842,7 +2846,16 @@ void Node::_bind_methods() {
 	BIND_CONSTANT(NOTIFICATION_INSTANCED);
 	BIND_CONSTANT(NOTIFICATION_DRAG_BEGIN);
 	BIND_CONSTANT(NOTIFICATION_DRAG_END);
+	BIND_CONSTANT( NOTIFICATION_PATH_CHANGED);
 
+	BIND_CONSTANT( NETWORK_MODE_INHERIT );
+	BIND_CONSTANT( NETWORK_MODE_MASTER );
+	BIND_CONSTANT( NETWORK_MODE_SLAVE );
+	BIND_CONSTANT( RPC_MODE_DISABLED );
+	BIND_CONSTANT( RPC_MODE_REMOTE );
+	BIND_CONSTANT( RPC_MODE_SYNC );
+	BIND_CONSTANT( RPC_MODE_MASTER );
+	BIND_CONSTANT( RPC_MODE_SLAVE );
 	BIND_CONSTANT(PAUSE_MODE_INHERIT);
 	BIND_CONSTANT(PAUSE_MODE_STOP);
 	BIND_CONSTANT(PAUSE_MODE_PROCESS);
@@ -2895,10 +2908,11 @@ Node::Node() {
 	data.unhandled_key_input = false;
 	data.pause_mode = PAUSE_MODE_INHERIT;
 	data.pause_owner = NULL;
-	data.parent_owned = false;
+
     data.network_mode = NETWORK_MODE_INHERIT;
     data.network_owner = NULL;
     data.path_cache = NULL;
+	data.parent_owned = false;
 	data.in_constructor = true;
 	data.viewport = NULL;
 	data.use_placeholder = false;
