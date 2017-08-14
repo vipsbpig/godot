@@ -8,6 +8,7 @@ Import('env_modules')
 if (env["builtin_enet"] != "no"): # builtin
 	thirdparty_dir = "#thirdparty/enet/"
 	thirdparty_enet_sources = [
+                "godot.cpp",
 		"callbacks.c",
 		"compress.c",
 		"host.c",
@@ -15,8 +16,6 @@ if (env["builtin_enet"] != "no"): # builtin
 		"packet.c",
 		"peer.c",
 		"protocol.c",
-		"unix.c",
-		"win32.c",
 	]
 	thirdparty_enet_sources = [thirdparty_dir + file for file in thirdparty_enet_sources]
 
