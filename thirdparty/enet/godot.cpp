@@ -129,11 +129,11 @@ int enet_socket_send(ENetSocket socket, const ENetAddress *address, const ENetBu
 	size_t i = 0;
 
 	dest.set_ipv6(address->host);
-	sock->set_dest_address(dest, address->port);
+    sock->set_send_address(dest, address->port);
 
 	// Create a single packet.
-	PoolVector<uint8_t> out;
-	PoolVector<uint8_t>::Write w;
+    Vector<uint8_t> out;
+    //Vector<uint8_t> w;
 	int size = 0;
 	int pos = 0;
 	for (i = 0; i < bufferCount; i++) {
@@ -141,13 +141,13 @@ int enet_socket_send(ENetSocket socket, const ENetAddress *address, const ENetBu
 	}
 
 	out.resize(size);
-	w = out.write();
+    //w = out.write();
 	for (i = 0; i < bufferCount; i++) {
-		memcpy(&w[pos], buffers[i].data, buffers[i].dataLength);
+        memcpy(&out[pos], buffers[i].data, buffers[i].dataLength);
 		pos += buffers[i].dataLength;
 	}
 
-	err = sock->put_packet((const uint8_t *)&w[0], size);
+    err = sock->put_packet((const uint8_t *)&out[0], size);
 	if (err != OK) {
 
 		if (err == ERR_UNAVAILABLE) { // blocking call

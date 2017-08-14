@@ -53,7 +53,6 @@ Error NetworkedMultiplayerENet::create_server(int p_port, int p_max_clients, int
 	ERR_FAIL_COND_V(active, ERR_ALREADY_IN_USE);
 
 	ENetAddress address;
-	address.host = bind_ip;
 
 #ifdef GODOT_ENET
 	if (bind_ip.is_wildcard()) {
@@ -644,12 +643,12 @@ void NetworkedMultiplayerENet::enet_compressor_destroy(void *context) {
 
 void NetworkedMultiplayerENet::_bind_methods() {
 
-	ClassDB::bind_method(D_METHOD("create_server", "port", "max_clients", "in_bandwidth", "out_bandwidth"), &NetworkedMultiplayerENet::create_server, DEFVAL(32), DEFVAL(0), DEFVAL(0));
-	ClassDB::bind_method(D_METHOD("create_client", "ip", "port", "in_bandwidth", "out_bandwidth"), &NetworkedMultiplayerENet::create_client, DEFVAL(0), DEFVAL(0));
-	ClassDB::bind_method(D_METHOD("close_connection"), &NetworkedMultiplayerENet::close_connection);
-	ClassDB::bind_method(D_METHOD("set_compression_mode", "mode"), &NetworkedMultiplayerENet::set_compression_mode);
-	ClassDB::bind_method(D_METHOD("get_compression_mode"), &NetworkedMultiplayerENet::get_compression_mode);
-	ClassDB::bind_method(D_METHOD("set_bind_ip", "ip"), &NetworkedMultiplayerENet::set_bind_ip);
+    ObjectTypeDB::bind_method(_MD("create_server","port","max_clients","in_bandwidth","out_bandwidth"),&NetworkedMultiplayerENet::create_server,DEFVAL(32),DEFVAL(0),DEFVAL(0));
+    ObjectTypeDB::bind_method(_MD("create_client","ip","port","in_bandwidth","out_bandwidth"),&NetworkedMultiplayerENet::create_client,DEFVAL(0),DEFVAL(0));
+    ObjectTypeDB::bind_method(_MD("close_connection"),&NetworkedMultiplayerENet::close_connection);
+    ObjectTypeDB::bind_method(_MD("set_compression_mode","mode"),&NetworkedMultiplayerENet::set_compression_mode);
+    ObjectTypeDB::bind_method(_MD("get_compression_mode"),&NetworkedMultiplayerENet::get_compression_mode);
+    ObjectTypeDB::bind_method(_MD("set_bind_ip", "ip"),&NetworkedMultiplayerENet::set_bind_ip);
 
 	BIND_CONSTANT(COMPRESS_NONE);
 	BIND_CONSTANT(COMPRESS_RANGE_CODER);
