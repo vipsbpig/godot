@@ -1,12 +1,11 @@
 /*************************************************************************/
-/*  packet_peer_udp_winsock.h                                            */
+/*  godot.h                                                              */
 /*************************************************************************/
 /*                       This file is part of:                           */
 /*                           GODOT ENGINE                                */
 /*                    http://www.godotengine.org                         */
 /*************************************************************************/
 /* Copyright (c) 2007-2017 Juan Linietsky, Ariel Manzur.                 */
-/* Copyright (c) 2014-2017 Godot Engine contributors (cf. AUTHORS.md)    */
 /*                                                                       */
 /* Permission is hereby granted, free of charge, to any person obtaining */
 /* a copy of this software and associated documentation files (the       */
@@ -27,58 +26,46 @@
 /* TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE     */
 /* SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.                */
 /*************************************************************************/
-#ifndef PACKET_PEER_UDP_WINSOCK_H
-#define PACKET_PEER_UDP_WINSOCK_H
+/**
+ @file  godot.h
+ @brief ENet Godot header
+*/
 
-#include "io/packet_peer_udp.h"
-#include "ring_buffer.h"
+#ifndef __ENET_GODOT_H__
+#define __ENET_GODOT_H__
 
-class PacketPeerUDPWinsock : public PacketPeerUDP {
+#ifdef WINDOWS_ENABLED
+#include <stdint.h>
+#include <winsock2.h>
+#endif
+#ifdef UNIX_ENABLED
+#include <arpa/inet.h>
+#endif
 
-	enum {
-		PACKET_BUFFER_SIZE = 65536
-	};
+#ifdef MSG_MAXIOVLEN
+#define ENET_BUFFER_MAXIMUM MSG_MAXIOVLEN
+#endif
 
-	mutable RingBuffer<uint8_t> rb;
-	uint8_t recv_buffer[PACKET_BUFFER_SIZE];
-	mutable uint8_t packet_buffer[PACKET_BUFFER_SIZE];
-	mutable IP_Address packet_ip;
-	mutable int packet_port;
-	mutable int queue_count;
-	int sockfd;
-	bool sock_blocking;
-	IP::Type sock_type;
+typedef void *ENetSocket;
 
-	IP_Address peer_addr;
-	int peer_port;
+#define ENET_SOCKET_NULL NULL
 
-	_FORCE_INLINE_ int _get_socket();
+#define ENET_HOST_TO_NET_16(value) (htons(value)) /**< macro that converts host to net byte-order of a 16-bit value */
+#define ENET_HOST_TO_NET_32(value) (htonl(value)) /**< macro that converts host to net byte-order of a 32-bit value */
 
-	static PacketPeerUDP *_create();
+#define ENET_NET_TO_HOST_16(value) (ntohs(value)) /**< macro that converts net to host byte-order of a 16-bit value */
+#define ENET_NET_TO_HOST_32(value) (ntohl(value)) /**< macro that converts net to host byte-order of a 32-bit value */
 
-	void _set_sock_blocking(bool p_blocking);
+typedef struct
+{
+	void *data;
+	size_t dataLength;
+} ENetBuffer;
 
-	Error _poll(bool p_wait);
+#define ENET_CALLBACK
 
-public:
-	virtual int get_available_packet_count() const;
-	virtual Error get_packet(const uint8_t **r_buffer, int &r_buffer_size) const;
-	virtual Error put_packet(const uint8_t *p_buffer, int p_buffer_size);
+#define ENET_API extern
 
-	virtual int get_max_packet_size() const;
+typedef void ENetSocketSet;
 
-	virtual Error listen(int p_port, IP_Address p_bind_address = IP_Address("*"), int p_recv_buffer_size = 65536);
-	virtual void close();
-	virtual Error wait();
-	virtual bool is_listening() const;
-
-	virtual IP_Address get_packet_address() const;
-	virtual int get_packet_port() const;
-
-	virtual void set_send_address(const IP_Address &p_address, int p_port);
-
-	static void make_default();
-	PacketPeerUDPWinsock();
-	~PacketPeerUDPWinsock();
-};
-#endif // PACKET_PEER_UDP_WINSOCK_H
+#endif /* __ENET_GODOT_H__ */
