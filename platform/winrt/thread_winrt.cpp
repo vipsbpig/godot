@@ -3,7 +3,7 @@
 /*************************************************************************/
 /*                       This file is part of:                           */
 /*                           GODOT ENGINE                                */
-/*                    http://www.godotengine.org                         */
+/*                      https://godotengine.org                          */
 /*************************************************************************/
 /* Copyright (c) 2007-2017 Juan Linietsky, Ariel Manzur.                 */
 /* Copyright (c) 2014-2017 Godot Engine contributors (cf. AUTHORS.md)    */
@@ -57,8 +57,10 @@ Thread::ID ThreadWinrt::get_ID() const {
 	return std::hash<std::thread::id>()(thread.get_id());
 };
 
-void ThreadWinrt::make_default(){
-
+void ThreadWinrt::make_default() {
+	create_func = create_func_winrt;
+	get_thread_ID_func = get_thread_ID_func_winrt;
+	wait_to_finish_func = wait_to_finish_func_winrt;
 };
 
 ThreadWinrt::ThreadWinrt(){

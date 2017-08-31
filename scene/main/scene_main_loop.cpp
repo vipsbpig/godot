@@ -3,7 +3,7 @@
 /*************************************************************************/
 /*                       This file is part of:                           */
 /*                           GODOT ENGINE                                */
-/*                    http://www.godotengine.org                         */
+/*                      https://godotengine.org                          */
 /*************************************************************************/
 /* Copyright (c) 2007-2017 Juan Linietsky, Ariel Manzur.                 */
 /* Copyright (c) 2014-2017 Godot Engine contributors (cf. AUTHORS.md)    */
@@ -461,7 +461,6 @@ void SceneTree::input_event(const InputEvent &p_event) {
 void SceneTree::init() {
 
 	//_quit=false;
-	accept_quit = true;
 	initialized = true;
 	input_handled = false;
 
@@ -1031,7 +1030,7 @@ void SceneTree::_update_root_rect() {
 	} else if (viewport_aspect < video_mode_aspect) {
 		// screen ratio is smaller vertically
 
-		if (stretch_aspect == STRETCH_ASPECT_KEEP_HEIGHT) {
+		if (stretch_aspect == STRETCH_ASPECT_KEEP_HEIGHT || stretch_aspect == STRETCH_ASPECT_EXPAND) {
 
 			//will stretch horizontally
 			viewport_size.x = desired_res.y * video_mode_aspect;
@@ -1046,7 +1045,7 @@ void SceneTree::_update_root_rect() {
 		}
 	} else {
 		//screen ratio is smaller horizontally
-		if (stretch_aspect == STRETCH_ASPECT_KEEP_WIDTH) {
+		if (stretch_aspect == STRETCH_ASPECT_KEEP_WIDTH || stretch_aspect == STRETCH_ASPECT_EXPAND) {
 
 			//will stretch horizontally
 			viewport_size.x = desired_res.x;
@@ -1067,12 +1066,11 @@ void SceneTree::_update_root_rect() {
 	Size2 margin;
 	Size2 offset;
 	//black bars and margin
-	if (screen_size.x < video_mode.x) {
+	if (stretch_aspect != STRETCH_ASPECT_EXPAND && screen_size.x < video_mode.x) {
 		margin.x = Math::round((video_mode.x - screen_size.x) / 2.0);
 		VisualServer::get_singleton()->black_bars_set_margins(margin.x, 0, margin.x, 0);
 		offset.x = Math::round(margin.x * viewport_size.y / screen_size.y);
-	} else if (screen_size.y < video_mode.y) {
-
+	} else if (stretch_aspect != STRETCH_ASPECT_EXPAND && screen_size.y < video_mode.y) {
 		margin.y = Math::round((video_mode.y - screen_size.y) / 2.0);
 		VisualServer::get_singleton()->black_bars_set_margins(0, margin.y, 0, margin.y);
 		offset.y = Math::round(margin.y * viewport_size.x / screen_size.x);
@@ -2142,6 +2140,7 @@ SceneTree::SceneTree() {
 
 	singleton = this;
 	_quit = false;
+	accept_quit = true;
 	initialized = false;
 #ifdef TOOLS_ENABLED
 	editor_hint = false;

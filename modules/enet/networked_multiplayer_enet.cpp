@@ -232,9 +232,9 @@ void NetworkedMultiplayerENet::poll() {
 						return;
 					}
 
-					emit_signal("peer_disconnected", *id);
-					peer_map.erase(*id);
-					memdelete(id);
+                    emit_signal("peer_disconnected", *id);
+                    peer_map.erase(*id);
+                    memdelete(id);
 				}
 
 			} break;

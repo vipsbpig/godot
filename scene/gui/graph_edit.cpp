@@ -3,7 +3,7 @@
 /*************************************************************************/
 /*                       This file is part of:                           */
 /*                           GODOT ENGINE                                */
-/*                    http://www.godotengine.org                         */
+/*                      https://godotengine.org                          */
 /*************************************************************************/
 /* Copyright (c) 2007-2017 Juan Linietsky, Ariel Manzur.                 */
 /* Copyright (c) 2014-2017 Godot Engine contributors (cf. AUTHORS.md)    */
@@ -716,6 +716,18 @@ void GraphEdit::_input_event(const InputEvent &p_ev) {
 		if (b.button_index == BUTTON_WHEEL_DOWN && b.pressed) {
 			//too difficult to get right
 			//set_zoom(zoom/ZOOM_SCALE);
+		}
+		if (b.button_index == BUTTON_WHEEL_UP) {
+			h_scroll->set_val(h_scroll->get_val() - h_scroll->get_page() * b.factor / 8);
+		}
+		if (b.button_index == BUTTON_WHEEL_DOWN) {
+			h_scroll->set_val(h_scroll->get_val() + h_scroll->get_page() * b.factor / 8);
+		}
+		if (b.button_index == BUTTON_WHEEL_RIGHT) {
+			v_scroll->set_val(v_scroll->get_val() + v_scroll->get_page() * b.factor / 8);
+		}
+		if (b.button_index == BUTTON_WHEEL_LEFT) {
+			v_scroll->set_val(v_scroll->get_val() - v_scroll->get_page() * b.factor / 8);
 		}
 	}
 

@@ -3,7 +3,7 @@
 /*************************************************************************/
 /*                       This file is part of:                           */
 /*                           GODOT ENGINE                                */
-/*                    http://www.godotengine.org                         */
+/*                      https://godotengine.org                          */
 /*************************************************************************/
 /* Copyright (c) 2007-2017 Juan Linietsky, Ariel Manzur.                 */
 /* Copyright (c) 2014-2017 Godot Engine contributors (cf. AUTHORS.md)    */
@@ -97,6 +97,7 @@ protected:
 	void _set_static(bool p_static);
 
 	virtual void _shapes_changed() = 0;
+	virtual void _shape_index_removed(int p_index) = 0;
 	void _set_space(SpaceSW *space);
 
 	bool ray_pickable;

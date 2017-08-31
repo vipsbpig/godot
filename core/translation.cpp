@@ -3,7 +3,7 @@
 /*************************************************************************/
 /*                       This file is part of:                           */
 /*                           GODOT ENGINE                                */
-/*                    http://www.godotengine.org                         */
+/*                      https://godotengine.org                          */
 /*************************************************************************/
 /* Copyright (c) 2007-2017 Juan Linietsky, Ariel Manzur.                 */
 /* Copyright (c) 2014-2017 Godot Engine contributors (cf. AUTHORS.md)    */
@@ -1064,7 +1064,7 @@ void TranslationServer::setup() {
 		int idx = 0;
 		while (locale_list[idx]) {
 			if (idx > 0)
-				options += ", ";
+				options += ",";
 			options += locale_list[idx];
 			idx++;
 		}

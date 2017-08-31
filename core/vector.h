@@ -3,7 +3,7 @@
 /*************************************************************************/
 /*                       This file is part of:                           */
 /*                           GODOT ENGINE                                */
-/*                    http://www.godotengine.org                         */
+/*                      https://godotengine.org                          */
 /*************************************************************************/
 /* Copyright (c) 2007-2017 Juan Linietsky, Ariel Manzur.                 */
 /* Copyright (c) 2014-2017 Godot Engine contributors (cf. AUTHORS.md)    */
@@ -70,7 +70,7 @@ class Vector {
 
 	_FORCE_INLINE_ size_t _get_alloc_size(size_t p_elements) const {
 		//return nearest_power_of_2_templated(p_elements*sizeof(T)+sizeof(SafeRefCount)+sizeof(int));
-		return nearest_power_of_2(p_elements * sizeof(T) + sizeof(SafeRefCount) + sizeof(int));
+		return next_power_of_2(p_elements * sizeof(T) + sizeof(SafeRefCount) + sizeof(int));
 	}
 
 	_FORCE_INLINE_ bool _get_alloc_size_checked(size_t p_elements, size_t *out) const {
@@ -79,7 +79,7 @@ class Vector {
 		size_t p;
 		if (_mul_overflow(p_elements, sizeof(T), &o)) return false;
 		if (_add_overflow(o, sizeof(SafeRefCount) + sizeof(int), &p)) return false;
-		*out = nearest_power_of_2(p);
+		*out = next_power_of_2(p);
 		return true;
 #else
 		// Speed is more important than correctness here, do the operations unchecked
@@ -133,10 +133,7 @@ public:
 
 	inline T &operator[](int p_index) {
 
-		if (p_index < 0 || p_index >= size()) {
-			T &aux = *((T *)0); //nullreturn
-			ERR_FAIL_COND_V(p_index < 0 || p_index >= size(), aux);
-		}
+		PRAY_BAD_INDEX(p_index, size(), T);
 
 		_copy_on_write(); // wants to write, so copy on write.
 
@@ -145,10 +142,8 @@ public:
 
 	inline const T &operator[](int p_index) const {
 
-		if (p_index < 0 || p_index >= size()) {
-			const T &aux = *((T *)0); //nullreturn
-			ERR_FAIL_COND_V(p_index < 0 || p_index >= size(), aux);
-		}
+		PRAY_BAD_INDEX(p_index, size(), T);
+
 		// no cow needed, since it's reading
 		return _get_data()[p_index];
 	}

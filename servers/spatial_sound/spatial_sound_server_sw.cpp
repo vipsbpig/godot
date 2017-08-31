@@ -3,7 +3,7 @@
 /*************************************************************************/
 /*                       This file is part of:                           */
 /*                           GODOT ENGINE                                */
-/*                    http://www.godotengine.org                         */
+/*                      https://godotengine.org                          */
 /*************************************************************************/
 /* Copyright (c) 2007-2017 Juan Linietsky, Ariel Manzur.                 */
 /* Copyright (c) 2014-2017 Godot Engine contributors (cf. AUTHORS.md)    */
@@ -402,7 +402,7 @@ SpatialSoundServer::SourceVoiceID SpatialSoundServerSW::source_play_sample(RID p
 	if (p_voice == SOURCE_NEXT_VOICE) {
 		const int num_voices = source->voices.size();
 		bool free_found = false;
-		int lowest_priority_voice = 0;
+		int lowest_priority_voice = -1;
 		int lowest_priority = 0x7FFFFFFF;
 		for (int i = 0; i < num_voices; i++) {
 			const int candidate = (source->last_voice + 1 + i) % num_voices;
@@ -418,7 +418,7 @@ SpatialSoundServer::SourceVoiceID SpatialSoundServerSW::source_play_sample(RID p
 			}
 		}
 		if (!free_found)
-			to_play = (source->last_voice + 1) % num_voices;
+			to_play = lowest_priority_voice;
 	} else
 		to_play = p_voice;
 

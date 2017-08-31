@@ -3,7 +3,7 @@
 /*************************************************************************/
 /*                       This file is part of:                           */
 /*                           GODOT ENGINE                                */
-/*                    http://www.godotengine.org                         */
+/*                      https://godotengine.org                          */
 /*************************************************************************/
 /* Copyright (c) 2007-2017 Juan Linietsky, Ariel Manzur.                 */
 /* Copyright (c) 2014-2017 Godot Engine contributors (cf. AUTHORS.md)    */
@@ -96,7 +96,12 @@ Error HTTPClient::request_raw(Method p_method, const String &p_url, const Vector
 	};
 
 	String request = String(_methods[p_method]) + " " + p_url + " HTTP/1.1\r\n";
-	request += "Host: " + conn_host + ":" + itos(conn_port) + "\r\n";
+	if ((ssl && conn_port == 443) || (!ssl && conn_port == 80)) {
+		// don't append the standard ports
+		request += "Host: " + conn_host + "\r\n";
+	} else {
+		request += "Host: " + conn_host + ":" + itos(conn_port) + "\r\n";
+	}
 	bool add_clen = p_body.size() > 0;
 	for (int i = 0; i < p_headers.size(); i++) {
 		request += p_headers[i] + "\r\n";
@@ -151,7 +156,12 @@ Error HTTPClient::request(Method p_method, const String &p_url, const Vector<Str
 	};
 
 	String request = String(_methods[p_method]) + " " + p_url + " HTTP/1.1\r\n";
-	request += "Host: " + conn_host + ":" + itos(conn_port) + "\r\n";
+	if ((ssl && conn_port == 443) || (!ssl && conn_port == 80)) {
+		// don't append the standard ports
+		request += "Host: " + conn_host + "\r\n";
+	} else {
+		request += "Host: " + conn_host + ":" + itos(conn_port) + "\r\n";
+	}
 	bool add_clen = p_body.length() > 0;
 	for (int i = 0; i < p_headers.size(); i++) {
 		request += p_headers[i] + "\r\n";

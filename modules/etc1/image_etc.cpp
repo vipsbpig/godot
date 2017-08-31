@@ -3,7 +3,7 @@
 /*************************************************************************/
 /*                       This file is part of:                           */
 /*                           GODOT ENGINE                                */
-/*                    http://www.godotengine.org                         */
+/*                      https://godotengine.org                          */
 /*************************************************************************/
 /* Copyright (c) 2007-2017 Juan Linietsky, Ariel Manzur.                 */
 /* Copyright (c) 2014-2017 Godot Engine contributors (cf. AUTHORS.md)    */
@@ -99,7 +99,7 @@ static void _compress_etc(Image *p_img) {
 
 	int imgw = img.get_width(), imgh = img.get_height();
 
-	ERR_FAIL_COND(nearest_power_of_2(imgw) != imgw || nearest_power_of_2(imgh) != imgh);
+	ERR_FAIL_COND(next_power_of_2(imgw) != imgw || next_power_of_2(imgh) != imgh);
 
 	if (img.get_format() != Image::FORMAT_RGB)
 		img.convert(Image::FORMAT_RGB);

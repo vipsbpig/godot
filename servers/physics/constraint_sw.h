@@ -3,7 +3,7 @@
 /*************************************************************************/
 /*                       This file is part of:                           */
 /*                           GODOT ENGINE                                */
-/*                    http://www.godotengine.org                         */
+/*                      https://godotengine.org                          */
 /*************************************************************************/
 /* Copyright (c) 2007-2017 Juan Linietsky, Ariel Manzur.                 */
 /* Copyright (c) 2014-2017 Godot Engine contributors (cf. AUTHORS.md)    */
@@ -72,6 +72,8 @@ public:
 
 	virtual bool setup(float p_step) = 0;
 	virtual void solve(float p_step) = 0;
+
+	virtual void shift_shape_indices(const CollisionObjectSW *p_object, int p_removed_index) {}
 
 	virtual ~ConstraintSW() {}
 };

@@ -3,7 +3,7 @@
 /*************************************************************************/
 /*                       This file is part of:                           */
 /*                           GODOT ENGINE                                */
-/*                    http://www.godotengine.org                         */
+/*                      https://godotengine.org                          */
 /*************************************************************************/
 /* Copyright (c) 2007-2017 Juan Linietsky, Ariel Manzur.                 */
 /* Copyright (c) 2014-2017 Godot Engine contributors (cf. AUTHORS.md)    */
@@ -28,18 +28,20 @@
 /* SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.                */
 /*************************************************************************/
 #include "editor_texture_import_plugin.h"
+
 #include "editor/editor_node.h"
 #include "editor/editor_settings.h"
 #include "editor_atlas.h"
 #include "globals.h"
 #include "io/image_loader.h"
 #include "io/marshalls.h"
-#include "io/md5.h"
 #include "io/resource_saver.h"
 #include "scene/gui/button_group.h"
 #include "scene/gui/check_button.h"
 #include "scene/gui/margin_container.h"
 #include "scene/io/resource_format_image.h"
+
+#include "thirdparty/misc/md5.h"
 
 static const char *flag_names[] = {
 	("Streaming Format"),
@@ -1183,8 +1185,8 @@ Error EditorTextureImportPlugin::import2(const String &p_path, const Ref<Resourc
 		int atlas_w = dst_size.width;
 		int atlas_h = dst_size.height;
 		if (blit_to_po2) {
-			atlas_w = nearest_power_of_2(dst_size.width);
-			atlas_h = nearest_power_of_2(dst_size.height);
+			atlas_w = next_power_of_2(dst_size.width);
+			atlas_h = next_power_of_2(dst_size.height);
 		}
 		Image atlas;
 		atlas.create(atlas_w, atlas_h, 0, alpha ? Image::FORMAT_RGBA : Image::FORMAT_RGB);

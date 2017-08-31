@@ -3,7 +3,7 @@
 /*************************************************************************/
 /*                       This file is part of:                           */
 /*                           GODOT ENGINE                                */
-/*                    http://www.godotengine.org                         */
+/*                      https://godotengine.org                          */
 /*************************************************************************/
 /* Copyright (c) 2007-2017 Juan Linietsky, Ariel Manzur.                 */
 /* Copyright (c) 2014-2017 Godot Engine contributors (cf. AUTHORS.md)    */
@@ -54,7 +54,7 @@ Error AudioDriverPulseAudio::init() {
 	spec.rate = mix_rate;
 
 	int latency = GLOBAL_DEF("audio/output_latency", 25);
-	buffer_size = nearest_power_of_2(latency * mix_rate / 1000);
+	buffer_size = closest_power_of_2(latency * mix_rate / 1000);
 
 	pa_buffer_attr attr;
 	// set to appropriate buffer size from global settings

@@ -3,7 +3,7 @@
 /*************************************************************************/
 /*                       This file is part of:                           */
 /*                           GODOT ENGINE                                */
-/*                    http://www.godotengine.org                         */
+/*                      https://godotengine.org                          */
 /*************************************************************************/
 /* Copyright (c) 2007-2017 Juan Linietsky, Ariel Manzur.                 */
 /* Copyright (c) 2014-2017 Godot Engine contributors (cf. AUTHORS.md)    */
@@ -45,6 +45,13 @@ AreaSW::BodyKey::BodyKey(AreaSW *p_body, uint32_t p_body_shape, uint32_t p_area_
 }
 
 void AreaSW::_shapes_changed() {
+}
+
+void AreaSW::_shape_index_removed(int p_index) {
+
+	for (Set<ConstraintSW *>::Element *E = constraints.front(); E; E = E->next()) {
+		E->get()->shift_shape_indices(this, p_index);
+	}
 }
 
 void AreaSW::set_transform(const Transform &p_transform) {

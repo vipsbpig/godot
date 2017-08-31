@@ -3,7 +3,7 @@
 /*************************************************************************/
 /*                       This file is part of:                           */
 /*                           GODOT ENGINE                                */
-/*                    http://www.godotengine.org                         */
+/*                      https://godotengine.org                          */
 /*************************************************************************/
 /* Copyright (c) 2007-2017 Juan Linietsky, Ariel Manzur.                 */
 /* Copyright (c) 2014-2017 Godot Engine contributors (cf. AUTHORS.md)    */
@@ -1161,8 +1161,8 @@ void Control::_size_changed() {
 		}
 	}
 
-	Point2 new_pos_cache = Point2(margin_pos[0], margin_pos[1]).floor();
-	Size2 new_size_cache = Point2(margin_pos[2], margin_pos[3]).floor() - new_pos_cache;
+	Point2 new_pos_cache = Point2(margin_pos[0], margin_pos[1]);
+	Size2 new_size_cache = Point2(margin_pos[2], margin_pos[3]) - new_pos_cache;
 	Size2 minimum_size = get_combined_minimum_size();
 
 	new_size_cache.x = MAX(minimum_size.x, new_size_cache.x);

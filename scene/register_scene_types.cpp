@@ -3,7 +3,7 @@
 /*************************************************************************/
 /*                       This file is part of:                           */
 /*                           GODOT ENGINE                                */
-/*                    http://www.godotengine.org                         */
+/*                      https://godotengine.org                          */
 /*************************************************************************/
 /* Copyright (c) 2007-2017 Juan Linietsky, Ariel Manzur.                 */
 /* Copyright (c) 2014-2017 Godot Engine contributors (cf. AUTHORS.md)    */
@@ -536,7 +536,7 @@ void register_scene_types() {
 	ObjectTypeDB::register_virtual_type<Material>();
 	ObjectTypeDB::register_type<FixedMaterial>();
 	ObjectTypeDB::register_type<ShaderMaterial>();
-	ObjectTypeDB::register_type<MultiPassMaterial>();
+    //ObjectTypeDB::register_type<MultiPassMaterial>();
 	ObjectTypeDB::register_type<RoomBounds>();
 	ObjectTypeDB::register_type<MaterialShaderGraph>();
 	ObjectTypeDB::register_type<MaterialShader>();

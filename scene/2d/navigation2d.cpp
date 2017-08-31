@@ -3,7 +3,7 @@
 /*************************************************************************/
 /*                       This file is part of:                           */
 /*                           GODOT ENGINE                                */
-/*                    http://www.godotengine.org                         */
+/*                      https://godotengine.org                          */
 /*************************************************************************/
 /* Copyright (c) 2007-2017 Juan Linietsky, Ariel Manzur.                 */
 /* Copyright (c) 2014-2017 Godot Engine contributors (cf. AUTHORS.md)    */
@@ -646,7 +646,8 @@ debug path
 					break;
 			}
 
-			path.push_back(begin_point);
+			if (path[path.size() - 1].distance_to(begin_point) > CMP_EPSILON)
+				path.push_back(begin_point);
 
 			path.invert();
 		}

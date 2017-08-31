@@ -3,7 +3,7 @@
 /*************************************************************************/
 /*                       This file is part of:                           */
 /*                           GODOT ENGINE                                */
-/*                    http://www.godotengine.org                         */
+/*                      https://godotengine.org                          */
 /*************************************************************************/
 /* Copyright (c) 2007-2017 Juan Linietsky, Ariel Manzur.                 */
 /* Copyright (c) 2014-2017 Godot Engine contributors (cf. AUTHORS.md)    */
@@ -34,11 +34,11 @@
 
 _FORCE_INLINE_ static bool _match_object_type_query(CollisionObjectSW *p_object, uint32_t p_layer_mask, uint32_t p_type_mask) {
 
-	if (p_object->get_type() == CollisionObjectSW::TYPE_AREA)
-		return p_type_mask & PhysicsDirectSpaceState::TYPE_MASK_AREA;
-
 	if ((p_object->get_layer_mask() & p_layer_mask) == 0)
 		return false;
+
+	if (p_object->get_type() == CollisionObjectSW::TYPE_AREA)
+		return p_type_mask & PhysicsDirectSpaceState::TYPE_MASK_AREA;
 
 	BodySW *body = static_cast<BodySW *>(p_object);
 
