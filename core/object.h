@@ -3,7 +3,7 @@
 /*************************************************************************/
 /*                       This file is part of:                           */
 /*                           GODOT ENGINE                                */
-/*                    http://www.godotengine.org                         */
+/*                      https://godotengine.org                          */
 /*************************************************************************/
 /* Copyright (c) 2007-2017 Juan Linietsky, Ariel Manzur.                 */
 /* Copyright (c) 2014-2017 Godot Engine contributors (cf. AUTHORS.md)    */
@@ -90,6 +90,8 @@ enum PropertyUsageFlags {
 	PROPERTY_USAGE_SCRIPT_VARIABLE = 8192,
 	PROPERTY_USAGE_STORE_IF_NULL = 16384,
 	PROPERTY_USAGE_ANIMATE_AS_TRIGGER = 32768,
+
+	PROPERTY_USAGE_SCRIPT_DEFAULT_VALUE = 1 << 17,
 
 	PROPERTY_USAGE_DEFAULT = PROPERTY_USAGE_STORAGE | PROPERTY_USAGE_EDITOR | PROPERTY_USAGE_NETWORK,
 	PROPERTY_USAGE_DEFAULT_INTL = PROPERTY_USAGE_STORAGE | PROPERTY_USAGE_EDITOR | PROPERTY_USAGE_NETWORK | PROPERTY_USAGE_INTERNATIONALIZED,
@@ -509,6 +511,12 @@ public:
 	void add_change_receptor(Object *p_receptor);
 	void remove_change_receptor(Object *p_receptor);
 
+// TODO: ensure 'this' is never NULL since it's UB, but by now, avoid warning flood
+#ifdef __clang__
+#pragma clang diagnostic push
+#pragma clang diagnostic ignored "-Wundefined-bool-conversion"
+#endif
+
 	template <class T>
 	T *cast_to() {
 
@@ -538,6 +546,10 @@ public:
 			return NULL;
 #endif
 	}
+
+#ifdef __clang__
+#pragma clang diagnostic pop
+#endif
 
 	enum {
 
@@ -664,7 +676,7 @@ class ObjectDB {
 				unsigned long i;
 			} u;
 			u.p = p_obj;
-			return HashMapHahserDefault::hash((uint64_t)u.i);
+			return HashMapHasherDefault::hash((uint64_t)u.i);
 		}
 	};
 

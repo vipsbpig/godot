@@ -3,7 +3,7 @@
 /*************************************************************************/
 /*                       This file is part of:                           */
 /*                           GODOT ENGINE                                */
-/*                    http://www.godotengine.org                         */
+/*                      https://godotengine.org                          */
 /*************************************************************************/
 /* Copyright (c) 2007-2017 Juan Linietsky, Ariel Manzur.                 */
 /* Copyright (c) 2014-2017 Godot Engine contributors (cf. AUTHORS.md)    */
@@ -91,7 +91,7 @@ class GDCompiler {
 		}
 
 		//int get_identifier_pos(const StringName& p_dentifier) const;
-		HashMap<Variant, int, VariantHasher> constant_map;
+		HashMap<Variant, int, VariantHasher, VariantComparator> constant_map;
 		Map<StringName, int> name_map;
 
 		int get_name_map_pos(const StringName &p_identifier) {

@@ -3,7 +3,7 @@
 /*************************************************************************/
 /*                       This file is part of:                           */
 /*                           GODOT ENGINE                                */
-/*                    http://www.godotengine.org                         */
+/*                      https://godotengine.org                          */
 /*************************************************************************/
 /* Copyright (c) 2007-2017 Juan Linietsky, Ariel Manzur.                 */
 /* Copyright (c) 2014-2017 Godot Engine contributors (cf. AUTHORS.md)    */
@@ -249,7 +249,7 @@ void PacketPeerStream::set_input_buffer_max_size(int p_max_size) {
 	ERR_EXPLAIN("Buffer in use, resizing would cause loss of data");
 	ERR_FAIL_COND(ring_buffer.data_left());
 	ring_buffer.resize(nearest_shift(p_max_size + 4));
-	temp_buffer.resize(nearest_power_of_2(p_max_size + 4));
+	temp_buffer.resize(next_power_of_2(p_max_size + 4));
 }
 
 PacketPeerStream::PacketPeerStream() {

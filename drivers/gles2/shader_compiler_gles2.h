@@ -3,7 +3,7 @@
 /*************************************************************************/
 /*                       This file is part of:                           */
 /*                           GODOT ENGINE                                */
-/*                    http://www.godotengine.org                         */
+/*                      https://godotengine.org                          */
 /*************************************************************************/
 /* Copyright (c) 2007-2017 Juan Linietsky, Ariel Manzur.                 */
 /* Copyright (c) 2014-2017 Godot Engine contributors (cf. AUTHORS.md)    */
@@ -43,6 +43,8 @@ private:
 	String dump_node_code(ShaderLanguage::Node *p_node, int p_level, bool p_assign_left = false);
 	Error compile_node(ShaderLanguage::ProgramNode *p_program);
 	static Error create_glsl_120_code(void *p_str, ShaderLanguage::ProgramNode *p_program);
+
+	bool _is_condition_preprocessable(ShaderLanguage::Node *p_condition) const;
 
 	bool uses_light;
 	bool uses_texscreen;

@@ -3,7 +3,7 @@
 /*************************************************************************/
 /*                       This file is part of:                           */
 /*                           GODOT ENGINE                                */
-/*                    http://www.godotengine.org                         */
+/*                      https://godotengine.org                          */
 /*************************************************************************/
 /* Copyright (c) 2007-2017 Juan Linietsky, Ariel Manzur.                 */
 /* Copyright (c) 2014-2017 Godot Engine contributors (cf. AUTHORS.md)    */
@@ -225,7 +225,7 @@ void Sprite::set_vframes(int p_amount) {
 	vframes = p_amount;
 	update();
 	item_rect_changed();
-	_change_notify("frame");
+	_change_notify();
 }
 int Sprite::get_vframes() const {
 
@@ -238,7 +238,7 @@ void Sprite::set_hframes(int p_amount) {
 	hframes = p_amount;
 	update();
 	item_rect_changed();
-	_change_notify("frame");
+	_change_notify();
 }
 int Sprite::get_hframes() const {
 

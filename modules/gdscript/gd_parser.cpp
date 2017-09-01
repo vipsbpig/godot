@@ -3,7 +3,7 @@
 /*************************************************************************/
 /*                       This file is part of:                           */
 /*                           GODOT ENGINE                                */
-/*                    http://www.godotengine.org                         */
+/*                      https://godotengine.org                          */
 /*************************************************************************/
 /* Copyright (c) 2007-2017 Juan Linietsky, Ariel Manzur.                 */
 /* Copyright (c) 2014-2017 Godot Engine contributors (cf. AUTHORS.md)    */
@@ -1678,8 +1678,7 @@ void GDParser::_parse_block(BlockNode *p_block, bool p_static) {
 				StringName n = tokenizer->get_token_identifier();
 				tokenizer->advance();
 
-				p_block->variables.push_back(n); //line?
-				p_block->variable_lines.push_back(tokenizer->get_token_line());
+				int var_line = tokenizer->get_token_line();
 
 				//must know when the local variable is declared
 				LocalVarNode *lv = alloc_node<LocalVarNode>();
@@ -1709,6 +1708,10 @@ void GDParser::_parse_block(BlockNode *p_block, bool p_static) {
 					c->value = Variant();
 					assigned = c;
 				}
+				//must be added later, to avoid self-referencing.
+				p_block->variables.push_back(n); //line?
+				p_block->variable_lines.push_back(var_line);
+
 				IdentifierNode *id = alloc_node<IdentifierNode>();
 				id->name = n;
 
@@ -1746,7 +1749,7 @@ void GDParser::_parse_block(BlockNode *p_block, bool p_static) {
 				p_block->sub_blocks.push_back(cf_if->body);
 
 				if (!_enter_indent_block(cf_if->body)) {
-					_set_error("Expected intended block after 'if'");
+					_set_error("Expected indented block after 'if'");
 					p_block->end_line = tokenizer->get_token_line();
 					return;
 				}

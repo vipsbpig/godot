@@ -3,7 +3,7 @@
 /*************************************************************************/
 /*                       This file is part of:                           */
 /*                           GODOT ENGINE                                */
-/*                    http://www.godotengine.org                         */
+/*                      https://godotengine.org                          */
 /*************************************************************************/
 /* Copyright (c) 2007-2017 Juan Linietsky, Ariel Manzur.                 */
 /* Copyright (c) 2014-2017 Godot Engine contributors (cf. AUTHORS.md)    */
@@ -35,22 +35,29 @@
 #include "servers/audio/audio_server_sw.h"
 
 #include <AudioUnit/AudioUnit.h>
+#include <CoreAudio/AudioHardware.h>
 
 class AudioDriverOSX : public AudioDriverSW {
 
 	AudioComponentInstance audio_unit;
+	AudioObjectPropertyAddress outputDeviceAddress;
 	bool active;
 	Mutex *mutex;
 
+	int mix_rate;
 	int channels;
-	int32_t *samples_in;
 	int buffer_frames;
+
+	Vector<int32_t> samples_in;
 
 	static OSStatus output_callback(void *inRefCon,
 			AudioUnitRenderActionFlags *ioActionFlags,
 			const AudioTimeStamp *inTimeStamp,
 			UInt32 inBusNumber, UInt32 inNumberFrames,
 			AudioBufferList *ioData);
+
+	Error initDevice();
+	Error finishDevice();
 
 public:
 	const char *get_name() const {
@@ -64,6 +71,9 @@ public:
 	virtual void lock();
 	virtual void unlock();
 	virtual void finish();
+
+	bool try_lock();
+	Error reopen();
 
 	AudioDriverOSX();
 	~AudioDriverOSX();

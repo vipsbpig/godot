@@ -3,7 +3,7 @@
 /*************************************************************************/
 /*                       This file is part of:                           */
 /*                           GODOT ENGINE                                */
-/*                    http://www.godotengine.org                         */
+/*                      https://godotengine.org                          */
 /*************************************************************************/
 /* Copyright (c) 2007-2017 Juan Linietsky, Ariel Manzur.                 */
 /* Copyright (c) 2014-2017 Godot Engine contributors (cf. AUTHORS.md)    */
@@ -113,13 +113,15 @@ void SpinBox::_input_event(const InputEvent &p_event) {
 			} break;
 			case BUTTON_WHEEL_UP: {
 				if (line_edit->has_focus()) {
-					set_val(get_val() + get_step());
+
+					set_val(get_val() + get_step() * mb.factor);
 					accept_event();
 				}
 			} break;
 			case BUTTON_WHEEL_DOWN: {
 				if (line_edit->has_focus()) {
-					set_val(get_val() - get_step());
+
+					set_val(get_val() - get_step() * mb.factor);
 					accept_event();
 				}
 			} break;

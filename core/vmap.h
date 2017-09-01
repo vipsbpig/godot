@@ -3,7 +3,7 @@
 /*************************************************************************/
 /*                       This file is part of:                           */
 /*                           GODOT ENGINE                                */
-/*                    http://www.godotengine.org                         */
+/*                      https://godotengine.org                          */
 /*************************************************************************/
 /* Copyright (c) 2007-2017 Juan Linietsky, Ariel Manzur.                 */
 /* Copyright (c) 2014-2017 Godot Engine contributors (cf. AUTHORS.md)    */
@@ -180,10 +180,8 @@ public:
 	inline const V &operator[](const T &p_key) const {
 
 		int pos = _find_exact(p_key);
-		if (pos < 0) {
-			const T &aux = *((T *)0); //nullreturn
-			ERR_FAIL_COND_V(pos < 1, aux);
-		}
+
+		PRAY_COND(pos < 0, V);
 
 		return _data[pos].value;
 	}

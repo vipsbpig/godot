@@ -3,7 +3,7 @@
 /*************************************************************************/
 /*                       This file is part of:                           */
 /*                           GODOT ENGINE                                */
-/*                    http://www.godotengine.org                         */
+/*                      https://godotengine.org                          */
 /*************************************************************************/
 /* Copyright (c) 2007-2017 Juan Linietsky, Ariel Manzur.                 */
 /* Copyright (c) 2014-2017 Godot Engine contributors (cf. AUTHORS.md)    */
@@ -339,6 +339,8 @@ Matrix32 CanvasItem::get_global_transform_with_canvas() const {
 		return last_valid->canvas_layer->get_transform() * xform;
 	else if (is_inside_tree())
 		return get_viewport()->get_canvas_transform() * xform;
+
+	return xform;
 }
 
 Matrix32 CanvasItem::get_global_transform() const {

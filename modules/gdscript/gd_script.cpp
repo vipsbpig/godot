@@ -3,7 +3,7 @@
 /*************************************************************************/
 /*                       This file is part of:                           */
 /*                           GODOT ENGINE                                */
-/*                    http://www.godotengine.org                         */
+/*                      https://godotengine.org                          */
 /*************************************************************************/
 /* Copyright (c) 2007-2017 Juan Linietsky, Ariel Manzur.                 */
 /* Copyright (c) 2014-2017 Godot Engine contributors (cf. AUTHORS.md)    */
@@ -1617,8 +1617,8 @@ void GDScriptLanguage::reload_tool_script(const Ref<Script> &p_script, bool p_so
 #ifdef TOOLS_ENABLED
 
 			while (E->get()->placeholders.size()) {
-
 				Object *obj = E->get()->placeholders.front()->get()->get_owner();
+
 				//save instance info
 				List<Pair<StringName, Variant> > state;
 				if (obj->get_script_instance()) {
@@ -1626,6 +1626,9 @@ void GDScriptLanguage::reload_tool_script(const Ref<Script> &p_script, bool p_so
 					obj->get_script_instance()->get_property_state(state);
 					map[obj->get_instance_ID()] = state;
 					obj->set_script(RefPtr());
+				} else {
+					// no instance found. Let's remove it so we don't loop forever
+					E->get()->placeholders.erase(E->get()->placeholders.front()->get());
 				}
 			}
 #endif

@@ -3,7 +3,7 @@
 /*************************************************************************/
 /*                       This file is part of:                           */
 /*                           GODOT ENGINE                                */
-/*                    http://www.godotengine.org                         */
+/*                      https://godotengine.org                          */
 /*************************************************************************/
 /* Copyright (c) 2007-2017 Juan Linietsky, Ariel Manzur.                 */
 /* Copyright (c) 2014-2017 Godot Engine contributors (cf. AUTHORS.md)    */
@@ -192,8 +192,6 @@ class EditorFileSystem : public Node {
 	bool _find_file(const String &p_file, EditorFileSystemDirectory **r_d, int &r_file_pos) const;
 
 	void _scan_fs_changes(EditorFileSystemDirectory *p_dir, const ScanProgress &p_progress);
-
-	int md_count;
 
 	Set<String> valid_extensions;
 

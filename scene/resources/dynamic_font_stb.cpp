@@ -4,7 +4,6 @@
 
 #define STB_TRUETYPE_IMPLEMENTATION
 #include "os/file_access.h"
-#include "stb_truetype.h"
 
 void DynamicFontData::lock() {
 
@@ -261,7 +260,7 @@ void DynamicFontAtSize::_update_char(CharType p_char) {
 		if (mh > texsize)
 			texsize = mh; //special case, adapt to it?
 
-		texsize = nearest_power_of_2(texsize);
+		texsize = next_power_of_2(texsize);
 
 		texsize = MIN(texsize, 4096);
 

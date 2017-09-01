@@ -3,7 +3,7 @@
 /*************************************************************************/
 /*                       This file is part of:                           */
 /*                           GODOT ENGINE                                */
-/*                    http://www.godotengine.org                         */
+/*                      https://godotengine.org                          */
 /*************************************************************************/
 /* Copyright (c) 2007-2017 Juan Linietsky, Ariel Manzur.                 */
 /* Copyright (c) 2014-2017 Godot Engine contributors (cf. AUTHORS.md)    */
@@ -704,7 +704,7 @@ Camera::Camera() {
 	current = false;
 	force_change = false;
 	mode = PROJECTION_PERSPECTIVE;
-	set_perspective(60.0, 0.1, 100.0);
+	set_perspective(65.0, 0.1, 100.0);
 	keep_aspect = KEEP_HEIGHT;
 	layers = 0xfffff;
 	v_offset = 0;

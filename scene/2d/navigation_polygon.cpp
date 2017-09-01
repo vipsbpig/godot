@@ -3,7 +3,7 @@
 /*************************************************************************/
 /*                       This file is part of:                           */
 /*                           GODOT ENGINE                                */
-/*                    http://www.godotengine.org                         */
+/*                      https://godotengine.org                          */
 /*************************************************************************/
 /* Copyright (c) 2007-2017 Juan Linietsky, Ariel Manzur.                 */
 /* Copyright (c) 2014-2017 Godot Engine contributors (cf. AUTHORS.md)    */
@@ -28,9 +28,11 @@
 /* SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.                */
 /*************************************************************************/
 #include "navigation_polygon.h"
+
 #include "core_string_names.h"
 #include "navigation2d.h"
-#include "triangulator.h"
+
+#include "thirdparty/misc/triangulator.h"
 
 void NavigationPolygon::set_vertices(const DVector<Vector2> &p_vertices) {
 

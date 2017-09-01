@@ -3,7 +3,7 @@
 /*************************************************************************/
 /*                       This file is part of:                           */
 /*                           GODOT ENGINE                                */
-/*                    http://www.godotengine.org                         */
+/*                      https://godotengine.org                          */
 /*************************************************************************/
 /* Copyright (c) 2007-2017 Juan Linietsky, Ariel Manzur.                 */
 /* Copyright (c) 2014-2017 Godot Engine contributors (cf. AUTHORS.md)    */
@@ -86,7 +86,7 @@ Error AudioDriverALSA::init() {
 	CHECK_FAIL(status < 0);
 
 	int latency = GLOBAL_DEF("audio/output_latency", 25);
-	buffer_size = nearest_power_of_2(latency * mix_rate / 1000);
+	buffer_size = closest_power_of_2(latency * mix_rate / 1000);
 
 	// set buffer size from project settings
 	status = snd_pcm_hw_params_set_buffer_size_near(pcm_handle, hwparams, &buffer_size);

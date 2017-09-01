@@ -3,7 +3,7 @@
 /*************************************************************************/
 /*                       This file is part of:                           */
 /*                           GODOT ENGINE                                */
-/*                    http://www.godotengine.org                         */
+/*                      https://godotengine.org                          */
 /*************************************************************************/
 /* Copyright (c) 2007-2017 Juan Linietsky, Ariel Manzur.                 */
 /* Copyright (c) 2014-2017 Godot Engine contributors (cf. AUTHORS.md)    */
@@ -63,6 +63,8 @@ private:
 	VisibilityMode visibility;
 
 	void _input(const InputEvent &p_Event);
+
+	bool _is_touch_inside(const InputEventScreenTouch &p_touch);
 
 	void _press(int p_finger_pressed);
 	void _release(bool p_exiting_tree = false);

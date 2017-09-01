@@ -3,7 +3,7 @@
 /*************************************************************************/
 /*                       This file is part of:                           */
 /*                           GODOT ENGINE                                */
-/*                    http://www.godotengine.org                         */
+/*                      https://godotengine.org                          */
 /*************************************************************************/
 /* Copyright (c) 2007-2017 Juan Linietsky, Ariel Manzur.                 */
 /* Copyright (c) 2014-2017 Godot Engine contributors (cf. AUTHORS.md)    */
@@ -129,6 +129,8 @@ void ParticleAttractor2D::_bind_methods() {
 
 	ObjectTypeDB::bind_method(_MD("set_particles_path", "path"), &ParticleAttractor2D::set_particles_path);
 	ObjectTypeDB::bind_method(_MD("get_particles_path"), &ParticleAttractor2D::get_particles_path);
+
+	ObjectTypeDB::bind_method(_MD("_owner_exited"), &ParticleAttractor2D::_owner_exited);
 
 	ADD_PROPERTY(PropertyInfo(Variant::BOOL, "enabled"), _SCS("set_enabled"), _SCS("is_enabled"));
 	ADD_PROPERTY(PropertyInfo(Variant::REAL, "radius", PROPERTY_HINT_RANGE, "0.1,16000,0.1"), _SCS("set_radius"), _SCS("get_radius"));
