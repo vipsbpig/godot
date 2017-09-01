@@ -3,7 +3,7 @@
 /*************************************************************************/
 /*                       This file is part of:                           */
 /*                           GODOT ENGINE                                */
-/*                    http://www.godotengine.org                         */
+/*                      https://godotengine.org                          */
 /*************************************************************************/
 /* Copyright (c) 2007-2017 Juan Linietsky, Ariel Manzur.                 */
 /* Copyright (c) 2014-2017 Godot Engine contributors (cf. AUTHORS.md)    */
@@ -209,10 +209,8 @@ void StreamPeer::put_double(double p_val) {
 }
 void StreamPeer::put_utf8_string(const String &p_string) {
 
-	CharString cs=p_string.utf8();
-	put_u32(p_string.length());
-	put_data((const uint8_t*)cs.get_data(),cs.length());
-
+	CharString cs = p_string.utf8();
+	put_data((const uint8_t *)cs.get_data(), cs.length());
 }
 void StreamPeer::put_var(const Variant &p_variant) {
 
@@ -327,11 +325,9 @@ String StreamPeer::get_string(int p_bytes) {
 	ERR_FAIL_COND_V(p_bytes < 0, String());
 
 	Vector<char> buf;
-	Error err = buf.resize(p_bytes+1);
-	ERR_FAIL_COND_V(err!=OK,String());
-	err = get_data((uint8_t*)&buf[0],p_bytes);
-	ERR_FAIL_COND_V(err!=OK,String());
-	buf[p_bytes]=0;
+	buf.resize(p_bytes + 1);
+	get_data((uint8_t *)&buf[0], p_bytes);
+	buf[p_bytes] = 0;
 	return buf.ptr();
 }
 String StreamPeer::get_utf8_string(int p_bytes) {
@@ -339,10 +335,8 @@ String StreamPeer::get_utf8_string(int p_bytes) {
 	ERR_FAIL_COND_V(p_bytes < 0, String());
 
 	Vector<uint8_t> buf;
-	Error err = buf.resize(p_bytes);
-	ERR_FAIL_COND_V(err!=OK,String());
-	err = get_data(buf.ptr(),p_bytes);
-	ERR_FAIL_COND_V(err!=OK,String());
+	buf.resize(p_bytes);
+	get_data(buf.ptr(), p_bytes);
 
 	String ret;
 	ret.parse_utf8((const char *)buf.ptr(), buf.size());
@@ -352,10 +346,8 @@ Variant StreamPeer::get_var() {
 
 	int len = get_32();
 	Vector<uint8_t> var;
-	Error err = var.resize(len);
-	ERR_FAIL_COND_V(err!=OK,Variant());
-	err = get_data(var.ptr(),len);
-	ERR_FAIL_COND_V(err!=OK,Variant());
+	var.resize(len);
+	get_data(var.ptr(), len);
 
 	Variant ret;
 	decode_variant(ret, var.ptr(), len);
@@ -402,85 +394,83 @@ void StreamPeer::_bind_methods() {
 	ObjectTypeDB::bind_method(_MD("get_utf8_string", "bytes"), &StreamPeer::get_utf8_string);
 	ObjectTypeDB::bind_method(_MD("get_var:Variant"), &StreamPeer::get_var);
 }
-////////////////////////////////
 
+////////////////////////////////
 
 void StreamPeerBuffer::_bind_methods() {
 
-	ObjectTypeDB::bind_method(_MD("seek","pos"),&StreamPeerBuffer::seek);
-	ObjectTypeDB::bind_method(_MD("get_size"),&StreamPeerBuffer::get_size);
-	ObjectTypeDB::bind_method(_MD("get_pos"),&StreamPeerBuffer::get_pos);
-	ObjectTypeDB::bind_method(_MD("resize","size"),&StreamPeerBuffer::resize);
-	ObjectTypeDB::bind_method(_MD("set_data_array","data"),&StreamPeerBuffer::set_data_array);
-	ObjectTypeDB::bind_method(_MD("get_data_array"),&StreamPeerBuffer::get_data_array);
-	ObjectTypeDB::bind_method(_MD("clear"),&StreamPeerBuffer::clear);
-	ObjectTypeDB::bind_method(_MD("duplicate:StreamPeerBuffer"),&StreamPeerBuffer::duplicate);
-
+	ObjectTypeDB::bind_method(_MD("seek", "pos"), &StreamPeerBuffer::seek);
+	ObjectTypeDB::bind_method(_MD("get_size"), &StreamPeerBuffer::get_size);
+	ObjectTypeDB::bind_method(_MD("get_pos"), &StreamPeerBuffer::get_pos);
+	ObjectTypeDB::bind_method(_MD("resize", "size"), &StreamPeerBuffer::resize);
+	ObjectTypeDB::bind_method(_MD("set_data_array", "data"), &StreamPeerBuffer::set_data_array);
+	ObjectTypeDB::bind_method(_MD("get_data_array"), &StreamPeerBuffer::get_data_array);
+	ObjectTypeDB::bind_method(_MD("clear"), &StreamPeerBuffer::clear);
+	ObjectTypeDB::bind_method(_MD("duplicate"), &StreamPeerBuffer::duplicate);
 }
 
+Error StreamPeerBuffer::put_data(const uint8_t *p_data, int p_bytes) {
 
-Error StreamPeerBuffer::put_data(const uint8_t* p_data,int p_bytes) {
-
-	if (p_bytes<=0)
+	if (p_bytes <= 0)
 		return OK;
 
-	if (pointer+p_bytes > data.size()) {
-		data.resize(pointer+p_bytes);
-
+	if (pointer + p_bytes > data.size()) {
+		data.resize(pointer + p_bytes);
 	}
 
 	DVector<uint8_t>::Write w = data.write();
-	copymem(&w[pointer],p_data,p_bytes);
+	copymem(&w[pointer], p_data, p_bytes);
 
-	pointer+=p_bytes;
+	pointer += p_bytes;
 	return OK;
 }
 
-Error StreamPeerBuffer::put_partial_data(const uint8_t* p_data,int p_bytes, int &r_sent){
+Error StreamPeerBuffer::put_partial_data(const uint8_t *p_data, int p_bytes, int &r_sent) {
 
-	r_sent=p_bytes;
-	return put_data(p_data,p_bytes);
+	r_sent = p_bytes;
+	return put_data(p_data, p_bytes);
 }
 
-Error StreamPeerBuffer::get_data(uint8_t* p_buffer, int p_bytes){
+Error StreamPeerBuffer::get_data(uint8_t *p_buffer, int p_bytes) {
 
 	int recv;
-	get_partial_data(p_buffer,p_bytes,recv);
-	if (recv!=p_bytes)
+	get_partial_data(p_buffer, p_bytes, recv);
+	if (recv != p_bytes)
 		return ERR_INVALID_PARAMETER;
 
 	return OK;
-
 }
-Error StreamPeerBuffer::get_partial_data(uint8_t* p_buffer, int p_bytes,int &r_received){
+Error StreamPeerBuffer::get_partial_data(uint8_t *p_buffer, int p_bytes, int &r_received) {
 
-
-	if (pointer+p_bytes > data.size()) {
-		r_received=data.size()-pointer;
-		if (r_received<=0) {
-			r_received=0;
+	if (pointer + p_bytes > data.size()) {
+		r_received = data.size() - pointer;
+		if (r_received <= 0) {
+			r_received = 0;
 			return OK; //you got 0
 		}
 	} else {
-		r_received=p_bytes;
+		r_received = p_bytes;
 	}
 
 	DVector<uint8_t>::Read r = data.read();
-	copymem(p_buffer,r.ptr(),r_received);
+	copymem(p_buffer, r.ptr() + pointer, r_received);
+
+	pointer += r_received;
+	// FIXME: return what? OK or ERR_*
 }
 
 int StreamPeerBuffer::get_available_bytes() const {
 
-	return data.size()-pointer;
+	return data.size() - pointer;
 }
 
-void StreamPeerBuffer::seek(int p_pos){
+void StreamPeerBuffer::seek(int p_pos) {
 
 	ERR_FAIL_COND(p_pos < 0);
 	ERR_FAIL_COND(p_pos > data.size());
-	pointer=p_pos;
+	pointer = p_pos;
 }
-int StreamPeerBuffer::get_size() const{
+int StreamPeerBuffer::get_size() const {
 
 	return data.size();
 }
@@ -490,40 +480,37 @@ int StreamPeerBuffer::get_pos() const {
 	return pointer;
 }
 
-void StreamPeerBuffer::resize(int p_size){
+void StreamPeerBuffer::resize(int p_size) {
 
 	data.resize(p_size);
 }
 
-void StreamPeerBuffer::set_data_array(const DVector<uint8_t> & p_data){
+void StreamPeerBuffer::set_data_array(const DVector<uint8_t> &p_data) {
 
-	data=p_data;
-	pointer=0;
+	data = p_data;
+	pointer = 0;
 }
 
-DVector<uint8_t> StreamPeerBuffer::get_data_array() const{
+DVector<uint8_t> StreamPeerBuffer::get_data_array() const {
 
 	return data;
 }
 
-
 void StreamPeerBuffer::clear() {
 
 	data.resize(0);
-	pointer=0;
+	pointer = 0;
 }
-
 
 Ref<StreamPeerBuffer> StreamPeerBuffer::duplicate() const {
 
 	Ref<StreamPeerBuffer> spb;
 	spb.instance();
-	spb->data=data;
+	spb->data = data;
 	return spb;
 }
 
-
 StreamPeerBuffer::StreamPeerBuffer() {
 
-	pointer=0;
+	pointer = 0;
 }

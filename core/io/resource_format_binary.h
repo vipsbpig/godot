@@ -3,7 +3,7 @@
 /*************************************************************************/
 /*                       This file is part of:                           */
 /*                           GODOT ENGINE                                */
-/*                    http://www.godotengine.org                         */
+/*                      https://godotengine.org                          */
 /*************************************************************************/
 /* Copyright (c) 2007-2017 Juan Linietsky, Ariel Manzur.                 */
 /* Copyright (c) 2014-2017 Godot Engine contributors (cf. AUTHORS.md)    */
@@ -53,19 +53,19 @@ class ResourceInteractiveLoaderBinary : public ResourceInteractiveLoader {
 	//Map<int,StringName> string_map;
 	Vector<StringName> string_map;
 
-	struct ExtResoucre {
+	struct ExtResource {
 		String path;
 		String type;
 	};
 
-	Vector<ExtResoucre> external_resources;
+	Vector<ExtResource> external_resources;
 
-	struct IntResoucre {
+	struct IntResource {
 		String path;
 		uint64_t offset;
 	};
 
-	Vector<IntResoucre> internal_resources;
+	Vector<IntResource> internal_resources;
 
 	String get_unicode_string();
 	void _advance_padding(uint32_t p_len);

@@ -3,7 +3,7 @@
 /*************************************************************************/
 /*                       This file is part of:                           */
 /*                           GODOT ENGINE                                */
-/*                    http://www.godotengine.org                         */
+/*                      https://godotengine.org                          */
 /*************************************************************************/
 /* Copyright (c) 2007-2017 Juan Linietsky, Ariel Manzur.                 */
 /* Copyright (c) 2014-2017 Godot Engine contributors (cf. AUTHORS.md)    */
@@ -40,6 +40,8 @@ Error EditorRun::run(const String &p_scene, const String p_custom_args, const Li
 	List<String> args;
 
 	String resource_path = Globals::get_singleton()->get_resource_path();
+	String remote_host = EditorSettings::get_singleton()->get("network/debug_host");
+	int remote_port = (int)EditorSettings::get_singleton()->get("network/debug_port");
 
 	if (resource_path != "") {
 		args.push_back("-path");
@@ -48,17 +50,11 @@ Error EditorRun::run(const String &p_scene, const String p_custom_args, const Li
 
 	if (true) {
 		args.push_back("-rdebug");
-#ifdef WINDOWS_ENABLED
-		// Avoid failing DNS lookup on disconnected Windows machines.
-		const char *debug_host = "127.0.0.1:";
-#else
-		const char *debug_host = "localhost:";
-#endif
-		args.push_back(debug_host + String::num(GLOBAL_DEF("debug/debug_port", 6007)));
+		args.push_back(remote_host + ":" + String::num(remote_port));
 	}
 
-	args.push_back("-epid");
-	args.push_back(String::num(OS::get_singleton()->get_process_ID()));
+	args.push_back("-allow_focus_steal_pid");
+	args.push_back(itos(OS::get_singleton()->get_process_ID()));
 
 	if (debug_collisions) {
 		args.push_back("-debugcol");
@@ -96,7 +92,7 @@ Error EditorRun::run(const String &p_scene, const String p_custom_args, const Li
 	int window_placement = EditorSettings::get_singleton()->get("game_window_placement/rect");
 
 	switch (window_placement) {
-		case 0: { // default
+		case 0: { // top left
 
 			args.push_back("-p");
 			args.push_back(itos(screen_rect.pos.x) + "x" + itos(screen_rect.pos.y));

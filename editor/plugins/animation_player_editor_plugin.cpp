@@ -3,7 +3,7 @@
 /*************************************************************************/
 /*                       This file is part of:                           */
 /*                           GODOT ENGINE                                */
-/*                    http://www.godotengine.org                         */
+/*                      https://godotengine.org                          */
 /*************************************************************************/
 /* Copyright (c) 2007-2017 Juan Linietsky, Ariel Manzur.                 */
 /* Copyright (c) 2014-2017 Godot Engine contributors (cf. AUTHORS.md)    */
@@ -254,6 +254,10 @@ void AnimationPlayerEditor::_play_bw_from_pressed() {
 	//pause->set_pressed(false);
 }
 void AnimationPlayerEditor::_stop_pressed() {
+
+	if (!player) {
+		return;
+	}
 
 	player->stop(false);
 	play->set_pressed(false);

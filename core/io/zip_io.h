@@ -3,7 +3,7 @@
 /*************************************************************************/
 /*                       This file is part of:                           */
 /*                           GODOT ENGINE                                */
-/*                    http://www.godotengine.org                         */
+/*                      https://godotengine.org                          */
 /*************************************************************************/
 /* Copyright (c) 2007-2017 Juan Linietsky, Ariel Manzur.                 */
 /* Copyright (c) 2014-2017 Godot Engine contributors (cf. AUTHORS.md)    */
@@ -30,10 +30,11 @@
 #ifndef ZIP_IO_H
 #define ZIP_IO_H
 
-#include "io/unzip.h"
-#include "io/zip.h"
 #include "os/copymem.h"
 #include "os/file_access.h"
+
+#include "thirdparty/minizip/unzip.h"
+#include "thirdparty/minizip/zip.h"
 
 static void *zipio_open(void *data, const char *p_fname, int mode) {
 

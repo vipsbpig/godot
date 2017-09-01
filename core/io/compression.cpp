@@ -3,7 +3,7 @@
 /*************************************************************************/
 /*                       This file is part of:                           */
 /*                           GODOT ENGINE                                */
-/*                    http://www.godotengine.org                         */
+/*                      https://godotengine.org                          */
 /*************************************************************************/
 /* Copyright (c) 2007-2017 Juan Linietsky, Ariel Manzur.                 */
 /* Copyright (c) 2014-2017 Godot Engine contributors (cf. AUTHORS.md)    */
@@ -28,11 +28,13 @@
 /* SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.                */
 /*************************************************************************/
 #include "compression.h"
-#include "os/copymem.h"
-#include "zlib.h"
 
-#include "fastlz.h"
+#include "os/copymem.h"
 #include "zip_io.h"
+
+#include "thirdparty/misc/fastlz.h"
+
+#include <zlib.h>
 
 int Compression::compress(uint8_t *p_dst, const uint8_t *p_src, int p_src_size, Mode p_mode) {
 
@@ -65,7 +67,6 @@ int Compression::compress(uint8_t *p_dst, const uint8_t *p_src, int p_src_size, 
 			strm.next_in = (Bytef *)p_src;
 			strm.next_out = p_dst;
 			deflate(&strm, Z_FINISH);
-
 			aout = aout - strm.avail_out;
 			deflateEnd(&strm);
 			return aout;
@@ -105,20 +106,19 @@ int Compression::get_max_compressed_buffer_size(int p_src_size, Mode p_mode) {
 	ERR_FAIL_V(-1);
 }
 
+int Compression::decompress(uint8_t *p_dst, int p_dst_max_size, const uint8_t *p_src, int p_src_size, Mode p_mode) {
 
-int Compression::decompress(uint8_t *p_dst, int p_dst_max_size, const uint8_t *p_src, int p_src_size,Mode p_mode){
-
-	switch(p_mode) {
+	switch (p_mode) {
 		case MODE_FASTLZ: {
 
-			int ret_size=0;
+			int ret_size = 0;
 
-			if (p_dst_max_size<16) {
+			if (p_dst_max_size < 16) {
 				uint8_t dst[16];
-				ret_size = fastlz_decompress(p_src,p_src_size,dst,16);
-				copymem(p_dst,dst,p_dst_max_size);
+				ret_size = fastlz_decompress(p_src, p_src_size, dst, 16);
+				copymem(p_dst, dst, p_dst_max_size);
 			} else {
-				ret_size = fastlz_decompress(p_src,p_src_size,p_dst,p_dst_max_size);
+				ret_size = fastlz_decompress(p_src, p_src_size, p_dst, p_dst_max_size);
 			}
 			return ret_size;
 		} break;
@@ -131,18 +131,17 @@ int Compression::decompress(uint8_t *p_dst, int p_dst_max_size, const uint8_t *p
 			strm.avail_in = 0;
 			strm.next_in = Z_NULL;
 			int err = inflateInit(&strm);
-
-			ERR_FAIL_COND_V(err!=Z_OK,-1);
+			ERR_FAIL_COND_V(err != Z_OK, -1);
 
 			strm.avail_in = p_src_size;
 			strm.avail_out = p_dst_max_size;
 			strm.next_in = (Bytef *)p_src;
 			strm.next_out = p_dst;
 
-			err = inflate(&strm,Z_FINISH);
+			err = inflate(&strm, Z_FINISH);
 			int total = strm.total_out;
 			inflateEnd(&strm);
-			ERR_FAIL_COND_V(err!=Z_STREAM_END,-1);
+			ERR_FAIL_COND_V(err != Z_STREAM_END, -1);
 			return total;
 		} break;
 	}

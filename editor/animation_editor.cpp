@@ -3,7 +3,7 @@
 /*************************************************************************/
 /*                       This file is part of:                           */
 /*                           GODOT ENGINE                                */
-/*                    http://www.godotengine.org                         */
+/*                      https://godotengine.org                          */
 /*************************************************************************/
 /* Copyright (c) 2007-2017 Juan Linietsky, Ariel Manzur.                 */
 /* Copyright (c) 2014-2017 Godot Engine contributors (cf. AUTHORS.md)    */
@@ -1294,7 +1294,7 @@ void AnimationKeyEditor::_track_editor_draw() {
 		Object *obj = NULL;
 
 		RES res;
-		Node *node = root->get_node_and_resource(animation->track_get_path(idx), res);
+		Node *node = root ? root->get_node_and_resource(animation->track_get_path(idx), res) : (Node *)NULL;
 
 		if (res.is_valid()) {
 			obj = res.ptr();
@@ -1319,7 +1319,7 @@ void AnimationKeyEditor::_track_editor_draw() {
 
 		te->draw_texture(type_icon[animation->track_get_type(idx)], ofs + Point2(0, y + (h - type_icon[0]->get_height()) / 2).floor());
 		NodePath np = animation->track_get_path(idx);
-		Node *n = root->get_node(np);
+		Node *n = root ? root->get_node(np) : (Node *)NULL;
 		Color ncol = color;
 		if (n && editor_selection->is_selected(n))
 			ncol = track_select_color;
@@ -1834,7 +1834,7 @@ void AnimationKeyEditor::_track_editor_input_event(const InputEvent &p_input) {
 				if (mb.mod.command) {
 					zoom->set_val(zoom->get_val() + zoom->get_step());
 				} else {
-					v_scroll->set_val(v_scroll->get_val() - v_scroll->get_page() / 8);
+					v_scroll->set_val(v_scroll->get_val() - v_scroll->get_page() * mb.factor / 8);
 				}
 			}
 
@@ -1843,8 +1843,17 @@ void AnimationKeyEditor::_track_editor_input_event(const InputEvent &p_input) {
 				if (mb.mod.command) {
 					zoom->set_val(zoom->get_val() - zoom->get_step());
 				} else {
-					v_scroll->set_val(v_scroll->get_val() + v_scroll->get_page() / 8);
+					v_scroll->set_val(v_scroll->get_val() + v_scroll->get_page() * mb.factor / 8);
 				}
+			}
+
+			if (mb.button_index == BUTTON_WHEEL_RIGHT && mb.pressed) {
+				h_scroll->set_val(h_scroll->get_val() - h_scroll->get_page() * mb.factor / 8);
+			}
+
+			if (mb.button_index == BUTTON_WHEEL_LEFT && mb.pressed) {
+
+				v_scroll->set_val(v_scroll->get_val() + v_scroll->get_page() * mb.factor / 8);
 			}
 
 			if (mb.button_index == BUTTON_RIGHT && mb.pressed) {

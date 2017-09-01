@@ -3,7 +3,7 @@
 /*************************************************************************/
 /*                       This file is part of:                           */
 /*                           GODOT ENGINE                                */
-/*                    http://www.godotengine.org                         */
+/*                      https://godotengine.org                          */
 /*************************************************************************/
 /* Copyright (c) 2007-2017 Juan Linietsky, Ariel Manzur.                 */
 /* Copyright (c) 2014-2017 Godot Engine contributors (cf. AUTHORS.md)    */
@@ -206,6 +206,10 @@ private:
 					f->store_line("\n");
 					f->store_line("name=\"" + project_name->get_text() + "\"");
 					f->store_line("icon=\"res://icon.png\"");
+					f->store_line("\n");
+					f->store_line("[physics_2d]");
+					f->store_line("\n");
+					f->store_line("motion_fix_enabled=true");
 
 					memdelete(f);
 
@@ -855,6 +859,7 @@ void ProjectManager::_load_recent_projects() {
 
 		VBoxContainer *vb = memnew(VBoxContainer);
 		vb->set_name("project");
+		vb->set_h_size_flags(SIZE_EXPAND_FILL);
 		hb->add_child(vb);
 		Control *ec = memnew(Control);
 		ec->set_custom_minimum_size(Size2(0, 1));
@@ -862,12 +867,14 @@ void ProjectManager::_load_recent_projects() {
 		Label *title = memnew(Label(project_name));
 		title->add_font_override("font", get_font("large", "Fonts"));
 		title->add_color_override("font_color", font_color);
+		title->set_clip_text(true);
 		vb->add_child(title);
 		Label *fpath = memnew(Label(path));
 		fpath->set_name("path");
 		vb->add_child(fpath);
 		fpath->set_opacity(0.5);
 		fpath->add_color_override("font_color", font_color);
+		fpath->set_clip_text(true);
 
 		scroll_childs->add_child(hb);
 	}
@@ -900,8 +907,9 @@ void ProjectManager::_on_project_created(const String &dir) {
 		_update_scroll_pos(dir);
 	} else {
 		_load_recent_projects();
-		scroll->connect("draw", this, "_update_scroll_pos", varray(dir), CONNECT_ONESHOT);
+		_update_scroll_pos(dir);
 	}
+	_open_project();
 }
 
 void ProjectManager::_update_scroll_pos(const String &dir) {
@@ -1321,7 +1329,7 @@ ProjectManager::ProjectManager() {
 
 	if (StreamPeerSSL::is_available()) {
 		asset_library = memnew(EditorAssetLibrary(true));
-		asset_library->set_name("Templates");
+		asset_library->set_name(TTR("Templates"));
 		tabs->add_child(asset_library);
 		asset_library->connect("install_asset", this, "_install_project");
 	} else {
@@ -1452,7 +1460,7 @@ ProjectListFilter::ProjectListFilter() {
 	_current_filter = FILTER_NAME;
 
 	filter_option = memnew(OptionButton);
-	filter_option->set_custom_minimum_size(Size2(80, 10));
+	filter_option->set_custom_minimum_size(Size2(80 * EDSCALE, 10 * EDSCALE));
 	filter_option->set_clip_text(true);
 	filter_option->connect("item_selected", this, "_filter_option_selected");
 	add_child(filter_option);

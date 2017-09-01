@@ -3,7 +3,7 @@
 /*************************************************************************/
 /*                       This file is part of:                           */
 /*                           GODOT ENGINE                                */
-/*                    http://www.godotengine.org                         */
+/*                      https://godotengine.org                          */
 /*************************************************************************/
 /* Copyright (c) 2007-2017 Juan Linietsky, Ariel Manzur.                 */
 /* Copyright (c) 2014-2017 Godot Engine contributors (cf. AUTHORS.md)    */
@@ -30,8 +30,9 @@
 #ifndef SURFACE_TOOL_H
 #define SURFACE_TOOL_H
 
-#include "mikktspace.h"
 #include "scene/resources/mesh.h"
+
+#include "thirdparty/misc/mikktspace.h"
 
 class SurfaceTool : public Reference {
 

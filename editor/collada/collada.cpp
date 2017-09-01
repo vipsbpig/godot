@@ -3,7 +3,7 @@
 /*************************************************************************/
 /*                       This file is part of:                           */
 /*                           GODOT ENGINE                                */
-/*                    http://www.godotengine.org                         */
+/*                      https://godotengine.org                          */
 /*************************************************************************/
 /* Copyright (c) 2007-2017 Juan Linietsky, Ariel Manzur.                 */
 /* Copyright (c) 2014-2017 Godot Engine contributors (cf. AUTHORS.md)    */
@@ -2207,6 +2207,7 @@ void Collada::_merge_skeletons(VisualScene *p_vscene, Node *p_node) {
 				ERR_CONTINUE(!state.scene_map.has(nodeid)); //weird, it should have it...
 
 				NodeJoint *nj = SAFE_CAST<NodeJoint *>(state.scene_map[nodeid]);
+				ERR_CONTINUE(!nj); //broken collada
 				if (!nj->owner) {
 					print_line("no owner for: " + String(nodeid));
 				}

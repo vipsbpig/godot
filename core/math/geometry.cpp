@@ -3,7 +3,7 @@
 /*************************************************************************/
 /*                       This file is part of:                           */
 /*                           GODOT ENGINE                                */
-/*                    http://www.godotengine.org                         */
+/*                      https://godotengine.org                          */
 /*************************************************************************/
 /* Copyright (c) 2007-2017 Juan Linietsky, Ariel Manzur.                 */
 /* Copyright (c) 2014-2017 Godot Engine contributors (cf. AUTHORS.md)    */
@@ -1076,8 +1076,8 @@ void Geometry::make_atlas(const Vector<Size2i> &p_rects, Vector<Point2i> &r_resu
 
 	for (int i = 0; i < results.size(); i++) {
 
-		float h = nearest_power_of_2(results[i].max_h);
-		float w = nearest_power_of_2(results[i].max_w);
+		float h = next_power_of_2(results[i].max_h);
+		float w = next_power_of_2(results[i].max_w);
 		float aspect = h > w ? h / w : w / h;
 		if (aspect < best_aspect) {
 			best = i;

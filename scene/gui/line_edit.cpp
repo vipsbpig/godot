@@ -3,7 +3,7 @@
 /*************************************************************************/
 /*                       This file is part of:                           */
 /*                           GODOT ENGINE                                */
-/*                    http://www.godotengine.org                         */
+/*                      https://godotengine.org                          */
 /*************************************************************************/
 /* Copyright (c) 2007-2017 Juan Linietsky, Ariel Manzur.                 */
 /* Copyright (c) 2014-2017 Godot Engine contributors (cf. AUTHORS.md)    */
@@ -639,8 +639,8 @@ void LineEdit::_notification(int p_what) {
 				if (char_ofs >= t.length())
 					break;
 
-				CharType cchar = pass ? '*' : t[char_ofs];
-				CharType next = pass ? '*' : t[char_ofs + 1];
+				CharType cchar = (pass && !text.empty()) ? '*' : t[char_ofs];
+				CharType next = (pass && !text.empty()) ? '*' : t[char_ofs + 1];
 				int char_width = font->get_char_size(cchar, next).width;
 
 				// end of widget, break!
@@ -1184,7 +1184,9 @@ void LineEdit::menu_option(int p_option) {
 			select_all();
 		} break;
 		case MENU_UNDO: {
-			undo();
+			if (editable) {
+				undo();
+			}
 		} break;
 	}
 }
