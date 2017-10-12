@@ -35,7 +35,7 @@
 
 class NetworkedMultiplayerENet : public NetworkedMultiplayerPeer {
 
-	OBJ_TYPE(NetworkedMultiplayerENet,NetworkedMultiplayerPeer)
+    OBJ_TYPE(NetworkedMultiplayerENet,NetworkedMultiplayerPeer)
 public:
 	enum CompressionMode {
 		COMPRESS_NONE,
@@ -62,7 +62,7 @@ private:
 
 	uint32_t unique_id;
 
-	int target_peer;
+    int target_peer;
 	TransferMode transfer_mode;
 
 	ENetEvent event;

@@ -396,7 +396,196 @@ bool Steam::inviteUserToLobby(int steamIDLobby, int steamIDInvitee){
 	}
 	CSteamID lobbyID = createSteamID(steamIDLobby);
 	CSteamID inviteeID = createSteamID(steamIDInvitee);
-	return SteamMatchmaking()->InviteUserToLobby(lobbyID, inviteeID);
+    return SteamMatchmaking()->InviteUserToLobby(lobbyID, inviteeID);
+}
+
+bool Steam::requestLobbyData(int steamIDLobby)
+{
+    if(SteamMatchmaking() == NULL){
+        return false;
+    }
+
+    CSteamID lobbyID = createSteamID(steamIDLobby);
+
+    return SteamMatchmaking()->RequestLobbyData(lobbyID);
+}
+
+void Steam::requestLobbyList()
+{
+    if(SteamMatchmaking() == NULL){
+        return ;
+    }
+
+    SteamMatchmaking()->RequestLobbyList();
+}
+
+int Steam::getLobbyByIndex(int iLobby)
+{
+    if(SteamMatchmaking() == NULL){
+        return 0;
+    }
+}
+
+bool Steam::deleteLobbyData(int steamIDLobby, const String &pchKey)
+{
+    if(SteamMatchmaking() == NULL){
+        return false;
+    }
+    CSteamID lobbyID = createSteamID(steamIDLobby);
+    return SteamMatchmaking()->DeleteLobbyData(lobbyID, pchKey.ascii().get_data());
+
+}
+
+bool Steam::setLobbyData(int steamIDLobby, const String &pchKey, const String &pchValue)
+{
+    if(SteamMatchmaking() == NULL){
+        return false;
+    }
+    CSteamID lobbyID = createSteamID(steamIDLobby);
+
+    return SteamMatchmaking()->SetLobbyData(lobbyID, pchKey.ascii().get_data() ,pchValue.ascii().get_data());
+}
+
+String Steam::getLobbyData(int steamIDLobby, const String &pchKey)
+{
+    if(SteamMatchmaking() == NULL){
+        return "";
+    }
+    CSteamID lobbyID = createSteamID(steamIDLobby);
+
+    return SteamMatchmaking()->GetLobbyData(lobbyID, pchKey.ascii().get_data());
+
+}
+
+bool Steam::getLobbyDataByIndex(int steamIDLobby, int iLobbyData)
+{
+    if(SteamMatchmaking() == NULL){
+        return false;
+    }
+    CSteamID lobbyID = createSteamID(steamIDLobby);
+
+    char pchKeyTemp[1024] = "";
+    char pchValueTemp[1024] = "";
+
+    bool flag = SteamMatchmaking()->GetLobbyDataByIndex(lobbyID,iLobbyData,pchKeyTemp,1024,pchValueTemp,1024);
+
+    String pchKey = pchKeyTemp;
+    String pchValue = pchValueTemp;
+    //TODO::
+    //return a dictionary
+
+    return flag;
+}
+
+int Steam::getLobbyDataCount(int steamIDLobby)
+{
+    if(SteamMatchmaking() == NULL){
+        return 0;
+    }
+    CSteamID lobbyID = createSteamID(steamIDLobby);
+
+    return SteamMatchmaking()->GetLobbyDataCount(lobbyID);
+}
+
+bool Steam::setLobbyType(int steamIDLobby, int eLobbyType)
+{
+    if(SteamMatchmaking() == NULL){
+        return false;
+    }
+    CSteamID lobbyID = createSteamID(steamIDLobby);
+
+    return SteamMatchmaking()->SetLobbyType(lobbyID, ELobbyType(eLobbyType));
+}
+
+int Steam::getLobbyOwner(int steamIDLobby)
+{
+    if(SteamMatchmaking() == NULL){
+        return 0;
+    }
+    CSteamID lobbyID = createSteamID(steamIDLobby);
+
+    return SteamMatchmaking()->GetLobbyOwner(lobbyID).GetAccountID();
+
+}
+
+bool Steam::setLobbyOwner(int steamIDLobby, int steamIDNewOwner)
+{
+    if(SteamMatchmaking() == NULL){
+        return false;
+    }
+
+    CSteamID lobbyID = createSteamID(steamIDLobby);
+    CSteamID newOwnerID = createSteamID(steamIDNewOwner);
+
+    return SteamMatchmaking()->SetLobbyOwner(lobbyID, newOwnerID);
+}
+
+int Steam::getNumLobbyMembers(int steamIDLobby)
+{
+    if(SteamMatchmaking() == NULL){
+        return 0;
+    }
+
+    CSteamID lobbyID = createSteamID(steamIDLobby);
+
+    return SteamMatchmaking()->GetNumLobbyMembers(lobbyID);
+
+}
+
+bool Steam::setLobbyMemberLimit(int steamIDLobby, int cMaxMembers)
+{
+    if(SteamMatchmaking() == NULL){
+        return false;
+    }
+
+    CSteamID lobbyID = createSteamID(steamIDLobby);
+
+    return SteamMatchmaking()->SetLobbyMemberLimit(lobbyID, cMaxMembers);
+}
+
+int Steam::getLobbyMemberLimit(int steamIDLobby)
+{
+    if(SteamMatchmaking() == NULL){
+        return 0;
+    }
+
+    CSteamID lobbyID = createSteamID(steamIDLobby);
+
+    return SteamMatchmaking()->GetLobbyMemberLimit(lobbyID);
+}
+
+int Steam::getLobbyMemberByIndex(int steamIDLobby, int iMember)
+{
+    if(SteamMatchmaking() == NULL){
+        return 0;
+    }
+
+    CSteamID lobbyID = createSteamID(steamIDLobby);
+
+    return SteamMatchmaking()->GetLobbyMemberByIndex(lobbyID, iMember).GetAccountID();
+}
+
+String Steam::getLobbyMemberData(int steamIDLobby, int steamIDUser, const String &pchKey)
+{
+    if(SteamMatchmaking() == NULL){
+        return "";
+    }
+
+    CSteamID lobbyID = createSteamID(steamIDLobby);
+    CSteamID userID = createSteamID(steamIDUser);
+
+    return SteamMatchmaking()->GetLobbyMemberData(lobbyID,userID,pchKey.ascii().get_data());
+}
+
+bool Steam::setLobbyJoinable(int steamIDLobby, bool bLobbyJoinable)
+{
+    if(SteamMatchmaking() == NULL){
+        return false;
+    }
+
+    CSteamID lobbyID = createSteamID(steamIDLobby);
+
+    return SteamMatchmaking()->SetLobbyJoinable(lobbyID, bLobbyJoinable);
 }
 /////////////////////////////////////////////////
 ///// MUSIC /////////////////////////////////////
@@ -513,9 +702,24 @@ void Steam::_lobby_invite(LobbyInvite_t* lobbyData){
 // Signal a game/lobby join has been requested
 void Steam::_join_requested(GameRichPresenceJoinRequested_t* callData){
 	int steamID = callData->m_steamIDFriend.GetAccountID();
-	String con_string = callData->m_rgchConnect;
+    String con_string = callData->m_rgchConnect;
 	emit_signal("join_requested", steamID, con_string);
 }
+
+// Signal lobby data
+void Steam::_request_lobby_data(LobbyDataUpdate_t *pParam){
+    bool success = pParam->m_bSuccess;
+    int lobbyID = pParam->m_ulSteamIDLobby;
+    int userID = pParam->m_ulSteamIDMember;
+    emit_signal("request_lobby_data",success, lobbyID, userID);
+}
+
+// Signal lobby list
+void Steam::_request_lobby_list(LobbyMatchList_t *pParam){
+    int lobbyNums = pParam->m_nLobbiesMatching;
+    emit_signal("request_lobby_list",lobbyNums);
+}
+
 // Signal that the avatar has been loaded
 void Steam::_avatar_loaded(AvatarImageLoaded_t* avatarData){
 	if(avatarData->m_steamID != SteamUser()->GetSteamID()){
@@ -983,7 +1187,28 @@ void Steam::_bind_methods(){
 	ObjectTypeDB::bind_method("joinLobby", &Steam::joinLobby);
 	ObjectTypeDB::bind_method("leaveLobby", &Steam::leaveLobby);
 	ObjectTypeDB::bind_method("inviteUserToLobby", &Steam::inviteUserToLobby);
-	// Music Bind Methods ///////////////////////
+
+    ObjectTypeDB::bind_method("requestLobbyData", &Steam::requestLobbyData);
+    ObjectTypeDB::bind_method("requestLobbyList", &Steam::requestLobbyList);
+    ObjectTypeDB::bind_method("getLobbyByIndex", &Steam::getLobbyByIndex);
+
+    ObjectTypeDB::bind_method("deleteLobbyData", &Steam::deleteLobbyData);
+    ObjectTypeDB::bind_method("setLobbyData", &Steam::setLobbyData);
+    ObjectTypeDB::bind_method("getLobbyData", &Steam::getLobbyData);
+    ObjectTypeDB::bind_method("getLobbyDataByIndex", &Steam::getLobbyDataByIndex);
+    ObjectTypeDB::bind_method("getLobbyDataCount", &Steam::getLobbyDataCount);
+    ObjectTypeDB::bind_method("setLobbyType", &Steam::setLobbyType);
+
+    ObjectTypeDB::bind_method("getLobbyOwner", &Steam::getLobbyOwner);
+    ObjectTypeDB::bind_method("setLobbyType", &Steam::setLobbyType);
+    ObjectTypeDB::bind_method("setLobbyOwner", &Steam::setLobbyOwner);
+    ObjectTypeDB::bind_method("getNumLobbyMembers", &Steam::getNumLobbyMembers);
+    ObjectTypeDB::bind_method("setLobbyMemberLimit", &Steam::setLobbyMemberLimit);
+    ObjectTypeDB::bind_method("getLobbyMemberLimit", &Steam::getLobbyMemberLimit);
+    ObjectTypeDB::bind_method("getLobbyMemberByIndex", &Steam::getLobbyMemberByIndex);
+    ObjectTypeDB::bind_method("getLobbyMemberData", &Steam::getLobbyMemberData);
+    ObjectTypeDB::bind_method("setLobbyJoinable", &Steam::setLobbyJoinable);
+    // Music Bind Methods ///////////////////////
 	ObjectTypeDB::bind_method("musicIsEnabled", &Steam::musicIsEnabled);
 	ObjectTypeDB::bind_method("musicIsPlaying", &Steam::musicIsPlaying);
 	ObjectTypeDB::bind_method("musicGetVolume", &Steam::musicGetVolume);
@@ -1041,7 +1266,9 @@ void Steam::_bind_methods(){
 	// Signals //////////////////////////////////
 	ADD_SIGNAL(MethodInfo("join_requested", PropertyInfo(Variant::INT, "from"), PropertyInfo(Variant::STRING, "connect_string")));
 	ADD_SIGNAL(MethodInfo("avatar_loaded", PropertyInfo(Variant::INT, "size"), PropertyInfo(Variant::IMAGE, "avatar")));
-	ADD_SIGNAL(MethodInfo("leaderboard_loaded", PropertyInfo(Variant::OBJECT, "SteamLeaderboard")));
+    ADD_SIGNAL(MethodInfo("request_lobby_data", PropertyInfo(Variant::BOOL, "success"), PropertyInfo(Variant::INT, "lobbyID"), PropertyInfo(Variant::INT,"userID")));
+    ADD_SIGNAL(MethodInfo("request_lobby_list", PropertyInfo(Variant::INT, "lobbyNums")));
+    ADD_SIGNAL(MethodInfo("leaderboard_loaded", PropertyInfo(Variant::OBJECT, "SteamLeaderboard")));
 	ADD_SIGNAL(MethodInfo("leaderboard_entries_loaded"));
 	ADD_SIGNAL(MethodInfo("overlay_toggled", PropertyInfo(Variant::BOOL, "active")));
 	ADD_SIGNAL(MethodInfo("low_power", PropertyInfo(Variant::INT, "power")));
@@ -1107,7 +1334,7 @@ void Steam::_bind_methods(){
 	BIND_CONSTANT(STATUS_PREPARING_CONTENT);	// Update is reading and processing content files
 	BIND_CONSTANT(STATUS_UPLOADING_CONTENT);	// Update is uploading content changes to Steam
 	BIND_CONSTANT(STATUS_UPLOADING_PREVIEW);	// Update is uploading new preview file image
-	BIND_CONSTANT(STATUS_COMMITTING_CHANGES);	// Update is committing all changes
+    BIND_CONSTANT(STATUS_COMMITTING_CHANGES);	// Update is committing all changes
 }
 
 Steam::~Steam(){

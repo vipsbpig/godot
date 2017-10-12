@@ -63,11 +63,33 @@ public:
 	void activateGameOverlayToStore(int appid=0);
 	void activateGameOverlayInviteDialog(int id);
 	// Matchmaking //////////////////////////////
-	void createLobby(int lobbyType, int cMaxMembers);
+    void createLobby(int lobbyType, int cMaxMembers);
 	void joinLobby(int steamIDLobby);
 	void leaveLobby(int steamIDLobby);
 	bool inviteUserToLobby(int steamIDLobby, int steamIDInvitee);
-	// Music ////////////////////////////////////
+
+    bool requestLobbyData( int steamIDLobby );
+    void requestLobbyList();
+    int getLobbyByIndex(int iLobby);
+
+    bool deleteLobbyData(int steamIDLobby, const String& pchKey );
+    bool setLobbyData( int steamIDLobby, const String& pchKey, const String& pchValue );
+    String getLobbyData(int steamIDLobby, const String& pchKey );
+    bool getLobbyDataByIndex(int steamIDLobby, int iLobbyData);
+    int getLobbyDataCount( int steamIDLobby );
+    bool setLobbyType( int steamIDLobby, int eLobbyType );
+
+    int getLobbyOwner( int steamIDLobby );
+    bool setLobbyOwner( int steamIDLobby, int steamIDNewOwner );
+    int getNumLobbyMembers(int steamIDLobby);
+    bool setLobbyMemberLimit(int steamIDLobby, int cMaxMembers);
+    int getLobbyMemberLimit(int steamIDLobby);
+    int getLobbyMemberByIndex(int steamIDLobby , int iMember);
+    String getLobbyMemberData(int steamIDLobby , int steamIDUser , const String& pchKey);
+    bool setLobbyJoinable(int steamIDLobby, bool bLobbyJoinable);
+    //bool GetLobbyGameServer( CSteamID steamIDLobby, uint32 *punGameServerIP, uint16 *punGameServerPort, CSteamID *psteamIDGameServer );
+    //void SetLobbyGameServer( CSteamID steamIDLobby, uint32 unGameServerIP, uint16 unGameServerPort, CSteamID steamIDGameServer );
+    // Music ////////////////////////////////////
 	bool musicIsEnabled();
 	bool musicIsPlaying();
 	float musicGetVolume();
@@ -141,7 +163,11 @@ private:
 	STEAM_CALLBACK(Steam, _lobby_created, LobbyCreated_t);
 	STEAM_CALLBACK(Steam, _lobby_joined, LobbyEnter_t);
 	STEAM_CALLBACK(Steam, _lobby_invite, LobbyInvite_t);
-	STEAM_CALLBACK(Steam, _join_requested, GameRichPresenceJoinRequested_t);
+    STEAM_CALLBACK(Steam, _join_requested, GameRichPresenceJoinRequested_t);
+
+    STEAM_CALLBACK(Steam, _request_lobby_list, LobbyMatchList_t);
+    STEAM_CALLBACK(Steam, _request_lobby_data, LobbyDataUpdate_t);
+
 	STEAM_CALLBACK(Steam, _overlay_toggled, GameOverlayActivated_t);
 	STEAM_CALLBACK(Steam, _low_power, LowBatteryPower_t);
 	STEAM_CALLBACK(Steam, _avatar_loaded, AvatarImageLoaded_t);
