@@ -25,36 +25,99 @@
 #include "core/script_language.h"
 
 extern "C" {
-	#include "lib/lua51/lua.h"
-	#include "lib/lua51/lualib.h"
-	#include "lib/lua51/lauxlib.h"
+#include "lib/lua51/lua.h"
+#include "lib/lua51/lualib.h"
+#include "lib/lua51/lauxlib.h"
 }
+
+class LuaNativeClass : public Reference {
+
+	GDCLASS(LuaNativeClass, Reference);
+
+	StringName name;
+
+protected:
+	bool _get(const StringName &p_name, Variant &r_ret) const;
+	static void _bind_methods();
+
+public:
+	_FORCE_INLINE_ const StringName &get_name() const { return name; }
+	Variant _new();
+	Object *instance();
+	LuaNativeClass(const StringName &p_name);
+};
 
 class LuaScript : public Script {
 
 	GDCLASS(LuaScript, Script)
+	bool tool;
+	bool valid;
 
 	friend class LuaScriptInstance;
 	friend class LuaScriptLanguage;
 
-private:
-	bool tool;
-	bool valid;
+	//Variant _static_ref; //used for static call
+	Ref<LuaNativeClass> native;
+	Ref<LuaScript> base;
+	LuaScript *_base; //fast pointer access
+	//LuaScript *_owner; //for subclasses
 
-	SelfList<LuaScript> self;
+	//Set<StringName> members; //members are just indices to the instanced script.
+	//Map<StringName, Variant> constants;
+	//Map<StringName, GDScriptFunction *> member_functions;
+	//Map<StringName, MemberInfo> member_indices; //members are just indices to the instanced script.
+	//Map<StringName, Ref<GDScript> > subclasses;
+	//Map<StringName, Vector<StringName> > _signals;
 
-	String source;
-
-	Set<Object *> instances;
+	//Unknown
 
 #ifdef TOOLS_ENABLED
 	bool source_changed_cache;
+	Map<StringName, Variant> member_default_values;
+
+#endif
+	Map<StringName, PropertyInfo> member_info;
+
+	SelfList<LuaScript> self;
+
+	Set<Object *> instances;
+	//exported members
+	String source;
+	Vector<uint8_t> bytecode;
+	String path;
+	String name;
+	int ref; // ref to loaded lua script chunk(function)
+
+	LuaScriptInstance *_create_instance(const Variant **p_args, int p_argcount, Object *p_owner, bool p_isref);
+
+#ifdef TOOLS_ENABLED
 	Set<PlaceHolderScriptInstance *> placeholders;
+	virtual void _placeholder_erased(PlaceHolderScriptInstance *p_placeholder);
+	void _update_exports_values(Map<StringName, Variant> &values, List<PropertyInfo> &propnames);
+
 #endif
 
+	//#ifdef DEBUG_ENABLED
+	//	Map<ObjectID, List<Pair<StringName, Variant> > > pending_reload_state;
+	//#endif
+
+	//bool _update_exports();
+
+protected:
+	bool _get(const StringName &p_name, Variant &r_ret) const;
+	bool _set(const StringName &p_name, const Variant &p_value);
+	void _get_property_list(List<PropertyInfo> *p_properties) const;
+
+	Variant call(const StringName &p_method, const Variant **p_args, int p_argcount, Variant::CallError &r_error);
+	//	void call_multilevel(const StringName& p_method,const Variant** p_args,int p_argcount);
+
+	static void _bind_methods();
+
 public:
-	LuaScript();
-	~LuaScript();
+	virtual bool is_valid() const { return valid; }
+	virtual bool is_tool() const { return tool; }
+
+	Ref<LuaScript> get_base() const;
 
 	virtual bool can_instance() const;
 
@@ -72,8 +135,6 @@ public:
 	virtual bool has_method(const StringName &p_method) const;
 	virtual MethodInfo get_method_info(const StringName &p_method) const;
 
-	virtual bool is_tool() const;
-	virtual bool is_valid() const;
 
 	virtual ScriptLanguage *get_language() const;
 
@@ -97,19 +158,10 @@ public:
 	// Supports sorting based on inheritance; parent must came first // TODO
 	bool operator()(const Ref<LuaScript> &a, const Ref<LuaScript> &b) const { return true; }
 
-protected:
-	static void _bind_methods();
-
-	bool _set(const StringName &p_name, const Variant &p_property);
-	bool _get(const StringName &p_name, Variant &r_property) const;
-	void _get_property_list(List<PropertyInfo> *p_list) const;
-
-#ifdef TOOLS_ENABLED
-	virtual void _placeholder_erased(PlaceHolderScriptInstance *p_placeholder);
-#endif
-
-private:
 	Variant _new(const Variant **p_args, int p_argcount, Variant::CallError &r_error);
+
+	LuaScript();
+	~LuaScript();
 };
 
 class LuaScriptInstance : public ScriptInstance {
@@ -234,6 +286,8 @@ public:
 	virtual void free_instance_binding_data(void *p_data);
 
 	virtual void frame();
+
+	bool debug_break_parse(const String &p_file, int p_line, const String &p_error);
 
 private:
 	String get_indentation() const;

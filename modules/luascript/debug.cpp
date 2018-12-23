@@ -18,12 +18,13 @@
  */
 
 #include "debug.h"
+#include <stdlib.h>
 
 #if defined(LUA_SCRIPT_DEBUG_ENABLED)
 
 void print_debug(const String fmt, ...) {
 
-	char fmtbuf[fmt.size()], tmpbuf[256], finalbuf[512];
+	char fmtbuf[1024], tmpbuf[256], finalbuf[512];
 
 	wcstombs(fmtbuf, fmt.c_str(), fmt.size());
 

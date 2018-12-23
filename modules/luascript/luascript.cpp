@@ -27,6 +27,49 @@
 #include "debug.h"
 #include "luascript.h"
 
+bool LuaNativeClass::_get(const StringName &p_name, Variant &r_ret) const {
+	bool ok;
+	int v = ClassDB::get_integer_constant(name, p_name, &ok);
+
+	if (ok) {
+		r_ret = v;
+		return true;
+	} else {
+		return false;
+	}
+	return false;
+}
+
+void LuaNativeClass::_bind_methods() {
+	ClassDB::bind_method(D_METHOD("new"),&LuaNativeClass::_new);
+}
+
+Variant LuaNativeClass::_new() {
+	Object *o = instance();
+	if (!o) {
+		ERR_EXPLAIN("Class type: '" + String(name) + "' is not instantiable.");
+		ERR_FAIL_COND_V(!o, Variant());
+	}
+
+	Reference *ref = Object::cast_to<Reference>(o);
+	if (ref) {
+		print_debug("LuaNativeClass::_new Success");
+		return REF(ref);
+	} else {
+		print_debug("LuaNativeClass::_new Failed");
+		return o;
+	}
+}
+
+Object *LuaNativeClass::instance() {
+	return ClassDB::instance(name);
+}
+
+LuaNativeClass::LuaNativeClass(const StringName &p_name) {
+	name = p_name;
+}
+
+
 
 LuaScript::LuaScript() :
 		tool(false),
@@ -50,52 +93,63 @@ LuaScript::~LuaScript() {
 #endif
 } // TODO
 
+Ref<LuaScript> LuaScript::get_base() const {
+	return base;
+}
+
 bool LuaScript::can_instance() const {
 	print_debug("LuaScript::can_instance");
-
-	return valid || (!tool && !ScriptServer::is_scripting_enabled());
+	return valid;//any script in LuaScript can instance
 }
 
 // Returns the script directly inherited by this script.
-Ref<Script> LuaScript::get_base_script() const { // TODO
+Ref<Script> LuaScript::get_base_script() const { // TODO 要完成_base的赋值
 	print_debug("LuaScript::get_base_script");
-
-	return Ref<Script>();
+	if (_base) {
+		return Ref<Script>(_base);
+	} else {
+		return Ref<Script>();
+	};
 }
 
 StringName LuaScript::get_instance_base_type() const { // TODO
 	print_debug("LuaScript::get_instance_base_type");
-
+	if (native.is_valid())
+		return native->get_name();
+	if (base.is_valid())
+		return base->get_instance_base_type();
 	return StringName();
 }
 
 ScriptInstance *LuaScript::instance_create(Object *p_this) { // TODO
-#ifndef TOOLS_ENABLED
-	print_debug("LuaScript::instance_create( p_this = " + p_this->get_class_name() + " )");
-#endif
-
-	ERR_FAIL_COND_V(!this->valid, nullptr);
 
 	if (!tool && !ScriptServer::is_scripting_enabled()) {
 #ifdef TOOLS_ENABLED
 		print_debug("LuaScript::instance_create( p_this = " + p_this->get_class_name() + " ) tools enabled...");
 		PlaceHolderScriptInstance *placeHolder = memnew(PlaceHolderScriptInstance(LuaScriptLanguage::get_singleton(), Ref<Script>(this), p_this));
 		placeholders.insert(placeHolder);
-
+		//似乎不需要_update_placeholder
 		return placeHolder;
 #else
 		return nullptr;
 #endif
 	}
 
-	LuaScriptInstance *instance = memnew(LuaScriptInstance);
-	instance->owner = p_this;
-	instance->script = Ref<LuaScript>(this);
+	LuaScript *top = this;
+	while (top->_base)
+		top = top->_base;
 
-	auto guard = LuaScriptLanguage::acquire();
-	this->instances.insert(p_this);
+	if (top->native.is_valid()) {
+		if (!ClassDB::is_parent_class(p_this->get_class_name(),top->native->get_name())) {
 
-	return instance;
+			if (ScriptDebugger::get_singleton()) {
+				LuaScriptLanguage::get_singleton()->debug_break_parse(get_path(), 0, "Script inherits from native type '" + String(top->native->get_name()) + "', so it can't be instanced in object of type: '" + p_this->get_class() + "'");
+			}
+			ERR_EXPLAIN("Script inherits from native type '" + String(top->native->get_name()) + "', so it can't be instanced in object of type: '" + p_this->get_class() + "'");
+			ERR_FAIL_V(NULL);
+		}
+	}
+	return _create_instance(NULL, 0, p_this, Object::cast_to<Reference>(p_this));
 }
 
 bool LuaScript::instance_has(const Object *p_this) const { // TODO
@@ -201,15 +255,6 @@ Error LuaScript::load_source_code(const String &p_path) {
 	return OK;
 }
 
-bool LuaScript::is_tool() const { // TODO
-	print_debug("LuaScript::is_tool");
-
-	return this->tool;
-}
-
-bool LuaScript::is_valid() const {
-	return true;
-}
 
 ScriptLanguage *LuaScript::get_language() const { // TODO
 	print_debug("LuaScript::get_language");
@@ -286,11 +331,20 @@ void LuaScript::_get_property_list(List<PropertyInfo> *p_list) const { // TODO
 	print_debug("LuaScript::_get_property_list");
 }
 
+Variant LuaScript::call(const StringName &p_method, const Variant **p_args, int p_argcount, Variant::CallError &r_error) {
+	return Variant();
+}
+
 #ifdef TOOLS_ENABLED
+LuaScriptInstance *LuaScript::_create_instance(const Variant **p_args, int p_argcount, Object *p_owner, bool p_isref) {
+	return nullptr;
+}
 void LuaScript::_placeholder_erased(PlaceHolderScriptInstance *p_placeholder) {
 	print_debug("LuaScript::_placeholder_erased() tools enabled...");
 
 	this->placeholders.erase(p_placeholder);
+}
+void LuaScript::_update_exports_values(Map<StringName, Variant> &values, List<PropertyInfo> &propnames) {
 }
 #endif
 
@@ -835,6 +889,11 @@ void LuaScriptLanguage::free_instance_binding_data(void *p_data) {
 void LuaScriptLanguage::frame() {
 	//	print_debug("LuaScriptLanguage::frame");
 } // TODO
+
+bool LuaScriptLanguage::debug_break_parse(const String &p_file, int p_line, const String &p_error) {
+	//TODO::
+	return false;
+}
 
 String LuaScriptLanguage::get_indentation() const {
 	print_debug("LuaScriptLanguage::get_indentation");
