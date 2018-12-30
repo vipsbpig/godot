@@ -77,9 +77,7 @@ class LuaScript : public Script {
 
 #endif
 	Map<StringName, PropertyInfo> member_info;
-
-	SelfList<LuaScript> self;
-
+		
 	Set<Object *> instances;
 	//exported members
 	String source;
@@ -153,10 +151,8 @@ public:
 	virtual void get_constants(Map<StringName, Variant> *p_constants);
 	virtual void get_members(Set<StringName> *p_constants);
 
+	Error load_byte_code(const String &p_path);
 	Error load_source_code(const String &p_path);
-
-	// Supports sorting based on inheritance; parent must came first // TODO
-	bool operator()(const Ref<LuaScript> &a, const Ref<LuaScript> &b) const { return true; }
 
 	Variant _new(const Variant **p_args, int p_argcount, Variant::CallError &r_error);
 
@@ -199,25 +195,34 @@ public:
 	virtual MultiplayerAPI::RPCMode get_rset_mode(const StringName &p_variable) const;
 
 	virtual ScriptLanguage *get_language();
+
+	static int setup();
 };
+
 
 class LuaScriptLanguage : public ScriptLanguage {
 
-	static LuaScriptLanguage *singleton;
+	static LuaScriptLanguage *singleton ;
 
 	friend class LuaScript;
 	friend class LuaScriptInstance;
 
-	_FORCE_INLINE_ static LuaScriptLanguage *get_singleton() { return singleton; }
-	_FORCE_INLINE_ static MutexLock &acquire() { return *(memnew(MutexLock(LuaScriptLanguage::singleton->mutex))); }
+	Variant* _global_array;
+	Vector<Variant> global_array;
+	Map<StringName, int> globals;
+
+	void _add_global(const StringName &p_name, const Variant &p_value);
 
 private:
-	Mutex *mutex;
-	SelfList<LuaScript>::List script_list;
-
+	
 	lua_State *L;
 
+private:
+
+
 public:
+	_FORCE_INLINE_ static LuaScriptLanguage *get_singleton() { return singleton; }
+
 	LuaScriptLanguage();
 	~LuaScriptLanguage();
 
@@ -267,7 +272,6 @@ public:
 	virtual void debug_get_globals(List<String> *p_globals, List<Variant> *p_values, int p_max_subitems = -1, int p_max_depth = -1);
 	virtual String debug_parse_stack_level_expression(int p_level, const String &p_expression, int p_max_subitems = -1, int p_max_depth = -1);
 
-	virtual Vector<StackInfo> debug_get_current_stack_info();
 
 	virtual void reload_all_scripts();
 	virtual void reload_tool_script(const Ref<Script> &p_script, bool p_soft_reload);
@@ -290,14 +294,11 @@ public:
 	bool debug_break_parse(const String &p_file, int p_line, const String &p_error);
 
 private:
-	String get_indentation() const;
 };
 
 class LuaScriptResourceFormatLoader : public ResourceFormatLoader {
+	GDCLASS(LuaScriptResourceFormatLoader, ResourceFormatLoader)
 public:
-	LuaScriptResourceFormatLoader();
-	virtual ~LuaScriptResourceFormatLoader();
-
 	virtual Ref<Resource> load(const String &p_path, const String &p_original_path = "", Error *r_error = NULL);
 	virtual void get_recognized_extensions(List<String> *p_extensions) const;
 	virtual bool handles_type(const String &p_type) const;
@@ -305,10 +306,8 @@ public:
 };
 
 class LuaScriptResourceFormatSaver : public ResourceFormatSaver {
+	GDCLASS(LuaScriptResourceFormatSaver, ResourceFormatSaver)
 public:
-	LuaScriptResourceFormatSaver();
-	virtual ~LuaScriptResourceFormatSaver();
-
 	virtual Error save(const String &p_path, const Ref<Resource> &p_resource, uint32_t p_flags = 0);
 	virtual void get_recognized_extensions(const Ref<Resource> &p_resource, List<String> *p_extensions) const;
 	virtual bool recognize(const Ref<Resource> &p_resource) const;
