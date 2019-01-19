@@ -270,50 +270,117 @@ void LuaScriptLanguage::init() {
 }
 
 String LuaScriptLanguage::get_type() const {
-	return "";
+	return LUA_TYPE;
 }
 
 String LuaScriptLanguage::get_extension() const {
-	return String();
+	return LUA_EXTENSION;
 }
 
 Error LuaScriptLanguage::execute_file(const String &p_path) {
-	return Error();
+	return OK;
 }
 
 void LuaScriptLanguage::finish() {
+	//TODO::应该删除lua state
 }
 
 void LuaScriptLanguage::get_reserved_words(List<String> *p_words) const {
+	static const char *_reserved_words[] = {
+		//lua keyword
+		"and",
+		"break",
+		"do",
+		"else",
+		"elseif",
+		"end"
+		"false",
+		"for",
+		"function",
+		"if"
+		"in",
+		"local"
+		"nil",
+		"not",
+		"or",
+		"repeat",
+		"return",
+		"then",
+		"true",
+		"until",
+		"while",
+		//godot extras 
+		"PI",
+		"TAU",
+		"INF",
+		"NAN",
+		"export",
+		"extends",
+	};
+
+	const char **w = _reserved_words;
+
+	while (*w) {
+
+		p_words->push_back(*w);
+		w++;
+	}
+
+	//TODO::到时候需要绑定godot的数学库添加些基础功能
+	//for (int i = 0; i < GDScriptFunctions::FUNC_MAX; i++) {
+	//	p_words->push_back(GDScriptFunctions::get_func_name(GDScriptFunctions::Function(i)));
+	//}
 }
 
 void LuaScriptLanguage::get_comment_delimiters(List<String> *p_delimiters) const {
+	p_delimiters->push_back("--[[ ]]"); // Block comment starts with double shovel and runs until double close box
+	p_delimiters->push_back("--"); // Single-line comment starts with a double hyphens
 }
 
 void LuaScriptLanguage::get_string_delimiters(List<String> *p_delimiters) const {
+	p_delimiters->push_back("\" \"");
+	p_delimiters->push_back("' '");
+	p_delimiters->push_back("[[ ]]"); // Mult-line strings
 }
 
 Ref<Script> LuaScriptLanguage::get_template(const String &p_class_name, const String &p_base_class_name) const {
-	return Ref<Script>();
+	String _template = String() +
+					   "\nlocal node = extends '%BASE%'\n\n" +
+					   "-- member variables here, example:\n" +
+					   "-- local a=2\n" +
+					   "-- b=\"textvar\"\n\n" +
+					   "function node:_ready()\n" +
+					   "\t-- Initalization here\n" +
+					   "\t-- pass\n" +
+					   "end\n" +
+					   "\n"
+					   "\n";
+
+	_template = _template.replace("%BASE%", p_base_class_name);
+
+	Ref<LuaScript> script;
+	script.instance();
+	script->set_source_code(_template);
+
+	return script;
 }
 
 void LuaScriptLanguage::make_template(const String &p_class_name, const String &p_base_class_name, Ref<Script> &p_script) {
+	String src = p_script->get_source_code();
+	src = src.replace("%BASE%", p_base_class_name);
+	p_script->set_source_code(src);
 }
 
 bool LuaScriptLanguage::is_using_templates() {
-	return false;
+	return true;
 }
 
 bool LuaScriptLanguage::validate(const String &p_script, int &r_line_error, int &r_col_error, String &r_test_error, const String &p_path, List<String> *r_functions, List<Warning> *r_warnings, Set<int> *r_safe_lines) const {
 	return false;
 }
 
-String LuaScriptLanguage::validate_path(const String &p_path) const {
-	return String();
-}
-
 Script *LuaScriptLanguage::create_script() const {
-	return nullptr;
+	return memnew(LuaScript);
 }
 
 bool LuaScriptLanguage::has_named_classes() const {
@@ -325,123 +392,219 @@ bool LuaScriptLanguage::supports_builtin_mode() const {
 }
 
 bool LuaScriptLanguage::can_inherit_from_file() {
-	return false;
+	return true;
 }
 
 int LuaScriptLanguage::find_function(const String &p_function, const String &p_code) const {
-	return 0;
+	//TODO::
+	//找到返回行数
+	return -1;
 }
 
 String LuaScriptLanguage::make_function(const String &p_class, const String &p_name, const PoolStringArray &p_args) const {
-	return String();
+	String s = "function node:" + p_name + "(";
+	if (p_args.size()) {
+		s += " ";
+		for (int i = 0; i < p_args.size(); i++) {
+			if (i > 0)
+				s += ", ";
+			s += p_args[i];
+		}
+		s += " ";
+	}
+	s += ")\n\t-- replace with function body\nend\n";
+
+	return s;
 }
 
-Error LuaScriptLanguage::open_in_external_editor(const Ref<Script> &p_script, int p_line, int p_col) {
-	return Error();
-}
+//Error LuaScriptLanguage::open_in_external_editor(const Ref<Script> &p_script, int p_line, int p_col) {
+//	return Error();
+//}
 
-bool LuaScriptLanguage::overrides_external_editor() {
-	return false;
-}
+//bool LuaScriptLanguage::overrides_external_editor() {
+//	return false;
+//}
 
 Error LuaScriptLanguage::complete_code(const String &p_code, const String &p_base_path, Object *p_owner, List<String> *r_options, bool &r_force, String &r_call_hint) {
-	return Error();
+	print_debug("LuaScriptLanguage::complete_code");
+	//TODO::
+	return ERR_UNAVAILABLE;
 }
-
+#ifdef TOOLS_ENABLED
 Error LuaScriptLanguage::lookup_code(const String &p_code, const String &p_symbol, const String &p_base_path, Object *p_owner, LookupResult &r_result) {
-	return Error();
-}
-
+	return Error();}
+#endif
 void LuaScriptLanguage::auto_indent_code(String &p_code, int p_from_line, int p_to_line) const {
+	print_debug("LuaScriptLanguage::auto_indent_code");
+	//TODO::	
 }
 
 void LuaScriptLanguage::add_global_constant(const StringName &p_variable, const Variant &p_value) {
+	_add_global(p_variable, p_value);
 }
 
 void LuaScriptLanguage::thread_enter() {
+	//TODO::
 }
 
 void LuaScriptLanguage::thread_exit() {
+	//TODO::
 }
 
 String LuaScriptLanguage::debug_get_error() const {
-	return String();
+	print_debug("LuaScriptLanguage::debug_get_error");
+	//TODO::
+	return EMPTY_STRING;
 }
 
 int LuaScriptLanguage::debug_get_stack_level_count() const {
-	return 0;
+	//TODO::
+	return -1;
 }
 
 int LuaScriptLanguage::debug_get_stack_level_line(int p_level) const {
-	return 0;
+	//TODO::
+	return -1;
 }
 
 String LuaScriptLanguage::debug_get_stack_level_function(int p_level) const {
-	return String();
+	//TODO::
+	return EMPTY_STRING;
 }
 
+
 String LuaScriptLanguage::debug_get_stack_level_source(int p_level) const {
-	return String();
+	//TODO::
+	return EMPTY_STRING;
 }
 
 void LuaScriptLanguage::debug_get_stack_level_locals(int p_level, List<String> *p_locals, List<Variant> *p_values, int p_max_subitems, int p_max_depth) {
+	//TODO::
 }
 
 void LuaScriptLanguage::debug_get_stack_level_members(int p_level, List<String> *p_members, List<Variant> *p_values, int p_max_subitems, int p_max_depth) {
+	//TODO::
 }
 
 ScriptInstance *LuaScriptLanguage::debug_get_stack_level_instance(int p_level) {
+	//TODO::
 	return nullptr;
 }
 
 void LuaScriptLanguage::debug_get_globals(List<String> *p_globals, List<Variant> *p_values, int p_max_subitems, int p_max_depth) {
+	//TODO::
 }
 
 String LuaScriptLanguage::debug_parse_stack_level_expression(int p_level, const String &p_expression, int p_max_subitems, int p_max_depth) {
+	//TODO::
 	return String();
 }
 
 
 void LuaScriptLanguage::reload_all_scripts() {
+
+#ifdef DEBUG_ENABLED
+	//TODO::
+	//List<Ref<LuaScript> > scripts;
+
+	//{
+	//	auto guard = LuaScriptLanguage::acquire();
+
+	//	SelfList<LuaScript> *elem = script_list.first();
+	//	while (elem) {
+	//		if (elem->self()->get_path().is_resource_file()) {
+	//			scripts.push_back(Ref<LuaScript>(elem->self()));
+	//		}
+	//		elem = elem->next();
+	//	}
+	//}
+
+	//scripts.sort(); // update in inheritance dependency order, parent must be reload first
+
+	//for (List<Ref<LuaScript> >::Element *E = scripts.front(); E; E = E->next()) {
+	//	E->get()->load_source_code(E->get()->get_path());
+	//	E->get()->reload(true);
+	//}
+#endif
 }
 
 void LuaScriptLanguage::reload_tool_script(const Ref<Script> &p_script, bool p_soft_reload) {
+	//TODO::
+	print_debug("LuaScriptLanguage::reload_tool_script");
 }
 
 void LuaScriptLanguage::get_recognized_extensions(List<String> *p_extensions) const {
+	print_debug("LuaScriptLanguage::get_recognized_extensions");
+	p_extensions->push_back(LUA_EXTENSION);
 }
 
 void LuaScriptLanguage::get_public_functions(List<MethodInfo> *p_functions) const {
+	print_debug("LuaScriptLanguage::get_public_functions");
+	//TODO::
 }
 
 void LuaScriptLanguage::get_public_constants(List<Pair<String, Variant> > *p_constants) const {
+	print_debug("LuaScriptLanguage::get_public_constants");
+	//TODO::
 }
 
 void LuaScriptLanguage::profiling_start() {
+	//TODO::
 }
 
 void LuaScriptLanguage::profiling_stop() {
+	//TODO::
 }
 
 int LuaScriptLanguage::profiling_get_accumulated_data(ProfilingInfo *p_info_arr, int p_info_max) {
+	//TODO::
 	return 0;
 }
 
 int LuaScriptLanguage::profiling_get_frame_data(ProfilingInfo *p_info_arr, int p_info_max) {
+	//TODO::
 	return 0;
 }
 
 void *LuaScriptLanguage::alloc_instance_binding_data(Object *p_object) {
+	//TODO;;
 	return nullptr;
 }
 
 void LuaScriptLanguage::free_instance_binding_data(void *p_data) {
+	//TODO::	
 }
 
 void LuaScriptLanguage::frame() {
+	//TODO::
+	//函数调用时间
+//	#ifdef DEBUG_ENABLED
+//	if (profiling) {
+//		if (lock) {
+//			lock->lock();
+//		}
+//
+//		SelfList<GDScriptFunction> *elem = function_list.first();
+//		while (elem) {
+//			elem->self()->profile.last_frame_call_count = elem->self()->profile.frame_call_count;
+//			elem->self()->profile.last_frame_self_time = elem->self()->profile.frame_self_time;
+//			elem->self()->profile.last_frame_total_time = elem->self()->profile.frame_total_time;
+//			elem->self()->profile.frame_call_count = 0;
+//			elem->self()->profile.frame_self_time = 0;
+//			elem->self()->profile.frame_total_time = 0;
+//			elem = elem->next();
+//		}
+//
+//		if (lock) {
+//			lock->unlock();
+//		}
+//	}
+//
+//#endif
 }
 
 bool LuaScriptLanguage::debug_break_parse(const String &p_file, int p_line, const String &p_error) {
+	//TODO::断点行数处理
 	return false;
 }
 //=================

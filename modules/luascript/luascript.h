@@ -24,11 +24,7 @@
 #include "core/os/mutex.h"
 #include "core/script_language.h"
 
-extern "C" {
-#include "lib/lua51/lua.h"
-#include "lib/lua51/lualib.h"
-#include "lib/lua51/lauxlib.h"
-}
+#include "sol.hpp"
 
 class LuaNativeClass : public Reference {
 
@@ -241,19 +237,19 @@ public:
 	virtual void make_template(const String &p_class_name, const String &p_base_class_name, Ref<Script> &p_script);
 	virtual bool is_using_templates();
 	virtual bool validate(const String &p_script, int &r_line_error, int &r_col_error, String &r_test_error, const String &p_path = "", List<String> *r_functions = NULL, List<Warning> *r_warnings = NULL, Set<int> *r_safe_lines = NULL) const;
-	virtual String validate_path(const String &p_path) const;
 	virtual Script *create_script() const;
 	virtual bool has_named_classes() const;
 	virtual bool supports_builtin_mode() const;
 	virtual bool can_inherit_from_file();
 	virtual int find_function(const String &p_function, const String &p_code) const;
 	virtual String make_function(const String &p_class, const String &p_name, const PoolStringArray &p_args) const;
-	virtual Error open_in_external_editor(const Ref<Script> &p_script, int p_line, int p_col);
-	virtual bool overrides_external_editor();
+	//virtual Error open_in_external_editor(const Ref<Script> &p_script, int p_line, int p_col);
+	//virtual bool overrides_external_editor();
 
 	virtual Error complete_code(const String &p_code, const String &p_base_path, Object *p_owner, List<String> *r_options, bool &r_force, String &r_call_hint);
-
+#ifdef TOOLS_ENABLED
 	virtual Error lookup_code(const String &p_code, const String &p_symbol, const String &p_base_path, Object *p_owner, LookupResult &r_result);
+#endif
 
 	virtual void auto_indent_code(String &p_code, int p_from_line, int p_to_line) const;
 	virtual void add_global_constant(const StringName &p_variable, const Variant &p_value);

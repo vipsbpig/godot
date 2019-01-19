@@ -77,85 +77,86 @@ ScriptLanguage *LuaScriptInstance::get_language() {
 	return nullptr;
 }
 int LuaScriptInstance::setup() {
-	// self -> LuaObject
-	lua_State *L = LuaScriptLanguage::get_singleton()->get_state();
-	luaL_newmetatable(L, "LuaObject");
-	{
-		static luaL_Reg meta_methods[] = {
-			{ "__gc", meta__gc },
-			{ "__index", meta__index },
-			{ "__newindex", meta__newindex },
-			{ "__tostring", meta__tostring },
-			{ NULL, NULL },
-		};
-		luaL_setfuncs(L, meta_methods, 0);
+	// // self -> LuaObject
+	// lua_State *L = LuaScriptLanguage::get_singleton()->get_state();
+	// luaL_newmetatable(L, "LuaObject");
+	// {
+	// 	static luaL_Reg meta_methods[] = {
+	// 		{ "__gc", meta__gc },
+	// 		{ "__index", meta__index },
+	// 		{ "__newindex", meta__newindex },
+	// 		{ "__tostring", meta__tostring },
+	// 		{ NULL, NULL },
+	// 	};
+	// 	luaL_setfuncs(L, meta_methods, 0);
 
-		lua_newtable(L);
-		static luaL_Reg methods[] = {
-			{ "extends", l_extends },
-			{ NULL, NULL },
-		};
-		luaL_setfuncs(L, methods, 0);
-		lua_setfield(L, -2, ".methods");
-	}
-	lua_pop(L, 1);
+	// 	lua_newtable(L);
+	// 	static luaL_Reg methods[] = {
+	// 		{ "extends", l_extends },
+	// 		{ NULL, NULL },
+	// 	};
+	// 	luaL_setfuncs(L, methods, 0);
+	// 	lua_setfield(L, -2, ".methods");
+	// }
+	// lua_pop(L, 1);
 
-	luaL_newmetatable(L, "LuaVariant");
-	{
-		typedef struct {
-			const char *meta;
-			Variant::Operator op;
-		} eval;
+	// luaL_newmetatable(L, "LuaVariant");
+	// {
+	// 	typedef struct {
+	// 		const char *meta;
+	// 		Variant::Operator op;
+	// 	} eval;
 
-		static eval evaluates[] = {
-			{ "__eq", Variant::OP_EQUAL },
-			{ "__add", Variant::OP_ADD },
-			{ "__sub", Variant::OP_SUBTRACT },
-			{ "__mul", Variant::OP_MULTIPLY },
-			{ "__div", Variant::OP_DIVIDE },
-			{ "__mod", Variant::OP_MODULE },
-			{ "__lt", Variant::OP_LESS },
-			{ "__le", Variant::OP_LESS_EQUAL },
-		};
+	// 	static eval evaluates[] = {
+	// 		{ "__eq", Variant::OP_EQUAL },
+	// 		{ "__add", Variant::OP_ADD },
+	// 		{ "__sub", Variant::OP_SUBTRACT },
+	// 		{ "__mul", Variant::OP_MULTIPLY },
+	// 		{ "__div", Variant::OP_DIVIDE },
+	// 		{ "__mod", Variant::OP_MODULE },
+	// 		{ "__lt", Variant::OP_LESS },
+	// 		{ "__le", Variant::OP_LESS_EQUAL },
+	// 	};
 
-		for (int idx = 0; idx < sizeof(evaluates) / sizeof(evaluates[0]); idx++) {
+	// 	for (int idx = 0; idx < sizeof(evaluates) / sizeof(evaluates[0]); idx++) {
 
-			eval &ev = evaluates[idx];
-			lua_pushstring(L, ev.meta);
-			lua_pushinteger(L, ev.op);
-			lua_pushcclosure(L, meta_bultins__evaluate, 1);
-			lua_rawset(L, -3);
-		}
+	// 		eval &ev = evaluates[idx];
+	// 		lua_pushstring(L, ev.meta);
+	// 		lua_pushinteger(L, ev.op);
+	// 		lua_pushcclosure(L, meta_bultins__evaluate, 1);
+	// 		lua_rawset(L, -3);
+	// 	}
 
-		static luaL_Reg meta_methods[] = {
-			{ "__gc", meta_bultins__gc },
-			{ "__index", meta_bultins__index },
-			{ "__newindex", meta_bultins__newindex },
-			{ "__tostring", meta_bultins__tostring },
-			{ "__pairs", meta_bultins__pairs },
-			{ NULL, NULL },
-		};
-		luaL_setfuncs(L, meta_methods, 0);
+	// 	static luaL_Reg meta_methods[] = {
+	// 		{ "__gc", meta_bultins__gc },
+	// 		{ "__index", meta_bultins__index },
+	// 		{ "__newindex", meta_bultins__newindex },
+	// 		{ "__tostring", meta_bultins__tostring },
+	// 		{ "__pairs", meta_bultins__pairs },
+	// 		{ NULL, NULL },
+	// 	};
+	// 	luaL_setfuncs(L, meta_methods, 0);
 
-		lua_newtable(L);
-		static luaL_Reg methods[] = {
-			{ NULL, NULL },
-		};
-		luaL_setfuncs(L, methods, 0);
-		lua_setfield(L, -2, ".methods");
-	}
-	lua_pop(L, 1);
+	// 	lua_newtable(L);
+	// 	static luaL_Reg methods[] = {
+	// 		{ NULL, NULL },
+	// 	};
+	// 	luaL_setfuncs(L, methods, 0);
+	// 	lua_setfield(L, -2, ".methods");
+	// }
+	// lua_pop(L, 1);
 
-	/* create object ptr -> udata mapping table */
-	lua_pushstring(L, "gdlua_ubox");
-	lua_newtable(L);
-	/* make weak value metatable for ubox table to allow userdata to be
-	   garbage-collected */
-	lua_newtable(L);
-	lua_pushliteral(L, "__mode");
-	lua_pushliteral(L, "v");
-	lua_rawset(L, -3); /* stack: string ubox mt */
-	lua_setmetatable(L, -2); /* stack: string ubox */
-	lua_rawset(L, LUA_REGISTRYINDEX);
+	// /* create object ptr -> udata mapping table */
+	// lua_pushstring(L, "gdlua_ubox");
+	// lua_newtable(L);
+	// /* make weak value metatable for ubox table to allow userdata to be
+	//    garbage-collected */
+	// lua_newtable(L);
+	// lua_pushliteral(L, "__mode");
+	// lua_pushliteral(L, "v");
+	// lua_rawset(L, -3); /* stack: string ubox mt */
+	// lua_setmetatable(L, -2); /* stack: string ubox */
+	// lua_rawset(L, LUA_REGISTRYINDEX);
+	return 0;
 }
 //=================================
