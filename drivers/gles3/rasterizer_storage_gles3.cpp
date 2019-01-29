@@ -5,8 +5,8 @@
 /*                           GODOT ENGINE                                */
 /*                      https://godotengine.org                          */
 /*************************************************************************/
-/* Copyright (c) 2007-2018 Juan Linietsky, Ariel Manzur.                 */
-/* Copyright (c) 2014-2018 Godot Engine contributors (cf. AUTHORS.md)    */
+/* Copyright (c) 2007-2019 Juan Linietsky, Ariel Manzur.                 */
+/* Copyright (c) 2014-2019 Godot Engine contributors (cf. AUTHORS.md)    */
 /*                                                                       */
 /* Permission is hereby granted, free of charge, to any person obtaining */
 /* a copy of this software and associated documentation files (the       */
@@ -109,15 +109,6 @@ void glGetBufferSubData(GLenum target, GLintptr offset, GLsizeiptr size, GLvoid 
 	/* clang-format off */
 	EM_ASM({
 	    GLctx.getBufferSubData($0, $1, HEAPU8, $2, $3);
-	}, target, offset, data, size);
-	/* clang-format on */
-}
-
-void glBufferSubData(GLenum target, GLintptr offset, GLsizeiptr size, const GLvoid *data) {
-
-	/* clang-format off */
-	EM_ASM({
-	    GLctx.bufferSubData($0, $1, HEAPU8, $2, $3);
 	}, target, offset, data, size);
 	/* clang-format on */
 }
@@ -632,6 +623,25 @@ void RasterizerStorageGLES3::texture_allocate(RID p_texture, int p_width, int p_
 		p_flags &= ~VS::TEXTURE_FLAG_MIPMAPS; // no mipies for video
 	}
 
+#ifndef GLES_OVER_GL
+	switch (p_format) {
+		case Image::FORMAT_RF:
+		case Image::FORMAT_RGF:
+		case Image::FORMAT_RGBF:
+		case Image::FORMAT_RGBAF:
+		case Image::FORMAT_RH:
+		case Image::FORMAT_RGH:
+		case Image::FORMAT_RGBH:
+		case Image::FORMAT_RGBAH: {
+			if (!config.texture_float_linear_supported) {
+				// disable linear texture filtering when not supported for float format on some devices (issue #24295)
+				p_flags &= ~VS::TEXTURE_FLAG_FILTER;
+			}
+		} break;
+		default: {}
+	}
+#endif
+
 	Texture *texture = texture_owner.get(p_texture);
 	ERR_FAIL_COND(!texture);
 	texture->width = p_width;
@@ -1037,6 +1047,128 @@ Ref<Image> RasterizerStorageGLES3::texture_get_data(RID p_texture, int p_layer) 
 		return texture->images[p_layer];
 	}
 
+	// 3D textures and 2D texture arrays need special treatment, as the glGetTexImage reads **the whole**
+	// texture to host-memory. 3D textures and 2D texture arrays are potentially very big, so reading
+	// everything just to throw everything but one layer away is A Bad Idea.
+	//
+	// Unfortunately, to solve this, the copy shader has to read the data out via a shader and store it
+	// in a temporary framebuffer. The data from the framebuffer can then be read using glReadPixels.
+	if (texture->type == VS::TEXTURE_TYPE_2D_ARRAY || texture->type == VS::TEXTURE_TYPE_3D) {
+		// can't read a layer that doesn't exist
+		ERR_FAIL_INDEX_V(p_layer, texture->alloc_depth, Ref<Image>());
+
+		// get some information about the texture
+		Image::Format real_format;
+		GLenum gl_format;
+		GLenum gl_internal_format;
+		GLenum gl_type;
+
+		bool compressed;
+		bool srgb;
+
+		_get_gl_image_and_format(
+				Ref<Image>(),
+				texture->format,
+				texture->flags,
+				real_format,
+				gl_format,
+				gl_internal_format,
+				gl_type,
+				compressed,
+				srgb);
+
+		PoolVector<uint8_t> data;
+
+		// TODO need to decide between RgbaUnorm and RgbaFloat32 for output
+		int data_size = Image::get_image_data_size(texture->alloc_width, texture->alloc_height, Image::FORMAT_RGBA8, false);
+
+		data.resize(data_size * 2); // add some more memory at the end, just in case for buggy drivers
+		PoolVector<uint8_t>::Write wb = data.write();
+
+		// generate temporary resources
+		GLuint tmp_fbo;
+		glGenFramebuffers(1, &tmp_fbo);
+
+		GLuint tmp_color_attachment;
+		glGenTextures(1, &tmp_color_attachment);
+
+		// now bring the OpenGL context into the correct state
+		{
+			glBindFramebuffer(GL_FRAMEBUFFER, tmp_fbo);
+
+			// back color attachment with memory, then set properties
+			glActiveTexture(GL_TEXTURE0);
+			glBindTexture(GL_TEXTURE_2D, tmp_color_attachment);
+			// TODO support HDR properly
+			glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, texture->alloc_width, texture->alloc_height, 0, GL_RGBA, GL_UNSIGNED_BYTE, NULL);
+
+			glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+			glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+
+			// use the color texture as color attachment for this render pass
+			glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, tmp_color_attachment, 0);
+
+			// more GL state, wheeeey
+			glDepthMask(GL_FALSE);
+			glDisable(GL_DEPTH_TEST);
+			glDisable(GL_CULL_FACE);
+			glDisable(GL_BLEND);
+			glDepthFunc(GL_LEQUAL);
+			glColorMask(1, 1, 1, 1);
+
+			// use volume tex for reading
+			glActiveTexture(GL_TEXTURE0);
+			glBindTexture(texture->target, texture->tex_id);
+
+			glViewport(0, 0, texture->alloc_width, texture->alloc_height);
+
+			// set up copy shader for proper use
+			shaders.copy.set_conditional(CopyShaderGLES3::LINEAR_TO_SRGB, !srgb);
+			shaders.copy.set_conditional(CopyShaderGLES3::USE_TEXTURE3D, texture->type == VS::TEXTURE_TYPE_3D);
+			shaders.copy.set_conditional(CopyShaderGLES3::USE_TEXTURE2DARRAY, texture->type == VS::TEXTURE_TYPE_2D_ARRAY);
+			shaders.copy.bind();
+
+			// calculate the normalized z coordinate for the layer
+			float layer = (float)p_layer / (float)texture->alloc_depth;
+
+			shaders.copy.set_uniform(CopyShaderGLES3::LAYER, layer);
+
+			glBindVertexArray(resources.quadie_array);
+		}
+
+		// clear color attachment, then perform copy
+		glClearColor(0.0, 0.0, 0.0, 0.0);
+		glClear(GL_COLOR_BUFFER_BIT);
+
+		glDrawArrays(GL_TRIANGLE_FAN, 0, 4);
+
+		// read the image into the host buffer
+		glReadPixels(0, 0, texture->alloc_width, texture->alloc_height, GL_RGBA, GL_UNSIGNED_BYTE, &wb[0]);
+
+		// remove temp resources and unset some GL state
+		{
+			shaders.copy.set_conditional(CopyShaderGLES3::USE_TEXTURE3D, false);
+			shaders.copy.set_conditional(CopyShaderGLES3::USE_TEXTURE2DARRAY, false);
+			shaders.copy.set_conditional(CopyShaderGLES3::LINEAR_TO_SRGB, false);
+
+			glBindFramebuffer(GL_FRAMEBUFFER, 0);
+
+			glDeleteTextures(1, &tmp_color_attachment);
+			glDeleteFramebuffers(1, &tmp_fbo);
+		}
+
+		wb = PoolVector<uint8_t>::Write();
+
+		data.resize(data_size);
+
+		Image *img = memnew(Image(texture->alloc_width, texture->alloc_height, false, Image::FORMAT_RGBA8, data));
+		if (!texture->compressed) {
+			img->convert(real_format);
+		}
+
+		return Ref<Image>(img);
+	}
+
 #ifdef GLES_OVER_GL
 
 	Image::Format real_format;
@@ -1153,9 +1285,8 @@ Ref<Image> RasterizerStorageGLES3::texture_get_data(RID p_texture, int p_layer) 
 
 	glViewport(0, 0, texture->alloc_width, texture->alloc_height);
 
-	shaders.copy.bind();
-
 	shaders.copy.set_conditional(CopyShaderGLES3::LINEAR_TO_SRGB, !srgb);
+	shaders.copy.bind();
 
 	glClearColor(0.0, 0.0, 0.0, 0.0);
 	glClear(GL_COLOR_BUFFER_BIT);
@@ -1545,6 +1676,17 @@ RID RasterizerStorageGLES3::texture_create_radiance_cubemap(RID p_source, int p_
 	ctex->render_target = NULL;
 
 	return texture_owner.make_rid(ctex);
+}
+
+Size2 RasterizerStorageGLES3::texture_size_with_proxy(RID p_texture) const {
+
+	const Texture *texture = texture_owner.getornull(p_texture);
+	ERR_FAIL_COND_V(!texture, Size2());
+	if (texture->proxy) {
+		return Size2(texture->proxy->width, texture->proxy->height);
+	} else {
+		return Size2(texture->width, texture->height);
+	}
 }
 
 void RasterizerStorageGLES3::texture_set_proxy(RID p_texture, RID p_proxy) {
@@ -1995,7 +2137,8 @@ void RasterizerStorageGLES3::_update_shader(Shader *p_shader) const {
 			actions = &shaders.actions_particles;
 			actions->uniforms = &p_shader->uniforms;
 		} break;
-		case VS::SHADER_MAX: break; // Can't happen, but silences warning
+		case VS::SHADER_MAX:
+			break; // Can't happen, but silences warning
 	}
 
 	Error err = shaders.compiler.compile(p_shader->mode, p_shader->code, actions, p_shader->path, gen_code);
@@ -7019,6 +7162,7 @@ RID RasterizerStorageGLES3::render_target_create() {
 
 	Texture *t = memnew(Texture);
 
+	t->type = VS::TEXTURE_TYPE_2D;
 	t->flags = 0;
 	t->width = 0;
 	t->height = 0;
@@ -7344,7 +7488,7 @@ bool RasterizerStorageGLES3::free(RID p_rid) {
 		// delete the texture
 		Shader *shader = shader_owner.get(p_rid);
 
-		if (shader->shader)
+		if (shader->shader && shader->custom_code_id)
 			shader->shader->free_custom_shader(shader->custom_code_id);
 
 		if (shader->dirty_list.in_list())
@@ -7669,11 +7813,13 @@ void RasterizerStorageGLES3::initialize() {
 	config.etc2_supported = false;
 	config.s3tc_supported = true;
 	config.rgtc_supported = true; //RGTC - core since OpenGL version 3.0
+	config.texture_float_linear_supported = true;
 #else
 	config.etc2_supported = true;
 	config.hdr_supported = false;
 	config.s3tc_supported = config.extensions.has("GL_EXT_texture_compression_dxt1") || config.extensions.has("GL_EXT_texture_compression_s3tc") || config.extensions.has("WEBGL_compressed_texture_s3tc");
 	config.rgtc_supported = config.extensions.has("GL_EXT_texture_compression_rgtc") || config.extensions.has("GL_ARB_texture_compression_rgtc") || config.extensions.has("EXT_texture_compression_rgtc");
+	config.texture_float_linear_supported = config.extensions.has("GL_OES_texture_float_linear");
 #endif
 
 	config.pvrtc_supported = config.extensions.has("GL_IMG_texture_compression_pvrtc");
@@ -7753,6 +7899,14 @@ void RasterizerStorageGLES3::initialize() {
 
 		glTexParameteri(GL_TEXTURE_3D, GL_TEXTURE_BASE_LEVEL, 0);
 		glTexParameteri(GL_TEXTURE_3D, GL_TEXTURE_MAX_LEVEL, 0);
+
+		glGenTextures(1, &resources.white_tex_array);
+		glActiveTexture(GL_TEXTURE0);
+		glBindTexture(GL_TEXTURE_2D_ARRAY, resources.white_tex_array);
+		glTexImage3D(GL_TEXTURE_2D_ARRAY, 0, GL_RGB, 8, 8, 1, 0, GL_RGB, GL_UNSIGNED_BYTE, NULL);
+		glTexSubImage3D(GL_TEXTURE_2D_ARRAY, 0, 0, 0, 0, 8, 8, 1, GL_RGB, GL_UNSIGNED_BYTE, whitetexdata);
+		glGenerateMipmap(GL_TEXTURE_2D_ARRAY);
+		glBindTexture(GL_TEXTURE_2D, 0);
 	}
 
 	glGetIntegerv(GL_MAX_TEXTURE_IMAGE_UNITS, &config.max_texture_image_units);

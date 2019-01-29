@@ -5,8 +5,8 @@
 /*                           GODOT ENGINE                                */
 /*                      https://godotengine.org                          */
 /*************************************************************************/
-/* Copyright (c) 2007-2018 Juan Linietsky, Ariel Manzur.                 */
-/* Copyright (c) 2014-2018 Godot Engine contributors (cf. AUTHORS.md)    */
+/* Copyright (c) 2007-2019 Juan Linietsky, Ariel Manzur.                 */
+/* Copyright (c) 2014-2019 Godot Engine contributors (cf. AUTHORS.md)    */
 /*                                                                       */
 /* Permission is hereby granted, free of charge, to any person obtaining */
 /* a copy of this software and associated documentation files (the       */
@@ -148,7 +148,7 @@ void ViewportTexture::_bind_methods() {
 	ClassDB::bind_method(D_METHOD("set_viewport_path_in_scene", "path"), &ViewportTexture::set_viewport_path_in_scene);
 	ClassDB::bind_method(D_METHOD("get_viewport_path_in_scene"), &ViewportTexture::get_viewport_path_in_scene);
 
-	ADD_PROPERTY(PropertyInfo(Variant::NODE_PATH, "viewport_path", PROPERTY_HINT_NODE_PATH_VALID_TYPES, "Viewport"), "set_viewport_path_in_scene", "get_viewport_path_in_scene");
+	ADD_PROPERTY(PropertyInfo(Variant::NODE_PATH, "viewport_path", PROPERTY_HINT_NODE_PATH_VALID_TYPES, "Viewport", PROPERTY_USAGE_DEFAULT | PROPERTY_USAGE_NODE_PATH_FROM_SCENE_ROOT), "set_viewport_path_in_scene", "get_viewport_path_in_scene");
 }
 
 ViewportTexture::ViewportTexture() {
@@ -693,6 +693,13 @@ bool Viewport::use_arvr() {
 	return arvr;
 }
 
+void Viewport::update_canvas_items() {
+	if (!is_inside_tree())
+		return;
+
+	_update_canvas_items(this);
+}
+
 void Viewport::set_size(const Size2 &p_size) {
 
 	if (size == p_size.floor())
@@ -1128,6 +1135,26 @@ Transform2D Viewport::get_final_transform() const {
 	return stretch_transform * global_canvas_transform;
 }
 
+void Viewport::_update_canvas_items(Node *p_node) {
+	if (p_node != this) {
+
+		Viewport *vp = Object::cast_to<Viewport>(p_node);
+		if (vp)
+			return;
+
+		CanvasItem *ci = Object::cast_to<CanvasItem>(p_node);
+		if (ci) {
+			ci->update();
+		}
+	}
+
+	int cc = p_node->get_child_count();
+
+	for (int i = 0; i < cc; i++) {
+		_update_canvas_items(p_node->get_child(i));
+	}
+}
+
 void Viewport::set_size_override(bool p_enable, const Size2 &p_size, const Vector2 &p_margin) {
 
 	if (size_override == p_enable && p_size == size_override_size)
@@ -1533,6 +1560,35 @@ void Viewport::_gui_call_input(Control *p_control, const Ref<InputEvent> &p_inpu
 	//_unblock();
 }
 
+void Viewport::_gui_call_notification(Control *p_control, int p_what) {
+
+	CanvasItem *ci = p_control;
+	while (ci) {
+
+		Control *control = Object::cast_to<Control>(ci);
+		if (control) {
+
+			if (control->data.mouse_filter != Control::MOUSE_FILTER_IGNORE) {
+				control->notification(p_what);
+			}
+
+			if (!control->is_inside_tree())
+				break;
+
+			if (!control->is_inside_tree() || control->is_set_as_toplevel())
+				break;
+			if (control->data.mouse_filter == Control::MOUSE_FILTER_STOP)
+				break;
+		}
+
+		if (ci->is_set_as_toplevel())
+			break;
+
+		ci = ci->get_parent_item();
+	}
+
+	//_unblock();
+}
 Control *Viewport::_gui_find_control(const Point2 &p_global) {
 
 	_gui_prepare_subwindows();
@@ -1975,13 +2031,15 @@ void Viewport::_gui_input_event(Ref<InputEvent> p_event) {
 
 		if (over != gui.mouse_over) {
 
-			if (gui.mouse_over)
-				gui.mouse_over->notification(Control::NOTIFICATION_MOUSE_EXIT);
+			if (gui.mouse_over) {
+				_gui_call_notification(gui.mouse_over, Control::NOTIFICATION_MOUSE_EXIT);
+			}
 
 			_gui_cancel_tooltip();
 
-			if (over)
-				over->notification(Control::NOTIFICATION_MOUSE_ENTER);
+			if (over) {
+				_gui_call_notification(over, Control::NOTIFICATION_MOUSE_ENTER);
+			}
 		}
 
 		gui.mouse_over = over;

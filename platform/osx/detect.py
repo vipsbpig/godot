@@ -42,7 +42,7 @@ def configure(env):
 
     if (env["target"] == "release"):
         if (env["optimize"] == "speed"): #optimize for speed (default)
-            env.Prepend(CCFLAGS=['-O3', '-ffast-math', '-fomit-frame-pointer', '-ftree-vectorize', '-msse2'])
+            env.Prepend(CCFLAGS=['-O3', '-fomit-frame-pointer', '-ftree-vectorize', '-msse2'])
         else: #optimize for size
             env.Prepend(CCFLAGS=['-Os','-ftree-vectorize', '-msse2'])
 
@@ -72,7 +72,11 @@ def configure(env):
 
     ## Compiler configuration
 
-    if "OSXCROSS_ROOT" not in os.environ: # regular native build
+    # Save this in environment for use by other modules
+    if "OSXCROSS_ROOT" in os.environ:
+        env["osxcross"] = True
+
+    if not "osxcross" in env: # regular native build
         env.Append(CCFLAGS=['-arch', 'x86_64'])
         env.Append(LINKFLAGS=['-arch', 'x86_64'])
         if (env["macports_clang"] != 'no'):
@@ -122,7 +126,7 @@ def configure(env):
 
     env.Append(CPPPATH=['#platform/osx'])
     env.Append(CPPFLAGS=['-DOSX_ENABLED', '-DUNIX_ENABLED', '-DGLES_ENABLED', '-DAPPLE_STYLE_KEYS', '-DCOREAUDIO_ENABLED', '-DCOREMIDI_ENABLED'])
-    env.Append(LINKFLAGS=['-framework', 'Cocoa', '-framework', 'Carbon', '-framework', 'OpenGL', '-framework', 'AGL', '-framework', 'AudioUnit', '-framework', 'CoreAudio', '-framework', 'CoreMIDI', '-lz', '-framework', 'IOKit', '-framework', 'ForceFeedback'])
+    env.Append(LINKFLAGS=['-framework', 'Cocoa', '-framework', 'Carbon', '-framework', 'OpenGL', '-framework', 'AGL', '-framework', 'AudioUnit', '-framework', 'CoreAudio', '-framework', 'CoreMIDI', '-lz', '-framework', 'IOKit', '-framework', 'ForceFeedback', '-framework', 'CoreVideo'])
     env.Append(LIBS=['pthread'])
 
     env.Append(CPPFLAGS=['-mmacosx-version-min=10.9'])

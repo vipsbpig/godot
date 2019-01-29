@@ -5,8 +5,8 @@
 /*                           GODOT ENGINE                                */
 /*                      https://godotengine.org                          */
 /*************************************************************************/
-/* Copyright (c) 2007-2018 Juan Linietsky, Ariel Manzur.                 */
-/* Copyright (c) 2014-2018 Godot Engine contributors (cf. AUTHORS.md)    */
+/* Copyright (c) 2007-2019 Juan Linietsky, Ariel Manzur.                 */
+/* Copyright (c) 2014-2019 Godot Engine contributors (cf. AUTHORS.md)    */
 /*                                                                       */
 /* Permission is hereby granted, free of charge, to any person obtaining */
 /* a copy of this software and associated documentation files (the       */
@@ -46,7 +46,6 @@
 // WebGL 2.0 has no MapBufferRange/UnmapBuffer, but offers a non-ES style BufferSubData API instead.
 #ifdef __EMSCRIPTEN__
 void glGetBufferSubData(GLenum target, GLintptr offset, GLsizeiptr size, GLvoid *data);
-void glBufferSubData(GLenum target, GLintptr offset, GLsizeiptr size, const GLvoid *data);
 #endif
 
 class RasterizerCanvasGLES3;
@@ -86,6 +85,8 @@ public:
 		bool hdr_supported;
 
 		bool srgb_decode_supported;
+
+		bool texture_float_linear_supported;
 
 		bool use_rgba_2d_shadows;
 
@@ -131,6 +132,7 @@ public:
 		GLuint aniso_tex;
 
 		GLuint white_tex_3d;
+		GLuint white_tex_array;
 
 		GLuint quadie;
 		GLuint quadie_array;
@@ -291,6 +293,7 @@ public:
 				width(0),
 				height(0),
 				format(Image::FORMAT_L8),
+				type(VS::TEXTURE_TYPE_2D),
 				target(GL_TEXTURE_2D),
 				data_size(0),
 				compressed(false),
@@ -371,6 +374,8 @@ public:
 	virtual void texture_set_detect_normal_callback(RID p_texture, VisualServer::TextureDetectCallback p_callback, void *p_userdata);
 
 	virtual void texture_set_proxy(RID p_texture, RID p_proxy);
+	virtual Size2 texture_size_with_proxy(RID p_texture) const;
+
 	virtual void texture_set_force_redraw_if_visible(RID p_texture, bool p_enable);
 
 	/* SKY API */

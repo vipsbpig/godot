@@ -5,8 +5,8 @@
 /*                           GODOT ENGINE                                */
 /*                      https://godotengine.org                          */
 /*************************************************************************/
-/* Copyright (c) 2007-2018 Juan Linietsky, Ariel Manzur.                 */
-/* Copyright (c) 2014-2018 Godot Engine contributors (cf. AUTHORS.md)    */
+/* Copyright (c) 2007-2019 Juan Linietsky, Ariel Manzur.                 */
+/* Copyright (c) 2014-2019 Godot Engine contributors (cf. AUTHORS.md)    */
 /*                                                                       */
 /* Permission is hereby granted, free of charge, to any person obtaining */
 /* a copy of this software and associated documentation files (the       */
@@ -223,16 +223,21 @@ void GDScript::_placeholder_erased(PlaceHolderScriptInstance *p_placeholder) {
 
 void GDScript::get_script_method_list(List<MethodInfo> *p_list) const {
 
-	for (const Map<StringName, GDScriptFunction *>::Element *E = member_functions.front(); E; E = E->next()) {
-		GDScriptFunction *func = E->get();
-		MethodInfo mi;
-		mi.name = E->key();
-		for (int i = 0; i < func->get_argument_count(); i++) {
-			mi.arguments.push_back(func->get_argument_type(i));
+	const GDScript *current = this;
+	while (current) {
+		for (const Map<StringName, GDScriptFunction *>::Element *E = member_functions.front(); E; E = E->next()) {
+			GDScriptFunction *func = E->get();
+			MethodInfo mi;
+			mi.name = E->key();
+			for (int i = 0; i < func->get_argument_count(); i++) {
+				mi.arguments.push_back(func->get_argument_type(i));
+			}
+
+			mi.return_val = func->get_return_type();
+			p_list->push_back(mi);
 		}
 
-		mi.return_val = func->get_return_type();
-		p_list->push_back(mi);
+		current = current->_base;
 	}
 }
 
@@ -475,19 +480,14 @@ bool GDScript::_update_exports() {
 				_signals[c->_signals[i].name] = c->_signals[i].arguments;
 			}
 		} else {
-			for (Set<PlaceHolderScriptInstance *>::Element *E = placeholders.front(); E; E = E->next()) {
-				E->get()->set_build_failed(true);
-			}
+			placeholder_fallback_enabled = true;
 			return false;
 		}
-	} else {
-		if (!valid) {
-			for (Set<PlaceHolderScriptInstance *>::Element *E = placeholders.front(); E; E = E->next()) {
-				E->get()->set_build_failed(true);
-			}
-			return false;
-		}
+	} else if (!valid || placeholder_fallback_enabled) {
+		return false;
 	}
+
+	placeholder_fallback_enabled = false;
 
 	if (base_cache.is_valid()) {
 		if (base_cache->_update_exports()) {
@@ -503,7 +503,6 @@ bool GDScript::_update_exports() {
 		_update_exports_values(values, propnames);
 
 		for (Set<PlaceHolderScriptInstance *>::Element *E = placeholders.front(); E; E = E->next()) {
-			E->get()->set_build_failed(false);
 			E->get()->update(propnames, values);
 		}
 	}
@@ -648,7 +647,8 @@ Variant GDScript::call(const StringName &p_method, const Variant **p_args, int p
 		if (E) {
 
 			if (!E->get()->is_static()) {
-				WARN_PRINT(String("Can't call non-static function: '" + String(p_method) + "' in script.").utf8().get_data());
+				ERR_EXPLAIN("Can't call non-static function: '" + String(p_method) + "' in script.");
+				ERR_FAIL_V(Variant());
 			}
 
 			return E->get()->call(NULL, p_args, p_argcount, r_error);
@@ -907,6 +907,7 @@ GDScript::GDScript() :
 	tool = false;
 #ifdef TOOLS_ENABLED
 	source_changed_cache = false;
+	placeholder_fallback_enabled = false;
 #endif
 
 #ifdef DEBUG_ENABLED
@@ -1675,6 +1676,8 @@ void GDScriptLanguage::reload_tool_script(const Ref<Script> &p_script, bool p_so
 		//restore state if saved
 		for (Map<ObjectID, List<Pair<StringName, Variant> > >::Element *F = E->get().front(); F; F = F->next()) {
 
+			List<Pair<StringName, Variant> > &saved_state = F->get();
+
 			Object *obj = ObjectDB::get_instance(F->key());
 			if (!obj)
 				continue;
@@ -1684,16 +1687,26 @@ void GDScriptLanguage::reload_tool_script(const Ref<Script> &p_script, bool p_so
 				obj->set_script(RefPtr());
 			}
 			obj->set_script(scr.get_ref_ptr());
-			if (!obj->get_script_instance()) {
+
+			ScriptInstance *script_instance = obj->get_script_instance();
+
+			if (!script_instance) {
 				//failed, save reload state for next time if not saved
 				if (!scr->pending_reload_state.has(obj->get_instance_id())) {
-					scr->pending_reload_state[obj->get_instance_id()] = F->get();
+					scr->pending_reload_state[obj->get_instance_id()] = saved_state;
 				}
 				continue;
 			}
 
-			for (List<Pair<StringName, Variant> >::Element *G = F->get().front(); G; G = G->next()) {
-				obj->get_script_instance()->set(G->get().first, G->get().second);
+			if (script_instance->is_placeholder() && scr->is_placeholder_fallback_enabled()) {
+				PlaceHolderScriptInstance *placeholder = static_cast<PlaceHolderScriptInstance *>(script_instance);
+				for (List<Pair<StringName, Variant> >::Element *G = saved_state.front(); G; G = G->next()) {
+					placeholder->property_set_fallback(G->get().first, G->get().second);
+				}
+			} else {
+				for (List<Pair<StringName, Variant> >::Element *G = saved_state.front(); G; G = G->next()) {
+					script_instance->set(G->get().first, G->get().second);
+				}
 			}
 
 			scr->pending_reload_state.erase(obj->get_instance_id()); //as it reloaded, remove pending state

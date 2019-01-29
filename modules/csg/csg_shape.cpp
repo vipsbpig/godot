@@ -5,8 +5,8 @@
 /*                           GODOT ENGINE                                */
 /*                      https://godotengine.org                          */
 /*************************************************************************/
-/* Copyright (c) 2007-2018 Juan Linietsky, Ariel Manzur.                 */
-/* Copyright (c) 2014-2018 Godot Engine contributors (cf. AUTHORS.md)    */
+/* Copyright (c) 2007-2019 Juan Linietsky, Ariel Manzur.                 */
+/* Copyright (c) 2014-2019 Godot Engine contributors (cf. AUTHORS.md)    */
 /*                                                                       */
 /* Permission is hereby granted, free of charge, to any person obtaining */
 /* a copy of this software and associated documentation files (the       */
@@ -575,6 +575,18 @@ void CSGShape::_validate_property(PropertyInfo &property) const {
 	}
 }
 
+Array CSGShape::get_meshes() const {
+
+	if (root_mesh.is_valid()) {
+		Array arr;
+		arr.resize(2);
+		arr[0] = Transform();
+		arr[1] = root_mesh;
+		return arr;
+	}
+
+	return Array();
+}
 void CSGShape::_bind_methods() {
 
 	ClassDB::bind_method(D_METHOD("_update_shape"), &CSGShape::_update_shape);
@@ -603,6 +615,8 @@ void CSGShape::_bind_methods() {
 
 	ClassDB::bind_method(D_METHOD("set_calculate_tangents", "enabled"), &CSGShape::set_calculate_tangents);
 	ClassDB::bind_method(D_METHOD("is_calculating_tangents"), &CSGShape::is_calculating_tangents);
+
+	ClassDB::bind_method(D_METHOD("get_meshes"), &CSGShape::get_meshes);
 
 	ADD_PROPERTY(PropertyInfo(Variant::INT, "operation", PROPERTY_HINT_ENUM, "Union,Intersection,Subtraction"), "set_operation", "get_operation");
 	ADD_PROPERTY(PropertyInfo(Variant::REAL, "snap", PROPERTY_HINT_RANGE, "0.0001,1,0.001"), "set_snap", "get_snap");
@@ -1132,9 +1146,9 @@ CSGBrush *CSGBox::_build_brush() {
 					for (int k = 0; k < 3; k++) {
 
 						if (i < 3)
-							face_points[j][(i + k) % 3] = v[k] * (i >= 3 ? -1 : 1);
+							face_points[j][(i + k) % 3] = v[k];
 						else
-							face_points[3 - j][(i + k) % 3] = v[k] * (i >= 3 ? -1 : 1);
+							face_points[3 - j][(i + k) % 3] = -v[k];
 					}
 				}
 

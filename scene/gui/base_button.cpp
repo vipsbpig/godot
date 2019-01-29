@@ -5,8 +5,8 @@
 /*                           GODOT ENGINE                                */
 /*                      https://godotengine.org                          */
 /*************************************************************************/
-/* Copyright (c) 2007-2018 Juan Linietsky, Ariel Manzur.                 */
-/* Copyright (c) 2014-2018 Godot Engine contributors (cf. AUTHORS.md)    */
+/* Copyright (c) 2007-2019 Juan Linietsky, Ariel Manzur.                 */
+/* Copyright (c) 2014-2019 Godot Engine contributors (cf. AUTHORS.md)    */
 /*                                                                       */
 /* Permission is hereby granted, free of charge, to any person obtaining */
 /* a copy of this software and associated documentation files (the       */
@@ -82,16 +82,16 @@ void BaseButton::_gui_input(Ref<InputEvent> p_event) {
 						get_script_instance()->call(SceneStringNames::get_singleton()->_pressed, NULL, 0, ce);
 					}
 
-					emit_signal("pressed");
 					_unpress_group();
+					emit_signal("pressed");
 
 				} else {
 
 					status.pressed = !status.pressed;
 					pressed();
 
-					emit_signal("pressed");
 					_unpress_group();
+					emit_signal("pressed");
 
 					toggled(status.pressed);
 					if (get_script_instance()) {
@@ -135,6 +135,7 @@ void BaseButton::_gui_input(Ref<InputEvent> p_event) {
 						get_script_instance()->call(SceneStringNames::get_singleton()->_pressed, NULL, 0, ce);
 					}
 
+					_unpress_group();
 					emit_signal("pressed");
 
 				} else {
@@ -142,6 +143,7 @@ void BaseButton::_gui_input(Ref<InputEvent> p_event) {
 					status.pressed = !status.pressed;
 
 					pressed();
+					_unpress_group();
 					emit_signal("pressed");
 
 					toggled(status.pressed);
@@ -150,8 +152,6 @@ void BaseButton::_gui_input(Ref<InputEvent> p_event) {
 					}
 					emit_signal("toggled", status.pressed);
 				}
-
-				_unpress_group();
 			}
 
 			status.press_attempt = false;
@@ -215,12 +215,14 @@ void BaseButton::_gui_input(Ref<InputEvent> p_event) {
 						get_script_instance()->call(SceneStringNames::get_singleton()->_pressed, NULL, 0, ce);
 					}
 
+					_unpress_group();
 					emit_signal("pressed");
 				} else {
 
 					status.pressed = !status.pressed;
 
 					pressed();
+					_unpress_group();
 					emit_signal("pressed");
 
 					toggled(status.pressed);
@@ -229,8 +231,6 @@ void BaseButton::_gui_input(Ref<InputEvent> p_event) {
 					}
 					emit_signal("toggled", status.pressed);
 				}
-
-				_unpress_group();
 			}
 
 			accept_event();

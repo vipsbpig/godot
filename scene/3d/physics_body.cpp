@@ -5,8 +5,8 @@
 /*                           GODOT ENGINE                                */
 /*                      https://godotengine.org                          */
 /*************************************************************************/
-/* Copyright (c) 2007-2018 Juan Linietsky, Ariel Manzur.                 */
-/* Copyright (c) 2014-2018 Godot Engine contributors (cf. AUTHORS.md)    */
+/* Copyright (c) 2007-2019 Juan Linietsky, Ariel Manzur.                 */
+/* Copyright (c) 2014-2019 Godot Engine contributors (cf. AUTHORS.md)    */
 /*                                                                       */
 /* Permission is hereby granted, free of charge, to any person obtaining */
 /* a copy of this software and associated documentation files (the       */
@@ -188,7 +188,7 @@ PhysicsBody::PhysicsBody(PhysicsServer::BodyMode p_mode) :
 #ifndef DISABLE_DEPRECATED
 void StaticBody::set_friction(real_t p_friction) {
 
-	if (p_friction == 1.0) { // default value, don't create an override for that
+	if (p_friction == 1.0 && physics_material_override.is_null()) { // default value, don't create an override for that
 		return;
 	}
 
@@ -218,7 +218,7 @@ real_t StaticBody::get_friction() const {
 
 void StaticBody::set_bounce(real_t p_bounce) {
 
-	if (p_bounce == 0.0) { // default value, don't create an override for that
+	if (p_bounce == 0.0 && physics_material_override.is_null()) { // default value, don't create an override for that
 		return;
 	}
 
@@ -632,7 +632,7 @@ real_t RigidBody::get_weight() const {
 #ifndef DISABLE_DEPRECATED
 void RigidBody::set_friction(real_t p_friction) {
 
-	if (p_friction == 1.0) { // default value, don't create an override for that
+	if (p_friction == 1.0 && physics_material_override.is_null()) { // default value, don't create an override for that
 		return;
 	}
 
@@ -661,7 +661,7 @@ real_t RigidBody::get_friction() const {
 
 void RigidBody::set_bounce(real_t p_bounce) {
 
-	if (p_bounce == 0.0) { // default value, don't create an override for that
+	if (p_bounce == 0.0 && physics_material_override.is_null()) { // default value, don't create an override for that
 		return;
 	}
 

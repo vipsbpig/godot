@@ -5,8 +5,8 @@
 /*                           GODOT ENGINE                                */
 /*                      https://godotengine.org                          */
 /*************************************************************************/
-/* Copyright (c) 2007-2018 Juan Linietsky, Ariel Manzur.                 */
-/* Copyright (c) 2014-2018 Godot Engine contributors (cf. AUTHORS.md)    */
+/* Copyright (c) 2007-2019 Juan Linietsky, Ariel Manzur.                 */
+/* Copyright (c) 2014-2019 Godot Engine contributors (cf. AUTHORS.md)    */
 /*                                                                       */
 /* Permission is hereby granted, free of charge, to any person obtaining */
 /* a copy of this software and associated documentation files (the       */
@@ -395,8 +395,8 @@ void AnimatedSprite::_notification(int p_what) {
 					int fc = frames->get_frame_count(animation);
 					if (frame >= fc - 1) {
 						if (frames->get_animation_loop(animation)) {
-							emit_signal(SceneStringNames::get_singleton()->animation_finished);
 							frame = 0;
+							emit_signal(SceneStringNames::get_singleton()->animation_finished);
 						} else {
 							frame = fc - 1;
 							if (!is_over) {

@@ -5,8 +5,8 @@
 /*                           GODOT ENGINE                                */
 /*                      https://godotengine.org                          */
 /*************************************************************************/
-/* Copyright (c) 2007-2018 Juan Linietsky, Ariel Manzur.                 */
-/* Copyright (c) 2014-2018 Godot Engine contributors (cf. AUTHORS.md)    */
+/* Copyright (c) 2007-2019 Juan Linietsky, Ariel Manzur.                 */
+/* Copyright (c) 2014-2019 Godot Engine contributors (cf. AUTHORS.md)    */
 /*                                                                       */
 /* Permission is hereby granted, free of charge, to any person obtaining */
 /* a copy of this software and associated documentation files (the       */
@@ -685,6 +685,10 @@ bool AnimationTree::_update_caches(AnimationPlayer *player) {
 						track = track_animation;
 
 					} break;
+					default: {
+						ERR_PRINT("Animation corrupted (invalid track type)");
+						continue;
+					}
 				}
 
 				track_cache[path] = track;
@@ -853,6 +857,9 @@ void AnimationTree::_process_graph(float p_delta) {
 			for (int i = 0; i < a->get_track_count(); i++) {
 
 				NodePath path = a->track_get_path(i);
+
+				ERR_CONTINUE(!track_cache.has(path));
+
 				TrackCache *track = track_cache[path];
 				if (track->type != a->track_get_type(i)) {
 					continue; //may happen should not

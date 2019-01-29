@@ -1,5 +1,5 @@
 /*************************************************************************/
-/*  global_defaults.cpp                                                  */
+/*  register_types.cpp                                                   */
 /*************************************************************************/
 /*                       This file is part of:                           */
 /*                           GODOT ENGINE                                */
@@ -28,8 +28,23 @@
 /* SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.                */
 /*************************************************************************/
 
-#include "global_defaults.h"
-#include "core/project_settings.h"
+#include "register_types.h"
 
-void register_android_global_defaults() {
+#include "core/class_db.h"
+#include "video_stream_gdnative.h"
+
+static Ref<ResourceFormatLoaderVideoStreamGDNative> resource_loader_vsgdnative;
+
+void register_videodecoder_types() {
+
+	resource_loader_vsgdnative.instance();
+	ResourceLoader::add_resource_format_loader(resource_loader_vsgdnative, true);
+
+	ClassDB::register_class<VideoStreamGDNative>();
+}
+
+void unregister_videodecoder_types() {
+
+	ResourceLoader::remove_resource_format_loader(resource_loader_vsgdnative);
+	resource_loader_vsgdnative.unref();
 }

@@ -5,8 +5,8 @@
 /*                           GODOT ENGINE                                */
 /*                      https://godotengine.org                          */
 /*************************************************************************/
-/* Copyright (c) 2007-2018 Juan Linietsky, Ariel Manzur.                 */
-/* Copyright (c) 2014-2018 Godot Engine contributors (cf. AUTHORS.md)    */
+/* Copyright (c) 2007-2019 Juan Linietsky, Ariel Manzur.                 */
+/* Copyright (c) 2014-2019 Godot Engine contributors (cf. AUTHORS.md)    */
 /*                                                                       */
 /* Permission is hereby granted, free of charge, to any person obtaining */
 /* a copy of this software and associated documentation files (the       */
@@ -494,7 +494,7 @@ void EditorNode::_fs_changed() {
 			}
 		}
 
-		get_tree()->quit();
+		_exit_editor();
 	}
 }
 
@@ -952,6 +952,9 @@ void EditorNode::_save_scene_with_preview(String p_file, int p_idx) {
 	}
 
 	if (img.is_valid()) {
+
+		img = img->duplicate();
+
 		save.step(TTR("Creating Thumbnail"), 2);
 		save.step(TTR("Creating Thumbnail"), 3);
 
@@ -1108,19 +1111,22 @@ void EditorNode::_save_scene(String p_file, int idx) {
 	}
 }
 
-void EditorNode::save_all_scenes_and_restart() {
+void EditorNode::save_all_scenes() {
 
 	_menu_option_confirm(RUN_STOP, true);
-	exiting = true;
-
 	_save_all_scenes();
+}
+
+void EditorNode::restart_editor() {
+
+	exiting = true;
 
 	String to_reopen;
 	if (get_tree()->get_edited_scene_root()) {
 		to_reopen = get_tree()->get_edited_scene_root()->get_filename();
 	}
 
-	get_tree()->quit();
+	_exit_editor();
 	String exec = OS::get_singleton()->get_executable_path();
 
 	List<String> args;
@@ -2305,7 +2311,8 @@ void EditorNode::_menu_option_confirm(int p_option, bool p_confirmed) {
 			ProjectSettings::get_singleton()->set("rendering/quality/driver/driver_name", video_driver_request);
 			ProjectSettings::get_singleton()->save();
 
-			save_all_scenes_and_restart();
+			save_all_scenes();
+			restart_editor();
 		} break;
 		default: {
 			if (p_option >= IMPORT_PLUGIN_BASE) {
@@ -2356,6 +2363,12 @@ int EditorNode::_next_unsaved_scene(bool p_valid_filename, int p_start) {
 	return -1;
 }
 
+void EditorNode::_exit_editor() {
+	exiting = true;
+	resource_preview->stop(); //stop early to avoid crashes
+	get_tree()->quit();
+}
+
 void EditorNode::_discard_changes(const String &p_str) {
 
 	switch (current_option) {
@@ -2383,14 +2396,13 @@ void EditorNode::_discard_changes(const String &p_str) {
 		case FILE_QUIT: {
 
 			_menu_option_confirm(RUN_STOP, true);
-			exiting = true;
-			get_tree()->quit();
+			_exit_editor();
+
 		} break;
 		case RUN_PROJECT_MANAGER: {
 
 			_menu_option_confirm(RUN_STOP, true);
-			exiting = true;
-			get_tree()->quit();
+			_exit_editor();
 			String exec = OS::get_singleton()->get_executable_path();
 
 			List<String> args;
@@ -3145,6 +3157,7 @@ void EditorNode::register_editor_types() {
 	ClassDB::register_class<EditorFileDialog>();
 	ClassDB::register_virtual_class<EditorSettings>();
 	ClassDB::register_class<EditorSpatialGizmo>();
+	ClassDB::register_class<EditorSpatialGizmoPlugin>();
 	ClassDB::register_virtual_class<EditorResourcePreview>();
 	ClassDB::register_class<EditorResourcePreviewGenerator>();
 	ClassDB::register_virtual_class<EditorFileSystem>();
@@ -4653,6 +4666,8 @@ void EditorNode::_bind_methods() {
 	ClassDB::bind_method("edit_node", &EditorNode::edit_node);
 	ClassDB::bind_method("_unhandled_input", &EditorNode::_unhandled_input);
 
+	ClassDB::bind_method(D_METHOD("push_item", "object", "property", "inspector_only"), &EditorNode::push_item, DEFVAL(""), DEFVAL(false));
+
 	ClassDB::bind_method("_get_scene_metadata", &EditorNode::_get_scene_metadata);
 	ClassDB::bind_method("set_edited_scene", &EditorNode::set_edited_scene);
 	ClassDB::bind_method("open_request", &EditorNode::open_request);
@@ -4751,6 +4766,8 @@ EditorNode::EditorNode() {
 	SceneState::set_disable_placeholders(true);
 	ResourceLoader::clear_translation_remaps(); //no remaps using during editor
 	ResourceLoader::clear_path_remaps();
+
+	ImageTexture::set_keep_images_cached(true);
 
 	InputDefault *id = Object::cast_to<InputDefault>(Input::get_singleton());
 
@@ -5621,7 +5638,7 @@ EditorNode::EditorNode() {
 	bottom_panel->add_child(bottom_panel_vb);
 
 	bottom_panel_hb = memnew(HBoxContainer);
-	bottom_panel_hb->set_custom_minimum_size(Size2(0, 24)); // Adjust for the height of the "Expand Bottom Dock" icon.
+	bottom_panel_hb->set_custom_minimum_size(Size2(0, 24 * EDSCALE)); // Adjust for the height of the "Expand Bottom Dock" icon.
 	bottom_panel_vb->add_child(bottom_panel_hb);
 
 	bottom_panel_hb_editors = memnew(HBoxContainer);

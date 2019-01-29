@@ -1,5 +1,5 @@
 /*************************************************************************/
-/*  global_defaults.h                                                    */
+/*  register_types.h                                                     */
 /*************************************************************************/
 /*                       This file is part of:                           */
 /*                           GODOT ENGINE                                */
@@ -28,4 +28,5 @@
 /* SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.                */
 /*************************************************************************/
 
-void register_android_global_defaults();
+void register_videodecoder_types();
+void unregister_videodecoder_types();

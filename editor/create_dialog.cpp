@@ -5,8 +5,8 @@
 /*                           GODOT ENGINE                                */
 /*                      https://godotengine.org                          */
 /*************************************************************************/
-/* Copyright (c) 2007-2018 Juan Linietsky, Ariel Manzur.                 */
-/* Copyright (c) 2014-2018 Godot Engine contributors (cf. AUTHORS.md)    */
+/* Copyright (c) 2007-2019 Juan Linietsky, Ariel Manzur.                 */
+/* Copyright (c) 2014-2019 Godot Engine contributors (cf. AUTHORS.md)    */
 /*                                                                       */
 /* Permission is hereby granted, free of charge, to any person obtaining */
 /* a copy of this software and associated documentation files (the       */
@@ -208,7 +208,7 @@ void CreateDialog::add_type(const String &p_type, HashMap<String, TreeItem *> &p
 	if (!can_instance) {
 		item->set_custom_color(0, get_color("disabled_font_color", "Editor"));
 		item->set_selectable(0, false);
-	} else {
+	} else if (!(*to_select && (*to_select)->get_text(0) == search_box->get_text())) {
 		bool is_search_subsequence = search_box->get_text().is_subsequence_ofi(p_type);
 		String to_select_type = *to_select ? (*to_select)->get_text(0) : "";
 		to_select_type = to_select_type.split(" ")[0];
@@ -221,11 +221,11 @@ void CreateDialog::add_type(const String &p_type, HashMap<String, TreeItem *> &p
 		} else {
 			current_item_is_preferred = ed.script_class_is_parent(p_type, preferred_search_result_type) && !ed.script_class_is_parent(to_select_type, preferred_search_result_type) && search_box->get_text() != to_select_type;
 		}
-		if (*to_select && p_type.length() < (*to_select)->get_text(0).length()) {
+		if (search_box->get_text() == p_type || (*to_select && p_type.length() < (*to_select)->get_text(0).length())) {
 			current_item_is_preferred = true;
 		}
 
-		if (((!*to_select || current_item_is_preferred) && is_search_subsequence) || search_box->get_text() == p_type) {
+		if (((!*to_select || current_item_is_preferred) && is_search_subsequence)) {
 			*to_select = item;
 		}
 	}

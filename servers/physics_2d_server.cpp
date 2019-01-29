@@ -5,8 +5,8 @@
 /*                           GODOT ENGINE                                */
 /*                      https://godotengine.org                          */
 /*************************************************************************/
-/* Copyright (c) 2007-2018 Juan Linietsky, Ariel Manzur.                 */
-/* Copyright (c) 2014-2018 Godot Engine contributors (cf. AUTHORS.md)    */
+/* Copyright (c) 2007-2019 Juan Linietsky, Ariel Manzur.                 */
+/* Copyright (c) 2014-2019 Godot Engine contributors (cf. AUTHORS.md)    */
 /*                                                                       */
 /* Permission is hereby granted, free of charge, to any person obtaining */
 /* a copy of this software and associated documentation files (the       */
@@ -620,7 +620,7 @@ void Physics2DServer::_bind_methods() {
 	ClassDB::bind_method(D_METHOD("body_clear_shapes", "body"), &Physics2DServer::body_clear_shapes);
 
 	ClassDB::bind_method(D_METHOD("body_set_shape_disabled", "body", "shape_idx", "disable"), &Physics2DServer::body_set_shape_disabled);
-	ClassDB::bind_method(D_METHOD("body_set_shape_as_one_way_collision", "body", "shape_idx", "enable"), &Physics2DServer::body_set_shape_as_one_way_collision);
+	ClassDB::bind_method(D_METHOD("body_set_shape_as_one_way_collision", "body", "shape_idx", "enable", "margin"), &Physics2DServer::body_set_shape_as_one_way_collision);
 
 	ClassDB::bind_method(D_METHOD("body_attach_object_instance_id", "body", "id"), &Physics2DServer::body_attach_object_instance_id);
 	ClassDB::bind_method(D_METHOD("body_get_object_instance_id", "body"), &Physics2DServer::body_get_object_instance_id);

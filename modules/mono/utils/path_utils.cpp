@@ -5,8 +5,8 @@
 /*                           GODOT ENGINE                                */
 /*                      https://godotengine.org                          */
 /*************************************************************************/
-/* Copyright (c) 2007-2018 Juan Linietsky, Ariel Manzur.                 */
-/* Copyright (c) 2014-2018 Godot Engine contributors (cf. AUTHORS.md)    */
+/* Copyright (c) 2007-2019 Juan Linietsky, Ariel Manzur.                 */
+/* Copyright (c) 2014-2019 Godot Engine contributors (cf. AUTHORS.md)    */
 /*                                                                       */
 /* Permission is hereby granted, free of charge, to any person obtaining */
 /* a copy of this software and associated documentation files (the       */
@@ -59,7 +59,7 @@ String path_which(const String &p_name) {
 
 #ifdef WINDOWS_ENABLED
 		for (int j = 0; j < exts.size(); j++) {
-			String p2 = p + exts[j];
+			String p2 = p + exts[j].to_lower(); // lowercase to reduce risk of case mismatch warning
 
 			if (FileAccess::exists(p2))
 				return p2;
