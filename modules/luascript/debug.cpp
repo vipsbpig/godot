@@ -45,4 +45,11 @@ void print_debug(const String fmt, ...) {
 	print_line(finalbuf);
 }
 
+void print_luadebug(std::string str)
+{
+    print_line(str.c_str());
+}
+
 #endif
+
+

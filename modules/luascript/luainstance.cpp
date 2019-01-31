@@ -1,5 +1,5 @@
 #include "luascript.h"
-
+#include "debug.h"
 
 //=================LUAScriptInstance==========
 
@@ -77,8 +77,8 @@ ScriptLanguage *LuaScriptInstance::get_language() {
 	return nullptr;
 }
 int LuaScriptInstance::setup() {
-	// // self -> LuaObject
-	// lua_State *L = LuaScriptLanguage::get_singleton()->get_state();
+    sol::state* lua = LuaScriptLanguage::get_singleton()->get_state();
+    lua->set("printline",print_luadebug);
 	// luaL_newmetatable(L, "LuaObject");
 	// {
 	// 	static luaL_Reg meta_methods[] = {

@@ -68,7 +68,7 @@ Object *LuaNativeClass::instance() {
 }
 
 LuaNativeClass::LuaNativeClass(const StringName &p_name) {
-	name = p_name;
+    name = p_name;
 }
 
 
@@ -217,17 +217,19 @@ void LuaScriptLanguage::_add_global(const StringName &p_name, const Variant &p_v
 }
 
 LuaScriptLanguage::LuaScriptLanguage() {
+    ERR_FAIL_COND(singleton);
+    singleton=this;
+    lua = new sol::state();
 }
 
 LuaScriptLanguage::~LuaScriptLanguage() {
 }
 
 String LuaScriptLanguage::get_name() const {
-	return String();
+    return LUA_TYPE;
 }
 
 void LuaScriptLanguage::init() {
-
 	// setup lua instance object's metamethods
 	LuaScriptInstance::setup();
 	//populate global constants
@@ -270,11 +272,11 @@ void LuaScriptLanguage::init() {
 }
 
 String LuaScriptLanguage::get_type() const {
-	return LUA_TYPE;
+    return LUA_TYPE;
 }
 
 String LuaScriptLanguage::get_extension() const {
-	return LUA_EXTENSION;
+    return LUA_EXTENSION;
 }
 
 Error LuaScriptLanguage::execute_file(const String &p_path) {
@@ -454,7 +456,7 @@ void LuaScriptLanguage::thread_exit() {
 String LuaScriptLanguage::debug_get_error() const {
 	print_debug("LuaScriptLanguage::debug_get_error");
 	//TODO::
-	return EMPTY_STRING;
+    return EMPTY_STRING;
 }
 
 int LuaScriptLanguage::debug_get_stack_level_count() const {
@@ -469,13 +471,13 @@ int LuaScriptLanguage::debug_get_stack_level_line(int p_level) const {
 
 String LuaScriptLanguage::debug_get_stack_level_function(int p_level) const {
 	//TODO::
-	return EMPTY_STRING;
+    return EMPTY_STRING;
 }
 
 
 String LuaScriptLanguage::debug_get_stack_level_source(int p_level) const {
 	//TODO::
-	return EMPTY_STRING;
+    return EMPTY_STRING;
 }
 
 void LuaScriptLanguage::debug_get_stack_level_locals(int p_level, List<String> *p_locals, List<Variant> *p_values, int p_max_subitems, int p_max_depth) {
@@ -534,8 +536,8 @@ void LuaScriptLanguage::reload_tool_script(const Ref<Script> &p_script, bool p_s
 }
 
 void LuaScriptLanguage::get_recognized_extensions(List<String> *p_extensions) const {
-	print_debug("LuaScriptLanguage::get_recognized_extensions");
-	p_extensions->push_back(LUA_EXTENSION);
+    print_debug("LuaScriptLanguage::get_recognized_extensions");
+    p_extensions->push_back(LUA_EXTENSION);
 }
 
 void LuaScriptLanguage::get_public_functions(List<MethodInfo> *p_functions) const {
@@ -642,7 +644,7 @@ Ref<Resource> LuaScriptResourceFormatLoader::load(const String &p_path, const St
 void LuaScriptResourceFormatLoader::get_recognized_extensions(List<String> *p_extensions) const {
 	print_debug("LuaScriptResourceFormatLoader::get_recognized_extensions");
 
-	p_extensions->push_back(LUA_EXTENSION);
+    p_extensions->push_back(LUA_EXTENSION);
 	//TODO::luajit 
 	//p_extensions->push_back("luac");
 }
@@ -656,8 +658,8 @@ bool LuaScriptResourceFormatLoader::handles_type(const String &p_type) const {
 String LuaScriptResourceFormatLoader::get_resource_type(const String &p_path) const {
 	print_debug("LuaScriptResourceFormatLoader::get_resource_type( p_path = " + p_path + " )");
 	String el = p_path.get_extension().to_lower();
-	if (el == LUA_EXTENSION )//luajit || el == LUAJIT_EXTENSION )
-		return LUA_TYPE;
+    if (el == LUA_EXTENSION )//luajit || el == LUAJIT_EXTENSION )
+        return LUA_TYPE;
 	return EMPTY_STRING;
 }
 
