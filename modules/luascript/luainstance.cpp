@@ -103,12 +103,12 @@ void LuaScriptInstance::tmpLuaDebug(const char *fname )
     }
     fclose(fp);
 
-    lua->script(str);
+    lua->safe_script(str);
 }
 
 int LuaScriptInstance::setup() {
     sol::state* lua = LuaScriptLanguage::get_singleton()->get_state();
-    lua->set("printline",print_luadebug);
+    lua->set("print",print_luadebug);
 
 	// luaL_newmetatable(L, "LuaObject");
 	// {

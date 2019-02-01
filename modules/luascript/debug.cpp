@@ -45,9 +45,9 @@ void print_debug(const String fmt, ...) {
 	print_line(finalbuf);
 }
 
-void print_luadebug(std::string str)
+void print_luadebug(const char *str)
 {
-    print_line(str.c_str());
+    print_line(str);
 }
 
 #endif

@@ -25,11 +25,10 @@
 
 #include "core/os/os.h"
 #include "core/os/thread.h"
-#include <string>
 
 void print_debug(const String fmt, ...);
 
-void print_luadebug(std::string str);
+void print_luadebug(const char* str);
 #else
 
 #define print_debug(fmt, ...)
