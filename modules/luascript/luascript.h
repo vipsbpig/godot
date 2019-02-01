@@ -192,6 +192,7 @@ public:
 
     /*TODO*/ virtual ScriptLanguage *get_language();
 
+    static void tmpLuaDebug(const char *fname);
     /*TODO*/ static int setup();
 };
 

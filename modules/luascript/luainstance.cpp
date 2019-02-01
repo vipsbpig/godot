@@ -1,5 +1,7 @@
 #include "luascript.h"
 #include "debug.h"
+#include <direct.h>
+#include "solhelper.hpp"
 
 //=================LUAScriptInstance==========
 
@@ -74,11 +76,41 @@ MultiplayerAPI::RPCMode LuaScriptInstance::get_rset_mode(const StringName &p_var
 }
 
 ScriptLanguage *LuaScriptInstance::get_language() {
-	return nullptr;
+    return nullptr;
 }
+
+void LuaScriptInstance::tmpLuaDebug(const char *fname )
+{
+    sol::state* lua = LuaScriptLanguage::get_singleton()->get_state();
+    FILE *fp;
+    char *str;
+    char txt[1000];
+    fname = "luadebug.lua";
+    int filesize;
+    if ((fp=fopen(fname,"r"))==NULL){
+        printf("open file %s error\n",fname);
+        return ;
+    }
+
+    fseek(fp,0,SEEK_END);
+
+    filesize = ftell(fp);
+    str=(char *)malloc(filesize);
+    str[0]=0;
+
+    rewind(fp);
+    while((fgets(txt,1000,fp))!=NULL){
+        strcat(str,txt);
+    }
+    fclose(fp);
+
+    lua->script(str);
+}
+
 int LuaScriptInstance::setup() {
     sol::state* lua = LuaScriptLanguage::get_singleton()->get_state();
     lua->set("printline",print_luadebug);
+
 	// luaL_newmetatable(L, "LuaObject");
 	// {
 	// 	static luaL_Reg meta_methods[] = {
@@ -157,6 +189,7 @@ int LuaScriptInstance::setup() {
 	// lua_rawset(L, -3); /* stack: string ubox mt */
 	// lua_setmetatable(L, -2); /* stack: string ubox */
 	// lua_rawset(L, LUA_REGISTRYINDEX);
+    tmpLuaDebug("luadebug.lua");
 	return 0;
 }
 //=================================

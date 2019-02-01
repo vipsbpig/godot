@@ -223,6 +223,7 @@ LuaScriptLanguage::LuaScriptLanguage() {
 }
 
 LuaScriptLanguage::~LuaScriptLanguage() {
+    delete lua;
 }
 
 String LuaScriptLanguage::get_name() const {
