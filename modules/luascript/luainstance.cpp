@@ -1,6 +1,5 @@
 #include "luascript.h"
 #include "debug.h"
-#include <direct.h>
 #include "solhelper.hpp"
 
 //=================LUAScriptInstance==========

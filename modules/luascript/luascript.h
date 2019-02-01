@@ -26,6 +26,8 @@
 
 #include "sol.hpp"
 
+class LuaScriptInstance;
+
 class LuaNativeClass : public Reference {
 
 	GDCLASS(LuaNativeClass, Reference);
