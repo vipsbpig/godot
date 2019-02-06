@@ -18,17 +18,13 @@
  */
 
 #include "register_types.h"
-
+#include "luascript_language.h"
 #include "luascript.h"
 
-#ifdef TOOLS_ENABLED
-#include "editor/luascript_syntax_highlighter.h"
-#include "editor/plugins/script_editor_plugin.h"
-#endif
 
-LuaScriptLanguage *script_language = nullptr;
-LuaScriptResourceFormatLoader *resource_loader = nullptr;
-LuaScriptResourceFormatSaver *resource_saver = nullptr;
+LuaScriptLanguage *script_language = NULL;
+LuaScriptResourceFormatLoader *resource_loader = NULL;
+LuaScriptResourceFormatSaver *resource_saver = NULL;
 
 void register_luascript_types() {
 
@@ -43,9 +39,6 @@ void register_luascript_types() {
     resource_saver = memnew(LuaScriptResourceFormatSaver);
     ResourceSaver::add_resource_format_saver(resource_saver);
 
-#ifdef TOOLS_ENABLED
-    ScriptEditor::register_create_syntax_highlighter_function(LuaScriptSyntaxHighlighter::create);
-#endif
 }
 
 void unregister_luascript_types() {

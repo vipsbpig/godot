@@ -53,3 +53,17 @@ void print_luadebug(const char *str)
 #endif
 
 
+
+void print_format(char *fmt ,...)
+{
+    char buf[100];     // this should really be sized appropriately
+                       // possibly in response to a call to vsnprintf()
+    va_list vl;
+    va_start(vl, fmt);
+
+    vsnprintf( buf, sizeof( buf), fmt, vl);
+
+    va_end( vl);
+
+    print_line(buf);
+}

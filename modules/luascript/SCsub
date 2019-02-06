@@ -12,6 +12,7 @@ env_luascript.Append(CXXFLAGS=['-O0', '-std=c++14'])
 env_luascript.Append(CPPPATH=lib_include_path)
 
 env_luascript.add_source_files(env.modules_sources,'*.cpp')
+env_luascript.add_source_files(env.modules_sources,'lib/*.cpp')
 
 SConscript('lib/lua51/SCsub')
 
