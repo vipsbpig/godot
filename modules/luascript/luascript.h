@@ -6,6 +6,23 @@
 #include "core/script_language.h"
 #include "debug.h"
 
+class LuaScriptNativeClass : public Reference {
+
+    GDCLASS(LuaScriptNativeClass, Reference);
+
+    StringName name;
+
+protected:
+    bool _get(const StringName &p_name, Variant &r_ret) const;
+    static void _bind_methods();
+
+public:
+    _FORCE_INLINE_ const StringName &get_name() const { return name; }
+    Variant _new();
+    Object *instance();
+    LuaScriptNativeClass(const StringName &p_name);
+};
+
 class LuaScript : public Script
 {
     GDCLASS(LuaScript, Script)

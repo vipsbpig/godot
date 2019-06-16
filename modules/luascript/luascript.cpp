@@ -7,7 +7,6 @@ LuaScript::LuaScript()
 
 LuaScript::~LuaScript()
 {
-
 }
 
 bool LuaScript::can_instance() const
