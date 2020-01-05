@@ -25,31 +25,59 @@ int LuaBindingHelper::create_user_data(lua_State *L)
     const ClassDB::ClassInfo *cls = (ClassDB::ClassInfo *)lua_touserdata(L, lua_upvalueindex(1));
 
     const StringName *key = cls->method_map.next(NULL);
-    while (key) {
-        print_format("-- methods:%s", String(*key).ascii().get_data() );
-        key = cls->method_map.next(key);
 
+    lua_pushstring(L, "gdlua_ubox");
+    lua_rawget(L, LUA_REGISTRYINDEX);
+    {
+        Object** ud  = NULL;
+        ud = (Object** )lua_newuserdata(L, sizeof(Object*));
+        Object* object = cls->creation_func();
+        print_format("Name %s call new object_ptr:%d ", object->get_class().ascii().get_data() , object);
+
+        *ud = object;
+        luaL_getmetatable(L,"LuaObject");
+        lua_setmetatable(L,-2);
+        lua_pushvalue(L,-1);
+        lua_pushvalue(L,-1);
+        lua_rawset(L,-4);
+        lua_remove(L,1);
     }
-    return 0;
+//    while (key) {
+//        print_format("-- methods:%s", String(*key).ascii().get_data() );
+//        key = cls->method_map.next(key);
+//    }
+    return 1;
 }
 
 int LuaBindingHelper::meta__gc(lua_State *L)
 {
-    print_format("call %s", "meta__gc");
+    Object** ud = (Object**)lua_touserdata(L,1);
+    Object* obj = *ud;
+    String toString = "[" +obj->get_class()+ ":" + itos( obj->get_instance_id()) +"]";
+    print_format("%s memdeted by lua gc." , toString.ascii().get_data());
+    memdelete(obj);
     return 0;
 
 }
 
 int LuaBindingHelper::meta__tostring(lua_State *L)
 {
-    print_format("call %s", "meta__tostring");
-    return 0;
+    print_format("meta__tostring");
+    Object** ud = (Object**)lua_touserdata(L,1);
+    Object* obj = *ud;
+    String toString = "[" +obj->get_class()+ ":" + itos( obj->get_instance_id()) +"]";
+    lua_pushstring(L, toString.ascii().get_data() );
+    return 1;
 
 }
 
 int LuaBindingHelper::meta__index(lua_State *L)
 {
-    print_format("call %s", "meta__index");
+    Object** ud = (Object**)lua_touserdata(L,1);
+    Object* obj = *ud;
+    String index_name = lua_tostring(L,2);
+    print_format("meta__index: %s call %s",  obj->get_class().ascii().get_data() ,index_name.ascii().get_data());
+
     return 0;
 
 }
@@ -123,6 +151,7 @@ void LuaBindingHelper::initialize()
     L = luaL_newstate();
     luaopen_base(L);
     luaopen_table(L);
+    luaopen_debug(L);
     lua_settop(L,0);
 
     //global function
@@ -158,7 +187,7 @@ void LuaBindingHelper::initialize()
        garbage-collected */
     lua_newtable(L);
     lua_pushliteral(L, "__mode");
-    lua_pushliteral(L, "v");
+    lua_pushliteral(L, "kv");
     lua_rawset(L, -3);			   /* stack: string ubox mt */
     lua_setmetatable(L, -2);  /* stack: string ubox */
     lua_rawset(L, LUA_REGISTRYINDEX);
@@ -194,9 +223,24 @@ void LuaBindingHelper::uninitialize()
 Error LuaBindingHelper::script(const String &p_source)
 {
     ERR_FAIL_NULL_V(L,ERR_DOES_NOT_EXIST);
-
-    if (luaL_dostring(L,p_source.utf8()))
-        return OK;
-    else
+    luaL_loadstring(L, p_source.utf8());
+    if ( lua_pcall(L, 0, LUA_MULTRET, 0)){
+        lua_getfield(L, LUA_GLOBALSINDEX, "debug");
+        if (!lua_istable(L, -1)) {
+            lua_pop(L, 1);
+            return ERR_SCRIPT_FAILED;
+        }
+        lua_getfield(L, -1, "traceback");
+        if (!lua_isfunction(L, -1)) {
+            lua_pop(L, 2);
+            return ERR_SCRIPT_FAILED;
+        }
+        lua_pushvalue(L, 1);  /* pass error message */
+        lua_pushinteger(L, 2);  /* skip this function and traceback */
+        lua_call(L, 2, 1);  /* call debug.traceback */
+        print_line(lua_tostring(L, -1));
         return ERR_SCRIPT_FAILED;
+    }
+
+    return OK;
 }
