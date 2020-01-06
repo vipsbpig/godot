@@ -89,7 +89,8 @@ int LuaBindingHelper::meta__index(lua_State *L)
     MethodBind* mb = ClassDB::get_method(obj->get_class_name(),index_name);
     if (mb != NULL){
         lua_pushlightuserdata(L, mb);
-        lua_pushcclosure(L, l_methodbind_wrapper, 1);
+        lua_pushlightuserdata(L, obj);
+        lua_pushcclosure(L, l_methodbind_wrapper, 2);
         return 1;
     }
     return 0;
@@ -106,10 +107,8 @@ int LuaBindingHelper::meta__newindex(lua_State *L)
 int LuaBindingHelper::l_methodbind_wrapper(lua_State *L)
 {
     MethodBind *mb = (MethodBind *) lua_touserdata(L, lua_upvalueindex(1));
-    print_format("lua top:%d" , lua_gettop(L));
+    Object* obj = (Object*) lua_touserdata(L, lua_upvalueindex(2));
 
-    Object** ud = (Object**)lua_touserdata(L,1);
-    Object* obj = *ud;
 
     Variant ret;
     Variant::CallError err;
