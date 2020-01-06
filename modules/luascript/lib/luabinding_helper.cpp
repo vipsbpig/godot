@@ -114,17 +114,17 @@ int LuaBindingHelper::l_methodbind_wrapper(lua_State *L)
     Variant::CallError err;
 
     int top = lua_gettop(L);
-    if(top >= 2) {
+    if(top >= 1) {
 
-        Variant *vars = memnew_arr(Variant, top - 1);
+        Variant *vars = memnew_arr(Variant, top );
         Variant *args[128];
-        for(int idx = 2; idx <= top; idx++) {
+        for(int idx = 1; idx <= top; idx++) {
 
-            Variant& var = vars[idx - 2];
-            args[idx - 2] = &var;
+            Variant& var = vars[idx - 1];
+            args[idx - 1] = &var;
             l_get_variant(L, idx, var);
         }
-        ret = mb->call(obj, (const Variant **) args, top - 1, err);
+        ret = mb->call(obj, (const Variant **) args, top , err);
         memdelete_arr(vars);
     } else {
         ret = mb->call(obj, NULL, 0, err);
