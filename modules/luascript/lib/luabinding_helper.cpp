@@ -24,7 +24,7 @@ int LuaBindingHelper::create_user_data(lua_State *L)
 {
     const ClassDB::ClassInfo *cls = (ClassDB::ClassInfo *)lua_touserdata(L, lua_upvalueindex(1));
 
-    const StringName *key = cls->method_map.next(NULL);
+    //const StringName *key = cls->method_map.next(NULL);
 
     lua_pushstring(L, "gdlua_ubox");
     lua_rawget(L, LUA_REGISTRYINDEX);
@@ -75,8 +75,8 @@ int LuaBindingHelper::meta__index(lua_State *L)
 {
     Object** ud = (Object**)lua_touserdata(L,1);
     Object* obj = *ud;
-    String index_name = lua_tostring(L,2);
-    print_format("meta__index: %s call %s",  obj->get_class().ascii().get_data() ,index_name.ascii().get_data());
+    StringName index_name = lua_tostring(L,2);
+    print_format("meta__index: %s call %s",  obj->get_class().ascii().get_data() ,String(index_name).ascii().get_data());
 
     //1.如果是变量，压入
     bool success = false;
