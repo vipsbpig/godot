@@ -236,16 +236,15 @@ void LuaBindingHelper::l_get_variant(lua_State *L, int idx, Variant& var)
 
     case LUA_TNUMBER:
         if(lua_isinteger(L, idx))
-            var = lua_tointeger(L, idx);
+            var = Variant((int)lua_tointeger(L, idx));
         else
-            var = lua_tonumber(L, idx);
+            var = Variant(lua_tonumber(L, idx));
         break;
 
     case LUA_TSTRING: {
-
             String str;
             str.parse_utf8(lua_tostring(L, idx));
-            var = str;
+            var = Variant(str);
         }
         break;
 

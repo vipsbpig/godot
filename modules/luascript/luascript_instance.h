@@ -27,8 +27,8 @@ public:
 
     /*TODO*/ virtual void get_method_list(List<MethodInfo> *p_list) const {}
     /*TODO*/ virtual bool has_method(const StringName &p_method) const {return false;}
-    /*TODO*/ virtual Variant call(const StringName &p_method, VARIANT_ARG_LIST) {return NULL;}
-    /*TODO*/ virtual Variant call(const StringName &p_method, const Variant **p_args, int p_argcount, Variant::CallError &r_error) {return NULL;}
+    /*TODO*/ virtual Variant call(const StringName &p_method, VARIANT_ARG_LIST) {return Variant::NIL;}
+    /*TODO*/ virtual Variant call(const StringName &p_method, const Variant **p_args, int p_argcount, Variant::CallError &r_error) {return Variant::NIL;}
     /*TODO*/ virtual void call_multilevel(const StringName &p_method, VARIANT_ARG_LIST) {}
     /*TODO*/ virtual void call_multilevel(const StringName &p_method, const Variant **p_args, int p_argcount) {}
     /*TODO*/ virtual void call_multilevel_reversed(const StringName &p_method, const Variant **p_args, int p_argcount) {}
