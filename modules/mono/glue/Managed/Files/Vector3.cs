@@ -14,6 +14,7 @@ using real_t = System.Single;
 
 namespace Godot
 {
+    [Serializable]
     [StructLayout(LayoutKind.Sequential)]
     public struct Vector3 : IEquatable<Vector3>
     {
@@ -124,6 +125,11 @@ namespace Godot
                         (2.0f * p0 - 5.0f * p1 + 4f * p2 - p3) * t2 +
                         (-p0 + 3.0f * p1 - 3.0f * p2 + p3) * t3
                     );
+        }
+
+        public Vector3 DirectionTo(Vector3 b)
+        {
+            return new Vector3(b.x - x, b.y - y, b.z - z).Normalized();
         }
 
         public real_t DistanceSquaredTo(Vector3 b)

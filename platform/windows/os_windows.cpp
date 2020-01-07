@@ -43,15 +43,17 @@
 #include "drivers/windows/rw_lock_windows.h"
 #include "drivers/windows/semaphore_windows.h"
 #include "drivers/windows/thread_windows.h"
-#include "joypad.h"
+#include "joypad_windows.h"
 #include "lang_table.h"
 #include "main/main.h"
 #include "servers/audio_server.h"
 #include "servers/visual/visual_server_raster.h"
 #include "servers/visual/visual_server_wrap_mt.h"
 #include "windows_terminal_logger.h"
-#include <avrt.h>
 
+#include <avrt.h>
+#include <direct.h>
+#include <knownfolders.h>
 #include <process.h>
 #include <regstr.h>
 #include <shlobj.h>
@@ -270,7 +272,7 @@ void OS_Windows::_touch_event(bool p_pressed, float p_x, float p_y, int idx) {
 	event->set_position(Vector2(p_x, p_y));
 
 	if (main_loop) {
-		input->parse_input_event(event);
+		input->accumulate_input_event(event);
 	}
 };
 
@@ -292,10 +294,20 @@ void OS_Windows::_drag_event(float p_x, float p_y, int idx) {
 	event->set_position(Vector2(p_x, p_y));
 
 	if (main_loop)
-		input->parse_input_event(event);
+		input->accumulate_input_event(event);
 };
 
 LRESULT OS_Windows::WndProc(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam) {
+
+	if (drop_events) {
+
+		if (user_proc) {
+
+			return CallWindowProcW(user_proc, hWnd, uMsg, wParam, lParam);
+		} else {
+			return DefWindowProcW(hWnd, uMsg, wParam, lParam);
+		}
+	};
 
 	switch (uMsg) // Check For Windows Messages
 	{
@@ -373,8 +385,6 @@ LRESULT OS_Windows::WndProc(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam) 
 			outside = true;
 			if (main_loop && mouse_mode != MOUSE_MODE_CAPTURED)
 				main_loop->notification(MainLoop::NOTIFICATION_WM_MOUSE_EXIT);
-			if (input)
-				input->set_mouse_in_window(false);
 
 		} break;
 		case WM_INPUT: {
@@ -447,7 +457,7 @@ LRESULT OS_Windows::WndProc(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam) 
 				}
 
 				if (window_has_focus && main_loop && mm->get_relative() != Vector2())
-					input->parse_input_event(mm);
+					input->accumulate_input_event(mm);
 			}
 			delete[] lpb;
 		} break;
@@ -469,8 +479,6 @@ LRESULT OS_Windows::WndProc(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam) 
 
 				if (main_loop && mouse_mode != MOUSE_MODE_CAPTURED)
 					main_loop->notification(MainLoop::NOTIFICATION_WM_MOUSE_ENTER);
-				if (input)
-					input->set_mouse_in_window(true);
 
 				CursorShape c = cursor_shape;
 				cursor_shape = CURSOR_MAX;
@@ -534,7 +542,7 @@ LRESULT OS_Windows::WndProc(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam) 
 			old_x = mm->get_position().x;
 			old_y = mm->get_position().y;
 			if (window_has_focus && main_loop)
-				input->parse_input_event(mm);
+				input->accumulate_input_event(mm);
 
 		} break;
 		case WM_LBUTTONDOWN:
@@ -707,14 +715,14 @@ LRESULT OS_Windows::WndProc(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam) 
 			mb->set_global_position(mb->get_position());
 
 			if (main_loop) {
-				input->parse_input_event(mb);
+				input->accumulate_input_event(mb);
 				if (mb->is_pressed() && mb->get_button_index() > 3 && mb->get_button_index() < 8) {
 					//send release for mouse wheel
 					Ref<InputEventMouseButton> mbd = mb->duplicate();
 					last_button_state &= ~(1 << (mbd->get_button_index() - 1));
 					mbd->set_button_mask(last_button_state);
 					mbd->set_pressed(false);
-					input->parse_input_event(mbd);
+					input->accumulate_input_event(mbd);
 				}
 			}
 		} break;
@@ -816,8 +824,8 @@ LRESULT OS_Windows::WndProc(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam) 
 			if (wParam==VK_WIN) TODO wtf is this?
 				meta_mem=uMsg==WM_KEYDOWN;
 			*/
-
-		} //fallthrough
+			FALLTHROUGH;
+		}
 		case WM_CHAR: {
 
 			ERR_BREAK(key_event_pos >= KEY_EVENT_BUFFER_SIZE);
@@ -977,7 +985,7 @@ void OS_Windows::process_key_events() {
 					if (k->get_unicode() < 32)
 						k->set_unicode(0);
 
-					input->parse_input_event(k);
+					input->accumulate_input_event(k);
 				}
 
 				//do nothing
@@ -1015,7 +1023,7 @@ void OS_Windows::process_key_events() {
 
 				k->set_echo((ke.uMsg == WM_KEYDOWN && (ke.lParam & (1 << 30))));
 
-				input->parse_input_event(k);
+				input->accumulate_input_event(k);
 
 			} break;
 		}
@@ -1273,13 +1281,13 @@ Error OS_Windows::initialize(const VideoMode &p_desired, int p_video_driver, int
 
 	gl_context = NULL;
 	while (!gl_context) {
-		gl_context = memnew(ContextGL_Win(hWnd, gles3_context));
+		gl_context = memnew(ContextGL_Windows(hWnd, gles3_context));
 
 		if (gl_context->initialize() != OK) {
 			memdelete(gl_context);
 			gl_context = NULL;
 
-			if (GLOBAL_GET("rendering/quality/driver/driver_fallback") == "Best" || editor) {
+			if (GLOBAL_GET("rendering/quality/driver/fallback_to_gles2") || editor) {
 				if (p_video_driver == VIDEO_DRIVER_GLES2) {
 					gl_initialization_error = true;
 					break;
@@ -1301,7 +1309,7 @@ Error OS_Windows::initialize(const VideoMode &p_desired, int p_video_driver, int
 				RasterizerGLES3::make_current();
 				break;
 			} else {
-				if (GLOBAL_GET("rendering/quality/driver/driver_fallback") == "Best" || editor) {
+				if (GLOBAL_GET("rendering/quality/driver/fallback_to_gles2") || editor) {
 					p_video_driver = VIDEO_DRIVER_GLES2;
 					gles3_context = false;
 					continue;
@@ -1393,6 +1401,8 @@ Error OS_Windows::initialize(const VideoMode &p_desired, int p_video_driver, int
 		// This is only setting priority of this thread, not the whole process.
 		SetThreadPriority(GetCurrentThread(), THREAD_PRIORITY_TIME_CRITICAL);
 	}
+
+	update_real_mouse_position();
 
 	return OK;
 }
@@ -1595,6 +1605,19 @@ Point2 OS_Windows::get_mouse_position() const {
 	return Point2(old_x, old_y);
 }
 
+void OS_Windows::update_real_mouse_position() {
+
+	POINT mouse_pos;
+	if (GetCursorPos(&mouse_pos) && ScreenToClient(hWnd, &mouse_pos)) {
+		if (mouse_pos.x > 0 && mouse_pos.y > 0 && mouse_pos.x <= video_mode.width && mouse_pos.y <= video_mode.height) {
+			old_x = mouse_pos.x;
+			old_y = mouse_pos.y;
+			old_invalid = false;
+			input->set_mouse_position(Point2i(mouse_pos.x, mouse_pos.y));
+		}
+	}
+}
+
 int OS_Windows::get_mouse_button_state() const {
 
 	return last_button_state;
@@ -1737,6 +1760,7 @@ void OS_Windows::set_window_position(const Point2 &p_position) {
 	}
 
 	last_pos = p_position;
+	update_real_mouse_position();
 }
 Size2 OS_Windows::get_window_size() const {
 
@@ -2137,7 +2161,9 @@ OS::TimeZoneInfo OS_Windows::get_time_zone_info() const {
 		ret.name = info.StandardName;
 	}
 
-	ret.bias = info.Bias;
+	// Bias value returned by GetTimeZoneInformation is inverted of what we expect
+	// For example on GMT-3 GetTimeZoneInformation return a Bias of 180, so invert the value to get -180
+	ret.bias = -info.Bias;
 	return ret;
 }
 
@@ -2211,7 +2237,9 @@ void OS_Windows::process_events() {
 
 	MSG msg;
 
-	joypad->process_joypads();
+	if (!drop_events) {
+		joypad->process_joypads();
+	}
 
 	while (PeekMessageW(&msg, NULL, 0, 0, PM_REMOVE)) {
 
@@ -2219,7 +2247,10 @@ void OS_Windows::process_events() {
 		DispatchMessageW(&msg);
 	}
 
-	process_key_events();
+	if (!drop_events) {
+		process_key_events();
+		input->flush_accumulated_events();
+	}
 }
 
 void OS_Windows::set_cursor_shape(CursorShape p_shape) {
@@ -2261,6 +2292,11 @@ void OS_Windows::set_cursor_shape(CursorShape p_shape) {
 	}
 
 	cursor_shape = p_shape;
+}
+
+OS::CursorShape OS_Windows::get_cursor_shape() const {
+
+	return cursor_shape;
 }
 
 void OS_Windows::set_custom_mouse_cursor(const RES &p_cursor, CursorShape p_shape, const Vector2 &p_hotspot) {
@@ -2604,6 +2640,11 @@ String OS_Windows::get_environment(const String &p_var) const {
 	return "";
 }
 
+bool OS_Windows::set_environment(const String &p_var, const String &p_value) const {
+
+	return (bool)SetEnvironmentVariableW(p_var.c_str(), p_value.c_str());
+}
+
 String OS_Windows::get_stdin_string(bool p_block) {
 
 	if (p_block) {
@@ -2828,39 +2869,41 @@ String OS_Windows::get_godot_dir_name() const {
 
 String OS_Windows::get_system_dir(SystemDir p_dir) const {
 
-	int id;
+	KNOWNFOLDERID id;
 
 	switch (p_dir) {
 		case SYSTEM_DIR_DESKTOP: {
-			id = CSIDL_DESKTOPDIRECTORY;
+			id = FOLDERID_Desktop;
 		} break;
 		case SYSTEM_DIR_DCIM: {
-			id = CSIDL_MYPICTURES;
+			id = FOLDERID_Pictures;
 		} break;
 		case SYSTEM_DIR_DOCUMENTS: {
-			id = CSIDL_PERSONAL;
+			id = FOLDERID_Documents;
 		} break;
 		case SYSTEM_DIR_DOWNLOADS: {
-			id = 0x000C;
+			id = FOLDERID_Downloads;
 		} break;
 		case SYSTEM_DIR_MOVIES: {
-			id = CSIDL_MYVIDEO;
+			id = FOLDERID_Videos;
 		} break;
 		case SYSTEM_DIR_MUSIC: {
-			id = CSIDL_MYMUSIC;
+			id = FOLDERID_Music;
 		} break;
 		case SYSTEM_DIR_PICTURES: {
-			id = CSIDL_MYPICTURES;
+			id = FOLDERID_Pictures;
 		} break;
 		case SYSTEM_DIR_RINGTONES: {
-			id = CSIDL_MYMUSIC;
+			id = FOLDERID_Music;
 		} break;
 	}
 
-	WCHAR szPath[MAX_PATH];
-	HRESULT res = SHGetFolderPathW(NULL, id, NULL, 0, szPath);
+	PWSTR szPath;
+	HRESULT res = SHGetKnownFolderPath(id, 0, NULL, &szPath);
 	ERR_FAIL_COND_V(res != S_OK, String());
-	return String(szPath);
+	String path = String(szPath);
+	CoTaskMemFree(szPath);
+	return path;
 }
 
 String OS_Windows::get_user_data_dir() const {
@@ -2952,7 +2995,7 @@ int OS_Windows::get_power_percent_left() {
 
 bool OS_Windows::_check_internal_feature_support(const String &p_feature) {
 
-	return p_feature == "pc" || p_feature == "s3tc" || p_feature == "bptc";
+	return p_feature == "pc";
 }
 
 void OS_Windows::disable_crash_handler() {
@@ -2961,6 +3004,13 @@ void OS_Windows::disable_crash_handler() {
 
 bool OS_Windows::is_disable_crash_handler() const {
 	return crash_handler.is_disabled();
+}
+
+void OS_Windows::process_and_drop_events() {
+
+	drop_events = true;
+	process_events();
+	drop_events = false;
 }
 
 Error OS_Windows::move_to_trash(const String &p_path) {
@@ -2991,6 +3041,7 @@ Error OS_Windows::move_to_trash(const String &p_path) {
 
 OS_Windows::OS_Windows(HINSTANCE _hInstance) {
 
+	drop_events = false;
 	key_event_pos = 0;
 	layered_window = false;
 	hBitmap = NULL;
@@ -3013,9 +3064,6 @@ OS_Windows::OS_Windows(HINSTANCE _hInstance) {
 
 #ifdef WASAPI_ENABLED
 	AudioDriverManager::add_driver(&driver_wasapi);
-#endif
-#ifdef RTAUDIO_ENABLED
-	AudioDriverManager::add_driver(&driver_rtaudio);
 #endif
 #ifdef XAUDIO2_ENABLED
 	AudioDriverManager::add_driver(&driver_xaudio2);

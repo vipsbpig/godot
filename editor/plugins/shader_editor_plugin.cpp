@@ -47,12 +47,16 @@ Ref<Shader> ShaderTextEditor::get_edited_shader() const {
 }
 void ShaderTextEditor::set_edited_shader(const Ref<Shader> &p_shader) {
 
+	if (shader == p_shader) {
+		return;
+	}
 	shader = p_shader;
 
 	_load_theme_settings();
 
 	get_text_edit()->set_text(p_shader->get_code());
 
+	_validate_script();
 	_line_col_changed();
 }
 
@@ -98,7 +102,7 @@ void ShaderTextEditor::_load_theme_settings() {
 	get_text_edit()->add_color_override("line_number_color", line_number_color);
 	get_text_edit()->add_color_override("caret_color", caret_color);
 	get_text_edit()->add_color_override("caret_background_color", caret_background_color);
-	get_text_edit()->add_color_override("font_selected_color", text_selected_color);
+	get_text_edit()->add_color_override("font_color_selected", text_selected_color);
 	get_text_edit()->add_color_override("selection_color", selection_color);
 	get_text_edit()->add_color_override("brace_mismatch_color", brace_mismatch_color);
 	get_text_edit()->add_color_override("current_line_color", current_line_color);
@@ -342,6 +346,9 @@ void ShaderEditor::_menu_option(int p_option) {
 
 			goto_line_dialog->popup_find_line(shader_editor->get_text_edit());
 		} break;
+		case HELP_DOCS: {
+			OS::get_singleton()->shell_open("https://docs.godotengine.org/en/stable/tutorials/shading/shading_reference/index.html");
+		} break;
 	}
 	if (p_option != SEARCH_FIND && p_option != SEARCH_REPLACE && p_option != SEARCH_GOTO_LINE) {
 		shader_editor->get_text_edit()->call_deferred("grab_focus");
@@ -351,8 +358,8 @@ void ShaderEditor::_menu_option(int p_option) {
 void ShaderEditor::_notification(int p_what) {
 
 	if (p_what == NOTIFICATION_VISIBILITY_CHANGED) {
-		if (is_visible_in_tree())
-			shader_editor->get_text_edit()->grab_focus();
+		//if (is_visible_in_tree())
+		//	shader_editor->get_text_edit()->grab_focus();
 	}
 }
 
@@ -414,6 +421,9 @@ void ShaderEditor::edit(const Ref<Shader> &p_shader) {
 	if (p_shader.is_null() || !p_shader->is_text_shader())
 		return;
 
+	if (shader == p_shader)
+		return;
+
 	shader = p_shader;
 
 	shader_editor->set_edited_shader(p_shader);
@@ -437,8 +447,12 @@ void ShaderEditor::save_external_data() {
 void ShaderEditor::apply_shaders() {
 
 	if (shader.is_valid()) {
-		shader->set_code(shader_editor->get_text_edit()->get_text());
-		shader->set_edited(true);
+		String shader_code = shader->get_code();
+		String editor_code = shader_editor->get_text_edit()->get_text();
+		if (shader_code != editor_code) {
+			shader->set_code(editor_code);
+			shader->set_edited(true);
+		}
 	}
 }
 
@@ -566,10 +580,17 @@ ShaderEditor::ShaderEditor(EditorNode *p_node) {
 	search_menu->get_popup()->add_shortcut(ED_GET_SHORTCUT("script_text_editor/goto_line"), SEARCH_GOTO_LINE);
 	search_menu->get_popup()->connect("id_pressed", this, "_menu_option");
 
+	help_menu = memnew(MenuButton);
+	help_menu->set_text(TTR("Help"));
+	help_menu->set_switch_on_hover(true);
+	help_menu->get_popup()->add_icon_item(p_node->get_gui_base()->get_icon("Instance", "EditorIcons"), TTR("Online Docs"), HELP_DOCS);
+	help_menu->get_popup()->connect("id_pressed", this, "_menu_option");
+
 	add_child(main_container);
 	main_container->add_child(hbc);
 	hbc->add_child(search_menu);
 	hbc->add_child(edit_menu);
+	hbc->add_child(help_menu);
 	hbc->add_style_override("panel", p_node->get_gui_base()->get_stylebox("ScriptEditorPanel", "EditorStyles"));
 	main_container->add_child(shader_editor);
 

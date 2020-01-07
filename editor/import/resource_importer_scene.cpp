@@ -46,7 +46,7 @@
 #include "scene/resources/box_shape.h"
 #include "scene/resources/plane_shape.h"
 #include "scene/resources/ray_shape.h"
-#include "scene/resources/scene_format_text.h"
+#include "scene/resources/resource_format_text.h"
 #include "scene/resources/sphere_shape.h"
 
 uint32_t EditorSceneImporter::get_import_flags() const {
@@ -942,6 +942,7 @@ void ResourceImporterScene::_make_external_resources(Node *p_node, const String 
 									old_anim->copy_track(i, anim);
 								}
 							}
+							anim->set_loop(old_anim->has_loop());
 						}
 					}
 
@@ -1093,7 +1094,7 @@ void ResourceImporterScene::get_import_options(List<ImportOption> *r_options, in
 	r_options->push_back(ImportOption(PropertyInfo(Variant::BOOL, "animation/import", PROPERTY_HINT_NONE, "", PROPERTY_USAGE_DEFAULT | PROPERTY_USAGE_UPDATE_ALL_IF_MODIFIED), true));
 	r_options->push_back(ImportOption(PropertyInfo(Variant::REAL, "animation/fps", PROPERTY_HINT_RANGE, "1,120,1"), 15));
 	r_options->push_back(ImportOption(PropertyInfo(Variant::STRING, "animation/filter_script", PROPERTY_HINT_MULTILINE_TEXT), ""));
-	r_options->push_back(ImportOption(PropertyInfo(Variant::INT, "animation/storage", PROPERTY_HINT_ENUM, "Built-In,Files"), animations_out ? true : false));
+	r_options->push_back(ImportOption(PropertyInfo(Variant::INT, "animation/storage", PROPERTY_HINT_ENUM, "Built-In,Files", PROPERTY_USAGE_DEFAULT | PROPERTY_USAGE_UPDATE_ALL_IF_MODIFIED), animations_out ? true : false));
 	r_options->push_back(ImportOption(PropertyInfo(Variant::BOOL, "animation/keep_custom_tracks"), animations_out ? true : false));
 	r_options->push_back(ImportOption(PropertyInfo(Variant::BOOL, "animation/optimizer/enabled", PROPERTY_HINT_NONE, "", PROPERTY_USAGE_DEFAULT | PROPERTY_USAGE_UPDATE_ALL_IF_MODIFIED), true));
 	r_options->push_back(ImportOption(PropertyInfo(Variant::REAL, "animation/optimizer/max_linear_error"), 0.05));
@@ -1183,7 +1184,7 @@ Ref<Animation> ResourceImporterScene::import_animation_from_other_importer(Edito
 	return importer->import_animation(p_path, p_flags, p_bake_fps);
 }
 
-Error ResourceImporterScene::import(const String &p_source_file, const String &p_save_path, const Map<StringName, Variant> &p_options, List<String> *r_platform_variants, List<String> *r_gen_files) {
+Error ResourceImporterScene::import(const String &p_source_file, const String &p_save_path, const Map<StringName, Variant> &p_options, List<String> *r_platform_variants, List<String> *r_gen_files, Variant *r_metadata) {
 
 	String src_path = p_source_file;
 
@@ -1240,7 +1241,7 @@ Error ResourceImporterScene::import(const String &p_source_file, const String &p
 
 	String root_type = p_options["nodes/root_type"];
 
-	if (scene->get_class() != root_type) {
+	if (root_type != "Spatial") {
 		Node *base_node = Object::cast_to<Node>(ClassDB::instance(root_type));
 
 		if (base_node) {
@@ -1256,7 +1257,10 @@ Error ResourceImporterScene::import(const String &p_source_file, const String &p
 		Object::cast_to<Spatial>(scene)->scale(Vector3(root_scale, root_scale, root_scale));
 	}
 
-	scene->set_name(p_options["nodes/root_name"]);
+	if (p_options["nodes/root_name"] != "Scene Root")
+		scene->set_name(p_options["nodes/root_name"]);
+	else
+		scene->set_name(p_save_path.get_file().get_basename());
 
 	err = OK;
 
@@ -1314,9 +1318,9 @@ Error ResourceImporterScene::import(const String &p_source_file, const String &p
 		if (bool(p_options["external_files/store_in_subdir"])) {
 			String subdir_name = p_source_file.get_file().get_basename();
 			DirAccess *da = DirAccess::open(base_path);
-			Error err = da->make_dir(subdir_name);
+			Error err2 = da->make_dir(subdir_name);
 			memdelete(da);
-			ERR_FAIL_COND_V(err != OK && err != ERR_ALREADY_EXISTS, err);
+			ERR_FAIL_COND_V(err2 != OK && err2 != ERR_ALREADY_EXISTS, err2);
 			base_path = base_path.plus_file(subdir_name);
 		}
 	}
@@ -1331,7 +1335,7 @@ Error ResourceImporterScene::import(const String &p_source_file, const String &p
 			float texel_size = p_options["meshes/lightmap_texel_size"];
 			texel_size = MAX(0.001, texel_size);
 
-			EditorProgress progress("gen_lightmaps", TTR("Generating Lightmaps"), meshes.size());
+			EditorProgress progress2("gen_lightmaps", TTR("Generating Lightmaps"), meshes.size());
 			int step = 0;
 			for (Map<Ref<ArrayMesh>, Transform>::Element *E = meshes.front(); E; E = E->next()) {
 
@@ -1341,10 +1345,10 @@ Error ResourceImporterScene::import(const String &p_source_file, const String &p
 					name = "Mesh " + itos(step);
 				}
 
-				progress.step(TTR("Generating for Mesh: ") + name + " (" + itos(step) + "/" + itos(meshes.size()) + ")", step);
+				progress2.step(TTR("Generating for Mesh: ") + name + " (" + itos(step) + "/" + itos(meshes.size()) + ")", step);
 
-				Error err = mesh->lightmap_unwrap(E->get(), texel_size);
-				if (err != OK) {
+				Error err2 = mesh->lightmap_unwrap(E->get(), texel_size);
+				if (err2 != OK) {
 					EditorNode::add_io_error("Mesh '" + name + "' failed lightmap generation. Please fix geometry.");
 				}
 				step++;

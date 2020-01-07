@@ -225,8 +225,12 @@ int _OS::get_video_driver_count() const {
 	return OS::get_singleton()->get_video_driver_count();
 }
 
-String _OS::get_video_driver_name(int p_driver) const {
-	return OS::get_singleton()->get_video_driver_name(p_driver);
+String _OS::get_video_driver_name(VideoDriver p_driver) const {
+	return OS::get_singleton()->get_video_driver_name((int)p_driver);
+}
+
+_OS::VideoDriver _OS::get_current_video_driver() const {
+	return (VideoDriver)OS::get_singleton()->get_current_video_driver();
 }
 
 int _OS::get_audio_driver_count() const {
@@ -592,17 +596,17 @@ struct Time {
 };
 */
 
-int _OS::get_static_memory_usage() const {
+uint64_t _OS::get_static_memory_usage() const {
 
 	return OS::get_singleton()->get_static_memory_usage();
 }
 
-int _OS::get_static_memory_peak_usage() const {
+uint64_t _OS::get_static_memory_peak_usage() const {
 
 	return OS::get_singleton()->get_static_memory_peak_usage();
 }
 
-int _OS::get_dynamic_memory_usage() const {
+uint64_t _OS::get_dynamic_memory_usage() const {
 
 	return OS::get_singleton()->get_dynamic_memory_usage();
 }
@@ -788,7 +792,7 @@ Dictionary _OS::get_datetime_from_unix_time(int64_t unix_time_val) const {
 
 	size_t imonth = 0;
 
-	while (dayno >= MONTH_DAYS_TABLE[LEAPYEAR(year)][imonth]) {
+	while ((unsigned long)dayno >= MONTH_DAYS_TABLE[LEAPYEAR(year)][imonth]) {
 		dayno -= MONTH_DAYS_TABLE[LEAPYEAR(year)][imonth];
 		imonth++;
 	}
@@ -1089,6 +1093,11 @@ void _OS::alert(const String &p_alert, const String &p_title) {
 	OS::get_singleton()->alert(p_alert, p_title);
 }
 
+bool _OS::request_permission(const String &p_name) {
+
+	return OS::get_singleton()->request_permission(p_name);
+}
+
 _OS *_OS::singleton = NULL;
 
 void _OS::_bind_methods() {
@@ -1108,6 +1117,8 @@ void _OS::_bind_methods() {
 
 	ClassDB::bind_method(D_METHOD("get_video_driver_count"), &_OS::get_video_driver_count);
 	ClassDB::bind_method(D_METHOD("get_video_driver_name", "driver"), &_OS::get_video_driver_name);
+	ClassDB::bind_method(D_METHOD("get_current_video_driver"), &_OS::get_current_video_driver);
+
 	ClassDB::bind_method(D_METHOD("get_audio_driver_count"), &_OS::get_audio_driver_count);
 	ClassDB::bind_method(D_METHOD("get_audio_driver_name", "driver"), &_OS::get_audio_driver_name);
 	ClassDB::bind_method(D_METHOD("get_connected_midi_inputs"), &_OS::get_connected_midi_inputs);
@@ -1259,6 +1270,8 @@ void _OS::_bind_methods() {
 	ClassDB::bind_method(D_METHOD("get_power_seconds_left"), &_OS::get_power_seconds_left);
 	ClassDB::bind_method(D_METHOD("get_power_percent_left"), &_OS::get_power_percent_left);
 
+	ClassDB::bind_method(D_METHOD("request_permission", "name"), &_OS::request_permission);
+
 	ADD_PROPERTY(PropertyInfo(Variant::STRING, "clipboard"), "set_clipboard", "get_clipboard");
 	ADD_PROPERTY(PropertyInfo(Variant::INT, "current_screen"), "set_current_screen", "get_current_screen");
 	ADD_PROPERTY(PropertyInfo(Variant::INT, "exit_code"), "set_exit_code", "get_exit_code");
@@ -1275,6 +1288,9 @@ void _OS::_bind_methods() {
 	ADD_PROPERTY(PropertyInfo(Variant::BOOL, "window_resizable"), "set_window_resizable", "is_window_resizable");
 	ADD_PROPERTY(PropertyInfo(Variant::VECTOR2, "window_position"), "set_window_position", "get_window_position");
 	ADD_PROPERTY(PropertyInfo(Variant::VECTOR2, "window_size"), "set_window_size", "get_window_size");
+
+	BIND_ENUM_CONSTANT(VIDEO_DRIVER_GLES2);
+	BIND_ENUM_CONSTANT(VIDEO_DRIVER_GLES3);
 
 	BIND_ENUM_CONSTANT(DAY_SUNDAY);
 	BIND_ENUM_CONSTANT(DAY_MONDAY);
@@ -1892,18 +1908,18 @@ bool _File::file_exists(const String &p_name) const {
 	return FileAccess::exists(p_name);
 }
 
-void _File::store_var(const Variant &p_var) {
+void _File::store_var(const Variant &p_var, bool p_full_objects) {
 
 	ERR_FAIL_COND(!f);
 	int len;
-	Error err = encode_variant(p_var, NULL, len);
+	Error err = encode_variant(p_var, NULL, len, p_full_objects);
 	ERR_FAIL_COND(err != OK);
 
 	PoolVector<uint8_t> buff;
 	buff.resize(len);
 	PoolVector<uint8_t>::Write w = buff.write();
 
-	err = encode_variant(p_var, &w[0], len);
+	err = encode_variant(p_var, &w[0], len, p_full_objects);
 	ERR_FAIL_COND(err != OK);
 	w = PoolVector<uint8_t>::Write();
 
@@ -1911,7 +1927,7 @@ void _File::store_var(const Variant &p_var) {
 	store_buffer(buff);
 }
 
-Variant _File::get_var() const {
+Variant _File::get_var(bool p_allow_objects) const {
 
 	ERR_FAIL_COND_V(!f, Variant());
 	uint32_t len = get_32();
@@ -1921,7 +1937,7 @@ Variant _File::get_var() const {
 	PoolVector<uint8_t>::Read r = buff.read();
 
 	Variant v;
-	Error err = decode_variant(v, &r[0], len);
+	Error err = decode_variant(v, &r[0], len, NULL, p_allow_objects);
 	ERR_FAIL_COND_V(err != OK, Variant());
 
 	return v;
@@ -1964,7 +1980,7 @@ void _File::_bind_methods() {
 	ClassDB::bind_method(D_METHOD("get_endian_swap"), &_File::get_endian_swap);
 	ClassDB::bind_method(D_METHOD("set_endian_swap", "enable"), &_File::set_endian_swap);
 	ClassDB::bind_method(D_METHOD("get_error"), &_File::get_error);
-	ClassDB::bind_method(D_METHOD("get_var"), &_File::get_var);
+	ClassDB::bind_method(D_METHOD("get_var", "allow_objects"), &_File::get_var, DEFVAL(false));
 
 	ClassDB::bind_method(D_METHOD("store_8", "value"), &_File::store_8);
 	ClassDB::bind_method(D_METHOD("store_16", "value"), &_File::store_16);
@@ -1977,7 +1993,7 @@ void _File::_bind_methods() {
 	ClassDB::bind_method(D_METHOD("store_line", "line"), &_File::store_line);
 	ClassDB::bind_method(D_METHOD("store_csv_line", "values", "delim"), &_File::store_csv_line, DEFVAL(","));
 	ClassDB::bind_method(D_METHOD("store_string", "string"), &_File::store_string);
-	ClassDB::bind_method(D_METHOD("store_var", "value"), &_File::store_var);
+	ClassDB::bind_method(D_METHOD("store_var", "value", "full_objects"), &_File::store_var, DEFVAL(false));
 
 	ClassDB::bind_method(D_METHOD("store_pascal_string", "string"), &_File::store_pascal_string);
 	ClassDB::bind_method(D_METHOD("get_pascal_string"), &_File::get_pascal_string);
@@ -2207,17 +2223,17 @@ _Marshalls *_Marshalls::get_singleton() {
 	return singleton;
 }
 
-String _Marshalls::variant_to_base64(const Variant &p_var) {
+String _Marshalls::variant_to_base64(const Variant &p_var, bool p_full_objects) {
 
 	int len;
-	Error err = encode_variant(p_var, NULL, len);
+	Error err = encode_variant(p_var, NULL, len, p_full_objects);
 	ERR_FAIL_COND_V(err != OK, "");
 
 	PoolVector<uint8_t> buff;
 	buff.resize(len);
 	PoolVector<uint8_t>::Write w = buff.write();
 
-	err = encode_variant(p_var, &w[0], len);
+	err = encode_variant(p_var, &w[0], len, p_full_objects);
 	ERR_FAIL_COND_V(err != OK, "");
 
 	int b64len = len / 3 * 4 + 4 + 1;
@@ -2233,7 +2249,7 @@ String _Marshalls::variant_to_base64(const Variant &p_var) {
 	return ret;
 };
 
-Variant _Marshalls::base64_to_variant(const String &p_str) {
+Variant _Marshalls::base64_to_variant(const String &p_str, bool p_allow_objects) {
 
 	int strlen = p_str.length();
 	CharString cstr = p_str.ascii();
@@ -2245,7 +2261,7 @@ Variant _Marshalls::base64_to_variant(const String &p_str) {
 	int len = base64_decode((char *)(&w[0]), (char *)cstr.get_data(), strlen);
 
 	Variant v;
-	Error err = decode_variant(v, &w[0], len);
+	Error err = decode_variant(v, &w[0], len, NULL, p_allow_objects);
 	ERR_FAIL_COND_V(err != OK, Variant());
 
 	return v;
@@ -2324,8 +2340,8 @@ String _Marshalls::base64_to_utf8(const String &p_str) {
 
 void _Marshalls::_bind_methods() {
 
-	ClassDB::bind_method(D_METHOD("variant_to_base64", "variant"), &_Marshalls::variant_to_base64);
-	ClassDB::bind_method(D_METHOD("base64_to_variant", "base64_str"), &_Marshalls::base64_to_variant);
+	ClassDB::bind_method(D_METHOD("variant_to_base64", "variant", "full_objects"), &_Marshalls::variant_to_base64, DEFVAL(false));
+	ClassDB::bind_method(D_METHOD("base64_to_variant", "base64_str", "allow_objects"), &_Marshalls::base64_to_variant, DEFVAL(false));
 
 	ClassDB::bind_method(D_METHOD("raw_to_base64", "array"), &_Marshalls::raw_to_base64);
 	ClassDB::bind_method(D_METHOD("base64_to_raw", "base64_str"), &_Marshalls::base64_to_raw);

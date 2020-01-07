@@ -121,7 +121,7 @@ void EditorExportPlatformOSX::get_export_options(List<ExportOption> *r_options) 
 
 	r_options->push_back(ExportOption(PropertyInfo(Variant::STRING, "application/name", PROPERTY_HINT_PLACEHOLDER_TEXT, "Game Name"), ""));
 	r_options->push_back(ExportOption(PropertyInfo(Variant::STRING, "application/info"), "Made with Godot Engine"));
-	r_options->push_back(ExportOption(PropertyInfo(Variant::STRING, "application/icon", PROPERTY_HINT_FILE, "*.png"), ""));
+	r_options->push_back(ExportOption(PropertyInfo(Variant::STRING, "application/icon", PROPERTY_HINT_FILE, "*.png,*.icns"), ""));
 	r_options->push_back(ExportOption(PropertyInfo(Variant::STRING, "application/identifier", PROPERTY_HINT_PLACEHOLDER_TEXT, "com.example.game"), ""));
 	r_options->push_back(ExportOption(PropertyInfo(Variant::STRING, "application/signature"), ""));
 	r_options->push_back(ExportOption(PropertyInfo(Variant::STRING, "application/short_version"), "1.0"));
@@ -425,6 +425,10 @@ Error EditorExportPlatformOSX::export_project(const Ref<EditorExportPreset> &p_p
 		}
 	}
 
+	if (!DirAccess::exists(p_path.get_base_dir())) {
+		return ERR_FILE_BAD_PATH;
+	}
+
 	FileAccess *src_f = NULL;
 	zlib_filefunc_def io = zipio_create_io_from_file(&src_f);
 
@@ -539,11 +543,21 @@ Error EditorExportPlatformOSX::export_project(const Ref<EditorExportPreset> &p_p
 				iconpath = ProjectSettings::get_singleton()->get("application/config/icon");
 
 			if (iconpath != "") {
-				Ref<Image> icon;
-				icon.instance();
-				icon->load(iconpath);
-				if (!icon->empty()) {
-					_make_icon(icon, data);
+				if (iconpath.get_extension() == "icns") {
+					FileAccess *icon = FileAccess::open(iconpath, FileAccess::READ);
+					if (icon) {
+						data.resize(icon->get_len());
+						icon->get_buffer(&data.write[0], icon->get_len());
+						icon->close();
+						memdelete(icon);
+					}
+				} else {
+					Ref<Image> icon;
+					icon.instance();
+					icon->load(iconpath);
+					if (!icon->empty()) {
+						_make_icon(icon, data);
+					}
 				}
 			}
 			//bleh?

@@ -45,12 +45,6 @@
 	@author Juan Linietsky <reduzio@gmail.com>
 */
 
-enum VideoDriver {
-	VIDEO_DRIVER_GLES3,
-	VIDEO_DRIVER_GLES2,
-	VIDEO_DRIVER_MAX,
-};
-
 class OS {
 
 	static OS *singleton;
@@ -83,6 +77,7 @@ protected:
 
 public:
 	typedef void (*ImeCallback)(void *p_inp, String p_text, Point2 p_selection);
+	typedef bool (*HasServerFeatureCallback)(const String &p_feature);
 
 	enum PowerState {
 		POWERSTATE_UNKNOWN, /**< cannot determine power status */
@@ -127,6 +122,7 @@ public:
 protected:
 	friend class Main;
 
+	HasServerFeatureCallback has_server_feature_callback;
 	RenderThreadMode _render_thread_mode;
 
 	// functions used by main to initialize/deinitialize the OS
@@ -152,8 +148,8 @@ public:
 	static OS *get_singleton();
 
 	void print_error(const char *p_function, const char *p_file, int p_line, const char *p_code, const char *p_rationale, Logger::ErrorType p_type = Logger::ERR_ERROR);
-	void print(const char *p_format, ...);
-	void printerr(const char *p_format, ...);
+	void print(const char *p_format, ...) _PRINTF_FORMAT_ATTRIBUTE_2_3;
+	void printerr(const char *p_format, ...) _PRINTF_FORMAT_ATTRIBUTE_2_3;
 
 	virtual void alert(const String &p_alert, const String &p_title = "ALERT!") = 0;
 	virtual String get_stdin_string(bool p_block = true) = 0;
@@ -184,9 +180,16 @@ public:
 	virtual VideoMode get_video_mode(int p_screen = 0) const = 0;
 	virtual void get_fullscreen_mode_list(List<VideoMode> *p_list, int p_screen = 0) const = 0;
 
+	enum VideoDriver {
+		VIDEO_DRIVER_GLES3,
+		VIDEO_DRIVER_GLES2,
+		VIDEO_DRIVER_MAX,
+	};
+
 	virtual int get_video_driver_count() const;
 	virtual const char *get_video_driver_name(int p_driver) const;
 	virtual int get_current_video_driver() const = 0;
+
 	virtual int get_audio_driver_count() const;
 	virtual const char *get_audio_driver_name(int p_driver) const;
 
@@ -260,12 +263,14 @@ public:
 	virtual Error execute(const String &p_path, const List<String> &p_arguments, bool p_blocking, ProcessID *r_child_id = NULL, String *r_pipe = NULL, int *r_exitcode = NULL, bool read_stderr = false) = 0;
 	virtual Error kill(const ProcessID &p_pid) = 0;
 	virtual int get_process_id() const;
+	virtual void vibrate_handheld(int p_duration_ms = 500);
 
 	virtual Error shell_open(String p_uri);
 	virtual Error set_cwd(const String &p_cwd);
 
 	virtual bool has_environment(const String &p_var) const = 0;
 	virtual String get_environment(const String &p_var) const = 0;
+	virtual bool set_environment(const String &p_var, const String &p_value) const = 0;
 
 	virtual String get_name() = 0;
 	virtual List<String> get_cmdline_args() const { return _cmdline; }
@@ -373,8 +378,9 @@ public:
 	// returns height of the currently shown virtual keyboard (0 if keyboard is hidden)
 	virtual int get_virtual_keyboard_height() const;
 
-	virtual void set_cursor_shape(CursorShape p_shape) = 0;
-	virtual void set_custom_mouse_cursor(const RES &p_cursor, CursorShape p_shape, const Vector2 &p_hotspot) = 0;
+	virtual void set_cursor_shape(CursorShape p_shape);
+	virtual CursorShape get_cursor_shape() const;
+	virtual void set_custom_mouse_cursor(const RES &p_cursor, CursorShape p_shape, const Vector2 &p_hotspot);
 
 	virtual bool get_swap_ok_cancel() { return false; }
 	virtual void dump_memory_to_file(const char *p_file);
@@ -382,10 +388,10 @@ public:
 	virtual void print_resources_in_use(bool p_short = false);
 	virtual void print_all_resources(String p_to_file = "");
 
-	virtual int get_static_memory_usage() const;
-	virtual int get_static_memory_peak_usage() const;
-	virtual int get_dynamic_memory_usage() const;
-	virtual int get_free_static_memory() const;
+	virtual uint64_t get_static_memory_usage() const;
+	virtual uint64_t get_static_memory_peak_usage() const;
+	virtual uint64_t get_dynamic_memory_usage() const;
+	virtual uint64_t get_free_static_memory() const;
 
 	RenderThreadMode get_render_thread_mode() const { return _render_thread_mode; }
 
@@ -505,6 +511,8 @@ public:
 	virtual void force_process_input(){};
 	bool has_feature(const String &p_feature);
 
+	void set_has_server_feature_callback(HasServerFeatureCallback p_callback);
+
 	bool is_layered_allowed() const { return _allow_layered; }
 	bool is_hidpi_allowed() const { return _allow_hidpi; }
 
@@ -512,6 +520,9 @@ public:
 	bool is_restart_on_exit_set() const;
 	List<String> get_restart_on_exit_arguments() const;
 
+	virtual bool request_permission(const String &p_name) { return true; }
+
+	virtual void process_and_drop_events() {}
 	OS();
 	virtual ~OS();
 };

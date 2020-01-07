@@ -155,7 +155,7 @@ void EditorResourcePreview::_generate_preview(Ref<ImageTexture> &r_texture, Ref<
 		r_texture = generated;
 
 		if (r_texture.is_valid() && preview_generators[i]->should_generate_small_preview()) {
-			int small_thumbnail_size = EditorNode::get_singleton()->get_theme_base()->get_icon("Object", "EditorIcons")->get_width(); // Kind of a workaround to retreive the default icon size
+			int small_thumbnail_size = EditorNode::get_singleton()->get_theme_base()->get_icon("Object", "EditorIcons")->get_width(); // Kind of a workaround to retrieve the default icon size
 			small_thumbnail_size *= EDSCALE;
 
 			Ref<Image> small_image = r_texture->get_data();
@@ -177,6 +177,10 @@ void EditorResourcePreview::_generate_preview(Ref<ImageTexture> &r_texture, Ref<
 				ResourceSaver::save(cache_base + "_small.png", r_small_texture);
 			}
 			FileAccess *f = FileAccess::open(cache_base + ".txt", FileAccess::WRITE);
+			if (!f) {
+				ERR_EXPLAIN("Cannot create file '" + cache_base + ".txt'. Check user write permissions.");
+				ERR_FAIL();
+			}
 			f->store_line(itos(thumbnail_size));
 			f->store_line(itos(has_small_texture));
 			f->store_line(itos(FileAccess::get_modified_time(p_item.path)));
@@ -188,6 +192,7 @@ void EditorResourcePreview::_generate_preview(Ref<ImageTexture> &r_texture, Ref<
 
 void EditorResourcePreview::_thread() {
 
+#ifndef SERVER_ENABLED
 	while (!exit) {
 
 		preview_sem->wait();
@@ -266,10 +271,16 @@ void EditorResourcePreview::_thread() {
 								//update modified time
 
 								f = FileAccess::open(file, FileAccess::WRITE);
-								f->store_line(itos(modtime));
-								f->store_line(itos(has_small_texture));
-								f->store_line(md5);
-								memdelete(f);
+								if (!f) {
+									// Not returning as this would leave the thread hanging and would require
+									// some proper cleanup/disabling of resource preview generation.
+									ERR_PRINTS("Cannot create file '" + file + "'. Check user write permissions.");
+								} else {
+									f->store_line(itos(modtime));
+									f->store_line(itos(has_small_texture));
+									f->store_line(md5);
+									memdelete(f);
+								}
 							}
 						} else {
 							memdelete(f);
@@ -313,6 +324,8 @@ void EditorResourcePreview::_thread() {
 			preview_mutex->unlock();
 		}
 	}
+#endif
+	exited = true;
 }
 
 void EditorResourcePreview::queue_edited_resource_preview(const Ref<Resource> &p_res, Object *p_receiver, const StringName &p_receiver_func, const Variant &p_userdata) {
@@ -417,10 +430,19 @@ void EditorResourcePreview::check_for_invalidation(const String &p_path) {
 	}
 }
 
+void EditorResourcePreview::start() {
+	ERR_FAIL_COND(thread);
+	thread = Thread::create(_thread_func, this);
+	exited = false;
+}
 void EditorResourcePreview::stop() {
 	if (thread) {
 		exit = true;
 		preview_sem->post();
+		while (!exited) {
+			OS::get_singleton()->delay_usec(10000);
+			VisualServer::get_singleton()->sync(); //sync pending stuff, as thread may be blocked on visual server
+		}
 		Thread::wait_to_finish(thread);
 		memdelete(thread);
 		thread = NULL;
@@ -428,13 +450,13 @@ void EditorResourcePreview::stop() {
 }
 
 EditorResourcePreview::EditorResourcePreview() {
+	thread = NULL;
 	singleton = this;
 	preview_mutex = Mutex::create();
 	preview_sem = Semaphore::create();
 	order = 0;
 	exit = false;
-
-	thread = Thread::create(_thread_func, this);
+	exited = false;
 }
 
 EditorResourcePreview::~EditorResourcePreview() {

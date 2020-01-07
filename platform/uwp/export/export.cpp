@@ -241,7 +241,6 @@ void AppxPackager::make_block_map() {
 
 	tmp_file->close();
 	memdelete(tmp_file);
-	tmp_file = NULL;
 }
 
 String AppxPackager::content_type(String p_extension) {
@@ -291,7 +290,6 @@ void AppxPackager::make_content_types() {
 
 	tmp_file->close();
 	memdelete(tmp_file);
-	tmp_file = NULL;
 }
 
 Vector<uint8_t> AppxPackager::make_file_header(FileMeta p_file_meta) {
@@ -505,7 +503,7 @@ void AppxPackager::add_file(String p_file_name, const uint8_t *p_buffer, size_t 
 
 	while (p_len - step > 0) {
 
-		size_t block_size = (p_len - step) > BLOCK_SIZE ? BLOCK_SIZE : (p_len - step);
+		size_t block_size = (p_len - step) > BLOCK_SIZE ? (size_t)BLOCK_SIZE : (p_len - step);
 
 		for (uint32_t i = 0; i < block_size; i++) {
 			strm_in.write[i] = p_buffer[step + i];
@@ -602,7 +600,6 @@ void AppxPackager::finish() {
 
 	blockmap_file->close();
 	memdelete(blockmap_file);
-	blockmap_file = NULL;
 
 	// Add content types
 	EditorNode::progress_task_step("export", "Setting content types...", 5);
@@ -618,7 +615,6 @@ void AppxPackager::finish() {
 
 	types_file->close();
 	memdelete(types_file);
-	types_file = NULL;
 
 	// Pre-process central directory before signing
 	for (int i = 0; i < file_metadata.size(); i++) {
@@ -646,9 +642,9 @@ AppxPackager::~AppxPackager() {}
 
 ////////////////////////////////////////////////////////////////////
 
-class EditorExportUWP : public EditorExportPlatform {
+class EditorExportPlatformUWP : public EditorExportPlatform {
 
-	GDCLASS(EditorExportUWP, EditorExportPlatform);
+	GDCLASS(EditorExportPlatformUWP, EditorExportPlatform);
 
 	Ref<ImageTexture> logo;
 
@@ -1035,13 +1031,13 @@ public:
 		r_features->push_back("s3tc");
 		r_features->push_back("etc");
 		switch ((int)p_preset->get("architecture/target")) {
-			case EditorExportUWP::ARM: {
+			case EditorExportPlatformUWP::ARM: {
 				r_features->push_back("arm");
 			} break;
-			case EditorExportUWP::X86: {
+			case EditorExportPlatformUWP::X86: {
 				r_features->push_back("32");
 			} break;
-			case EditorExportUWP::X64: {
+			case EditorExportPlatformUWP::X64: {
 				r_features->push_back("64");
 			} break;
 		}
@@ -1123,13 +1119,13 @@ public:
 		String platform_infix;
 
 		switch (arch) {
-			case EditorExportUWP::ARM: {
+			case EditorExportPlatformUWP::ARM: {
 				platform_infix = "arm";
 			} break;
-			case EditorExportUWP::X86: {
+			case EditorExportPlatformUWP::X86: {
 				platform_infix = "x86";
 			} break;
-			case EditorExportUWP::X64: {
+			case EditorExportPlatformUWP::X64: {
 				platform_infix = "x64";
 			} break;
 		}
@@ -1263,6 +1259,10 @@ public:
 				EditorNode::add_io_error(err);
 				return ERR_FILE_NOT_FOUND;
 			}
+		}
+
+		if (!DirAccess::exists(p_path.get_base_dir())) {
+			return ERR_FILE_BAD_PATH;
 		}
 
 		Error err = OK;
@@ -1459,7 +1459,7 @@ public:
 	virtual void resolve_platform_feature_priorities(const Ref<EditorExportPreset> &p_preset, Set<String> &p_features) {
 	}
 
-	EditorExportUWP() {
+	EditorExportPlatformUWP() {
 		Ref<Image> img = memnew(Image(_uwp_logo));
 		logo.instance();
 		logo->create_from_image(img);
@@ -1478,7 +1478,7 @@ void register_uwp_exporter() {
 	EditorSettings::get_singleton()->add_property_hint(PropertyInfo(Variant::INT, "export/uwp/debug_algorithm", PROPERTY_HINT_ENUM, "MD5,SHA1,SHA256"));
 #endif // WINDOWS_ENABLED
 
-	Ref<EditorExportUWP> exporter;
+	Ref<EditorExportPlatformUWP> exporter;
 	exporter.instance();
 	EditorExport::get_singleton()->add_export_platform(exporter);
 }

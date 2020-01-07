@@ -4,7 +4,6 @@ import sys
 import re
 import glob
 import string
-import datetime
 import subprocess
 from compat import iteritems, isbasestring, decode_utf8
 
@@ -25,10 +24,16 @@ def disable_warnings(self):
         # We have to remove existing warning level defines before appending /w,
         # otherwise we get: "warning D9025 : overriding '/W3' with '/w'"
         warn_flags = ['/Wall', '/W4', '/W3', '/W2', '/W1', '/WX']
-        self['CCFLAGS'] = [x for x in self['CCFLAGS'] if not x in warn_flags]
         self.Append(CCFLAGS=['/w'])
+        self.Append(CFLAGS=['/w'])
+        self.Append(CPPFLAGS=['/w'])
+        self['CCFLAGS'] = [x for x in self['CCFLAGS'] if not x in warn_flags]
+        self['CFLAGS'] = [x for x in self['CFLAGS'] if not x in warn_flags]
+        self['CPPFLAGS'] = [x for x in self['CPPFLAGS'] if not x in warn_flags]
     else:
         self.Append(CCFLAGS=['-w'])
+        self.Append(CFLAGS=['-w'])
+        self.Append(CPPFLAGS=['-w'])
 
 
 def add_module_version_string(self,s):
@@ -55,20 +60,29 @@ def update_version(module_version_string=""):
     f.write("#define VERSION_STATUS \"" + str(version.status) + "\"\n")
     f.write("#define VERSION_BUILD \"" + str(build_name) + "\"\n")
     f.write("#define VERSION_MODULE_CONFIG \"" + str(version.module_config) + module_version_string + "\"\n")
-    f.write("#define VERSION_YEAR " + str(2018) + "\n")
+    f.write("#define VERSION_YEAR " + str(version.year) + "\n")
+    f.write("#define VERSION_WEBSITE \"" + str(version.website) + "\"\n")
     f.close()
 
     # NOTE: It is safe to generate this file here, since this is still executed serially
     fhash = open("core/version_hash.gen.h", "w")
     githash = ""
-    if os.path.isfile(".git/HEAD"):
-        head = open(".git/HEAD", "r").readline().strip()
+    gitfolder = ".git"
+
+    if os.path.isfile(".git"):
+        module_folder = open(".git", "r").readline().strip()
+        if module_folder.startswith("gitdir: "):
+            gitfolder = module_folder[8:]
+
+    if os.path.isfile(os.path.join(gitfolder, "HEAD")):
+        head = open(os.path.join(gitfolder, "HEAD"), "r").readline().strip()
         if head.startswith("ref: "):
-            head = ".git/" + head[5:]
+            head = os.path.join(gitfolder, head[5:])
             if os.path.isfile(head):
                 githash = open(head, "r").readline().strip()
         else:
             githash = head
+
     fhash.write("#define VERSION_HASH \"" + githash + "\"")
     fhash.close()
 
@@ -652,3 +666,16 @@ def detect_darwin_sdk_path(platform, env):
             print("Failed to find SDK path while running xcrun --sdk {} --show-sdk-path.".format(sdk_name))
             raise
 
+def get_compiler_version(env):
+    version = decode_utf8(subprocess.check_output([env['CXX'], '--version']).strip())
+    match = re.search('[0-9][0-9.]*', version)
+    if match is not None:
+        return match.group().split('.')
+    else:
+        return None
+
+def using_gcc(env):
+    return 'gcc' in os.path.basename(env["CC"])
+
+def using_clang(env):
+    return 'clang' in os.path.basename(env["CC"])

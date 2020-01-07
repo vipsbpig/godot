@@ -65,17 +65,12 @@ public:
 		FILE_LIST_DISPLAY_LIST
 	};
 
-private:
-	enum DisplayModeSetting {
-		DISPLAY_MODE_SETTING_TREE_ONLY,
-		DISPLAY_MODE_SETTING_SPLIT,
-	};
-
 	enum DisplayMode {
 		DISPLAY_MODE_TREE_ONLY,
 		DISPLAY_MODE_SPLIT,
 	};
 
+private:
 	enum FileMenu {
 		FILE_OPEN,
 		FILE_INSTANCE,
@@ -123,8 +118,7 @@ private:
 
 	FileListDisplayMode file_list_display_mode;
 	DisplayMode display_mode;
-	DisplayModeSetting display_mode_setting;
-	DisplayModeSetting old_display_mode_setting;
+	DisplayMode old_display_mode;
 
 	PopupMenu *file_list_popup;
 	PopupMenu *tree_popup;
@@ -187,8 +181,8 @@ private:
 	void _tree_gui_input(Ref<InputEvent> p_event);
 
 	void _update_file_list(bool p_keep_selection);
-	void _update_file_list_display_mode_button();
-	void _change_file_display();
+	void _toggle_file_display();
+	void _set_file_display(bool p_active);
 	void _fs_changed();
 
 	void _tree_toggle_collapsed();
@@ -207,6 +201,7 @@ private:
 	void _try_duplicate_item(const FileOrFolder &p_item, const String &p_new_path) const;
 	void _update_dependencies_after_move(const Map<String, String> &p_renames) const;
 	void _update_resource_paths_after_move(const Map<String, String> &p_renames) const;
+	void _save_scenes_after_move(const Map<String, String> &p_renames) const;
 	void _update_favorites_list_after_move(const Map<String, String> &p_files_renames, const Map<String, String> &p_folders_renames) const;
 	void _update_project_settings_after_move(const Map<String, String> &p_folders_renames) const;
 
@@ -243,6 +238,7 @@ private:
 	void _tree_rmb_select(const Vector2 &p_pos);
 	void _file_list_rmb_select(int p_item, const Vector2 &p_pos);
 	void _file_list_rmb_pressed(const Vector2 &p_pos);
+	void _tree_empty_selected();
 
 	struct FileInfo {
 		String name;
@@ -287,11 +283,15 @@ public:
 
 	void fix_dependencies(const String &p_for_file);
 
-	void set_file_list_display_mode(int p_mode);
-
 	int get_split_offset() { return split_box->get_split_offset(); }
 	void set_split_offset(int p_offset) { split_box->set_split_offset(p_offset); }
 	void select_file(const String &p_file);
+
+	void set_display_mode(DisplayMode p_display_mode);
+	DisplayMode get_display_mode() { return display_mode; }
+
+	void set_file_list_display_mode(FileListDisplayMode p_mode);
+	FileListDisplayMode get_file_list_display_mode() { return file_list_display_mode; };
 
 	FileSystemDock(EditorNode *p_editor);
 	~FileSystemDock();

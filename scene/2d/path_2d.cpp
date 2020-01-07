@@ -58,7 +58,7 @@ Rect2 Path2D::_edit_get_rect() const {
 }
 
 bool Path2D::_edit_use_rect() const {
-	return true;
+	return curve.is_valid() && curve->get_point_count() != 0;
 }
 
 bool Path2D::_edit_is_selected_on_click(const Point2 &p_point, double p_tolerance) const {
@@ -95,7 +95,7 @@ void Path2D::_notification(int p_what) {
 			return;
 		}
 
-#if TOOLS_ENABLED
+#ifdef TOOLS_ENABLED
 		const float line_width = 2 * EDSCALE;
 #else
 		const float line_width = 2;
@@ -170,6 +170,9 @@ void PathFollow2D::_update_transform() {
 		return;
 
 	float path_length = c->get_baked_length();
+	if (path_length == 0) {
+		return;
+	}
 	float bounded_offset = offset;
 	if (loop)
 		bounded_offset = Math::fposmod(bounded_offset, path_length);

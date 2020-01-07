@@ -608,18 +608,16 @@ Variant Object::get_indexed(const Vector<StringName> &p_names, bool *r_valid) co
 	}
 	bool valid = false;
 
-	Variant current_value = get(p_names[0]);
+	Variant current_value = get(p_names[0], &valid);
 	for (int i = 1; i < p_names.size(); i++) {
 		current_value = current_value.get_named(p_names[i], &valid);
 
-		if (!valid) {
-			if (r_valid)
-				*r_valid = false;
-			return Variant();
-		}
+		if (!valid)
+			break;
 	}
 	if (r_valid)
-		*r_valid = true;
+		*r_valid = valid;
+
 	return current_value;
 }
 
@@ -703,40 +701,38 @@ Variant Object::_call_deferred_bind(const Variant **p_args, int p_argcount, Vari
 }
 
 #ifdef DEBUG_ENABLED
-static bool _test_call_error(const StringName &p_func, const Variant::CallError &error) {
+static void _test_call_error(const StringName &p_func, const Variant::CallError &error) {
 
 	switch (error.error) {
 
 		case Variant::CallError::CALL_OK:
-			return true;
 		case Variant::CallError::CALL_ERROR_INVALID_METHOD:
-			return false;
+			break;
 		case Variant::CallError::CALL_ERROR_INVALID_ARGUMENT: {
 
 			ERR_EXPLAIN("Error Calling Function: " + String(p_func) + " - Invalid type for argument " + itos(error.argument) + ", expected " + Variant::get_type_name(error.expected));
-			ERR_FAIL_V(true);
-		} break;
+			ERR_FAIL();
+			break;
+		}
 		case Variant::CallError::CALL_ERROR_TOO_MANY_ARGUMENTS: {
 
 			ERR_EXPLAIN("Error Calling Function: " + String(p_func) + " - Too many arguments, expected " + itos(error.argument));
-			ERR_FAIL_V(true);
-
-		} break;
+			ERR_FAIL();
+			break;
+		}
 		case Variant::CallError::CALL_ERROR_TOO_FEW_ARGUMENTS: {
 
 			ERR_EXPLAIN("Error Calling Function: " + String(p_func) + " - Too few arguments, expected " + itos(error.argument));
-			ERR_FAIL_V(true);
-
-		} break;
-		case Variant::CallError::CALL_ERROR_INSTANCE_IS_NULL: {
-		} //?
+			ERR_FAIL();
+			break;
+		}
+		case Variant::CallError::CALL_ERROR_INSTANCE_IS_NULL:
+			break;
 	}
-
-	return true;
 }
 #else
 
-#define _test_call_error(m_str, m_err) ((m_err.error == Variant::CallError::CALL_ERROR_INVALID_METHOD) ? false : true)
+#define _test_call_error(m_str, m_err)
 
 #endif
 
@@ -834,23 +830,22 @@ void Object::setvar(const Variant &p_key, const Variant &p_value, bool *r_valid)
 }
 
 Variant Object::callv(const StringName &p_method, const Array &p_args) {
+	const Variant **argptrs = NULL;
 
-	if (p_args.size() == 0) {
-		return call(p_method);
-	}
-
-	Vector<Variant> args;
-	args.resize(p_args.size());
-	Vector<const Variant *> argptrs;
-	argptrs.resize(p_args.size());
-
-	for (int i = 0; i < p_args.size(); i++) {
-		args.write[i] = p_args[i];
-		argptrs.write[i] = &args[i];
+	if (p_args.size() > 0) {
+		argptrs = (const Variant **)alloca(sizeof(Variant *) * p_args.size());
+		for (int i = 0; i < p_args.size(); i++) {
+			argptrs[i] = &p_args[i];
+		}
 	}
 
 	Variant::CallError ce;
-	return call(p_method, (const Variant **)argptrs.ptr(), p_args.size(), ce);
+	Variant ret = call(p_method, argptrs, p_args.size(), ce);
+	if (ce.error != Variant::CallError::CALL_OK) {
+		ERR_EXPLAIN("Error calling method from 'callv': " + Variant::get_call_error_text(this, p_method, argptrs, p_args.size(), ce));
+		ERR_FAIL_V(Variant());
+	}
+	return ret;
 }
 
 Variant Object::call(const StringName &p_name, VARIANT_ARG_DECLARE) {
@@ -1016,7 +1011,7 @@ void Object::set_script(const RefPtr &p_script) {
 		}
 	}
 
-	_change_notify("script");
+	_change_notify(); //scripts may add variables, so refresh is desired
 	emit_signal(CoreStringNames::get_singleton()->script_changed);
 }
 
@@ -1247,7 +1242,7 @@ Error Object::emit_signal(const StringName &p_name, const Variant **p_args, int 
 		bool disconnect = c.flags & CONNECT_ONESHOT;
 #ifdef TOOLS_ENABLED
 		if (disconnect && (c.flags & CONNECT_PERSIST) && Engine::get_singleton()->is_editor_hint()) {
-			//this signal was connected from the editor, and is being edited. just dont disconnect for now
+			//this signal was connected from the editor, and is being edited. just don't disconnect for now
 			disconnect = false;
 		}
 #endif
@@ -1369,7 +1364,10 @@ Array Object::_get_incoming_connections() const {
 void Object::get_signal_list(List<MethodInfo> *p_signals) const {
 
 	if (!script.is_null()) {
-		Ref<Script>(script)->get_script_signal_list(p_signals);
+		Ref<Script> scr = script;
+		if (scr.is_valid()) {
+			scr->get_script_signal_list(p_signals);
+		}
 	}
 
 	ClassDB::get_signal_list(get_class_name(), p_signals);
@@ -1676,7 +1674,7 @@ void Object::clear_internal_resource_paths() {
 void Object::_bind_methods() {
 
 	ClassDB::bind_method(D_METHOD("get_class"), &Object::get_class);
-	ClassDB::bind_method(D_METHOD("is_class", "type"), &Object::is_class);
+	ClassDB::bind_method(D_METHOD("is_class", "class"), &Object::is_class);
 	ClassDB::bind_method(D_METHOD("set", "property", "value"), &Object::_set_bind);
 	ClassDB::bind_method(D_METHOD("get", "property"), &Object::_get_bind);
 	ClassDB::bind_method(D_METHOD("set_indexed", "property", "value"), &Object::_set_indexed_bind);
@@ -1694,14 +1692,8 @@ void Object::_bind_methods() {
 	ClassDB::bind_method(D_METHOD("has_meta", "name"), &Object::has_meta);
 	ClassDB::bind_method(D_METHOD("get_meta_list"), &Object::_get_meta_list_bind);
 
-	//todo reimplement this per language so all 5 arguments can be called
-
-	//ClassDB::bind_method(D_METHOD("call","method","arg1","arg2","arg3","arg4"),&Object::_call_bind,DEFVAL(Variant()),DEFVAL(Variant()),DEFVAL(Variant()),DEFVAL(Variant()));
-	//ClassDB::bind_method(D_METHOD("call_deferred","method","arg1","arg2","arg3","arg4"),&Object::_call_deferred_bind,DEFVAL(Variant()),DEFVAL(Variant()),DEFVAL(Variant()),DEFVAL(Variant()));
-
 	ClassDB::bind_method(D_METHOD("add_user_signal", "signal", "arguments"), &Object::_add_user_signal, DEFVAL(Array()));
 	ClassDB::bind_method(D_METHOD("has_user_signal", "signal"), &Object::_has_user_signal);
-	//ClassDB::bind_method(D_METHOD("emit_signal","signal","arguments"),&Object::_emit_signal,DEFVAL(Array()));
 
 	{
 		MethodInfo mi;
@@ -1924,6 +1916,18 @@ void *Object::get_script_instance_binding(int p_script_language_index) {
 	return _script_instance_bindings[p_script_language_index];
 }
 
+bool Object::has_script_instance_binding(int p_script_language_index) {
+
+	return _script_instance_bindings[p_script_language_index] != NULL;
+}
+
+void Object::set_script_instance_binding(int p_script_language_index, void *p_data) {
+#ifdef DEBUG_ENABLED
+	CRASH_COND(_script_instance_bindings[p_script_language_index] != NULL);
+#endif
+	_script_instance_bindings[p_script_language_index] = p_data;
+}
+
 Object::Object() {
 
 	_class_ptr = NULL;
@@ -1987,9 +1991,11 @@ Object::~Object() {
 	_instance_ID = 0;
 	_predelete_ok = 2;
 
-	for (int i = 0; i < MAX_SCRIPT_INSTANCE_BINDINGS; i++) {
-		if (_script_instance_bindings[i]) {
-			ScriptServer::get_language(i)->free_instance_binding_data(_script_instance_bindings[i]);
+	if (!ScriptServer::are_languages_finished()) {
+		for (int i = 0; i < MAX_SCRIPT_INSTANCE_BINDINGS; i++) {
+			if (_script_instance_bindings[i]) {
+				ScriptServer::get_language(i)->free_instance_binding_data(_script_instance_bindings[i]);
+			}
 		}
 	}
 }

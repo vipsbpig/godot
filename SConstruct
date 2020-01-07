@@ -2,11 +2,12 @@
 
 EnsureSConsVersion(0, 98, 1)
 
-import string
-import os
-import os.path
+# System
 import glob
+import os
 import sys
+
+# Local
 import methods
 import gles_builders
 from platform_methods import run_in_subprocess
@@ -27,7 +28,7 @@ for x in sorted(glob.glob("platform/*")):
         continue
     tmppath = "./" + x
 
-    sys.path.append(tmppath)
+    sys.path.insert(0, tmppath)
     import detect
 
     if (os.path.exists(x + "/export/export.cpp")):
@@ -86,13 +87,6 @@ env_base.split_modules = False
 env_base.module_version_string = ""
 env_base.msvc = False
 
-# To decide whether to rebuild a file, use the MD5 sum only if the timestamp has changed.
-# http://scons.org/doc/production/HTML/scons-user/ch06.html#idm139837621851792
-env_base.Decider('MD5-timestamp')
-# Use cached implicit dependencies by default. Can be overridden by specifying `--implicit-deps-changed` in the command line.
-# http://scons.org/doc/production/HTML/scons-user/ch06s04.html
-env_base.SetOption('implicit_cache', 1)
-
 env_base.__class__.android_add_maven_repository = methods.android_add_maven_repository
 env_base.__class__.android_add_flat_dir = methods.android_add_flat_dir
 env_base.__class__.android_add_dependency = methods.android_add_dependency
@@ -130,7 +124,6 @@ customs = ['custom.py']
 
 profile = ARGUMENTS.get("profile", False)
 if profile:
-    import os.path
     if os.path.isfile(profile):
         customs.append(profile)
     elif os.path.isfile(profile + ".py"):
@@ -147,6 +140,7 @@ opts.Add(EnumVariable('target', "Compilation target", 'debug', ('debug', 'releas
 opts.Add(EnumVariable('optimize', "Optimization type", 'speed', ('speed', 'size')))
 opts.Add(BoolVariable('tools', "Build the tools (a.k.a. the Godot editor)", True))
 opts.Add(BoolVariable('use_lto', 'Use link-time optimization', False))
+opts.Add(BoolVariable('use_precise_math_checks', 'Math checks use very precise epsilon (useful to debug the engine)', False))
 
 # Components
 opts.Add(BoolVariable('deprecated', "Enable deprecated features", True))
@@ -186,7 +180,6 @@ opts.Add(BoolVariable('builtin_opus', "Use the built-in Opus library", True))
 opts.Add(BoolVariable('builtin_pcre2', "Use the built-in PCRE2 library)", True))
 opts.Add(BoolVariable('builtin_recast', "Use the built-in Recast library", True))
 opts.Add(BoolVariable('builtin_squish', "Use the built-in squish library", True))
-opts.Add(BoolVariable('builtin_thekla_atlas', "Use the built-in thekla_altas library", True))
 opts.Add(BoolVariable('builtin_xatlas', "Use the built-in xatlas library", True))
 opts.Add(BoolVariable('builtin_zlib', "Use the built-in zlib library", True))
 opts.Add(BoolVariable('builtin_zstd', "Use the built-in Zstd library", True))
@@ -210,7 +203,7 @@ for k in platform_opts.keys():
 for x in module_list:
     module_enabled = True
     tmppath = "./modules/" + x
-    sys.path.append(tmppath)
+    sys.path.insert(0, tmppath)
     import config
     enabled_attr = getattr(config, "is_enabled", None)
     if (callable(enabled_attr) and not config.is_enabled()):
@@ -230,8 +223,21 @@ env_base.Append(CPPPATH=['#editor', '#'])
 env_base.platform_exporters = platform_exporters
 env_base.platform_apis = platform_apis
 
+if (env_base["use_precise_math_checks"]):
+    env_base.Append(CPPDEFINES=['PRECISE_MATH_CHECKS'])
+
 if (env_base['target'] == 'debug'):
     env_base.Append(CPPDEFINES=['DEBUG_MEMORY_ALLOC','DISABLE_FORCED_INLINE'])
+
+    # The two options below speed up incremental builds, but reduce the certainty that all files
+    # will properly be rebuilt. As such, we only enable them for debug (dev) builds, not release.
+
+    # To decide whether to rebuild a file, use the MD5 sum only if the timestamp has changed.
+    # http://scons.org/doc/production/HTML/scons-user/ch06.html#idm139837621851792
+    env_base.Decider('MD5-timestamp')
+    # Use cached implicit dependencies by default. Can be overridden by specifying `--implicit-deps-changed` in the command line.
+    # http://scons.org/doc/production/HTML/scons-user/ch06s04.html
+    env_base.SetOption('implicit_cache', 1)
 
 if (env_base['no_editor_splash']):
     env_base.Append(CPPDEFINES=['NO_EDITOR_SPLASH'])
@@ -250,8 +256,8 @@ elif env_base['p'] != "":
     env_base["platform"] = selected_platform
 
 if selected_platform in platform_list:
-
-    sys.path.append("./platform/" + selected_platform)
+    tmppath = "./platform/" + selected_platform
+    sys.path.insert(0, tmppath)
     import detect
     if "create" in dir(detect):
         env = detect.create(env_base)
@@ -331,13 +337,25 @@ if selected_platform in platform_list:
         if (env["werror"]):
             env.Append(CCFLAGS=['/WX'])
     else: # Rest of the world
-        disable_nonessential_warnings = ['-Wno-sign-compare']
+        shadow_local_warning = []
+        all_plus_warnings = ['-Wwrite-strings']
+
+        if methods.using_gcc(env):
+            version = methods.get_compiler_version(env)
+            if version != None and version[0] >= '7':
+                shadow_local_warning = ['-Wshadow-local']
+
         if (env["warnings"] == 'extra'):
-            env.Append(CCFLAGS=['-Wall', '-Wextra'])
+            # FIXME: enable -Wclobbered once #26351 is fixed
+            # Note: enable -Wimplicit-fallthrough for Clang (already part of -Wextra for GCC)
+            # once we switch to C++11 or later (necessary for our FALLTHROUGH macro).
+            env.Append(CCFLAGS=['-Wall', '-Wextra', '-Wno-unused-parameter'] + all_plus_warnings + shadow_local_warning)
+            if methods.using_gcc(env):
+                env['CCFLAGS'] += ['-Wno-clobbered']
         elif (env["warnings"] == 'all'):
-            env.Append(CCFLAGS=['-Wall'] + disable_nonessential_warnings)
+            env.Append(CCFLAGS=['-Wall'] + shadow_local_warning)
         elif (env["warnings"] == 'moderate'):
-            env.Append(CCFLAGS=['-Wall', '-Wno-unused'] + disable_nonessential_warnings)
+            env.Append(CCFLAGS=['-Wall', '-Wno-unused']  + shadow_local_warning)
         else: # 'no'
             env.Append(CCFLAGS=['-w'])
         if (env["werror"]):
@@ -377,7 +395,7 @@ if selected_platform in platform_list:
 
     suffix += env.extra_suffix
 
-    sys.path.remove("./platform/" + selected_platform)
+    sys.path.remove(tmppath)
     sys.modules.pop('detect')
 
     env.module_list = []
@@ -387,7 +405,7 @@ if selected_platform in platform_list:
         if not env['module_' + x + '_enabled']:
             continue
         tmppath = "./modules/" + x
-        sys.path.append(tmppath)
+        sys.path.insert(0, tmppath)
         env.current_module = x
         import config
         # can_build changed number of arguments between 3.0 (1) and 3.1 (2),

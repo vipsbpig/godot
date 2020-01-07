@@ -30,6 +30,7 @@
 
 #include "godotsharp_editor.h"
 
+#include "core/message_queue.h"
 #include "core/os/os.h"
 #include "core/project_settings.h"
 #include "scene/gui/control.h"
@@ -114,10 +115,33 @@ bool GodotSharpEditor::_create_project_solution() {
 
 void GodotSharpEditor::_make_api_solutions_if_needed() {
 	// I'm sick entirely of ProgressDialog
+
+	static int attempts_left = 100;
+
+	if (MessageQueue::get_singleton()->is_flushing() || !SceneTree::get_singleton()) {
+		ERR_FAIL_COND(attempts_left == 0); // You've got to be kidding
+
+		if (SceneTree::get_singleton()) {
+			SceneTree::get_singleton()->connect("idle_frame", this, "_make_api_solutions_if_needed", Vector<Variant>());
+		} else {
+			call_deferred("_make_api_solutions_if_needed");
+		}
+
+		attempts_left--;
+		return;
+	}
+
+	// Recursion guard needed because signals don't play well with ProgressDialog either, but unlike
+	// the message queue, with signals the collateral damage should be minimal in the worst case.
 	static bool recursion_guard = false;
 	if (!recursion_guard) {
 		recursion_guard = true;
+
+		// Oneshot signals don't play well with ProgressDialog either, so we do it this way instead
+		SceneTree::get_singleton()->disconnect("idle_frame", this, "_make_api_solutions_if_needed");
+
 		_make_api_solutions_if_needed_impl();
+
 		recursion_guard = false;
 	}
 }
@@ -143,9 +167,6 @@ void GodotSharpEditor::_remove_create_sln_menu_option() {
 
 	menu_popup->remove_item(menu_popup->get_item_index(MENU_CREATE_SLN));
 
-	if (menu_popup->get_item_count() == 0)
-		menu_button->hide();
-
 	bottom_panel_btn->show();
 }
 
@@ -162,6 +183,16 @@ void GodotSharpEditor::_toggle_about_dialog_on_start(bool p_enabled) {
 	if (show_on_start != p_enabled) {
 		EditorSettings::get_singleton()->set_setting("mono/editor/show_info_on_start", p_enabled);
 	}
+}
+
+void GodotSharpEditor::_build_solution_pressed() {
+
+	if (!FileAccess::exists(GodotSharpDirs::get_project_sln_path())) {
+		if (!_create_project_solution())
+			return; // Failed to create solution
+	}
+
+	MonoBottomPanel::get_singleton()->call("_build_project_pressed");
 }
 
 void GodotSharpEditor::_menu_option_pressed(int p_id) {
@@ -199,6 +230,7 @@ void GodotSharpEditor::_notification(int p_notification) {
 
 void GodotSharpEditor::_bind_methods() {
 
+	ClassDB::bind_method(D_METHOD("_build_solution_pressed"), &GodotSharpEditor::_build_solution_pressed);
 	ClassDB::bind_method(D_METHOD("_create_project_solution"), &GodotSharpEditor::_create_project_solution);
 	ClassDB::bind_method(D_METHOD("_make_api_solutions_if_needed"), &GodotSharpEditor::_make_api_solutions_if_needed);
 	ClassDB::bind_method(D_METHOD("_remove_create_sln_menu_option"), &GodotSharpEditor::_remove_create_sln_menu_option);
@@ -248,19 +280,30 @@ Error GodotSharpEditor::open_in_external_editor(const Ref<Script> &p_script, int
 			static String vscode_path;
 
 			if (vscode_path.empty() || !FileAccess::exists(vscode_path)) {
-				static List<String> vscode_name;
-				vscode_name.push_back("code");
-				vscode_name.push_back("code-oss");
-				vscode_name.push_back("vscode");
-				vscode_name.push_back("vscode-oss");
-				vscode_name.push_back("visual-studio-code");
-				vscode_name.push_back("visual-studio-code-oss");
 				// Try to search it again if it wasn't found last time or if it was removed from its location
-				for (int i = 0; i < vscode_name.size(); i++) {
-					vscode_path = path_which(vscode_name[i]);
-					if (!vscode_path.empty() || FileAccess::exists(vscode_path))
-						break;
+				bool found = false;
+
+				// TODO: Use initializer lists once C++11 is allowed
+
+				static Vector<String> vscode_names;
+				if (vscode_names.empty()) {
+					vscode_names.push_back("code");
+					vscode_names.push_back("code-oss");
+					vscode_names.push_back("vscode");
+					vscode_names.push_back("vscode-oss");
+					vscode_names.push_back("visual-studio-code");
+					vscode_names.push_back("visual-studio-code-oss");
 				}
+				for (int i = 0; i < vscode_names.size(); i++) {
+					vscode_path = path_which(vscode_names[i]);
+					if (!vscode_path.empty()) {
+						found = true;
+						break;
+					}
+				}
+
+				if (!found)
+					vscode_path.clear(); // Not found, clear so next time the empty() check is enough
 			}
 
 			List<String> args;
@@ -378,9 +421,12 @@ GodotSharpEditor::GodotSharpEditor(EditorNode *p_editor) {
 
 	editor->add_child(memnew(MonoReloadNode));
 
-	menu_button = memnew(MenuButton);
-	menu_button->set_text(TTR("Mono"));
-	menu_popup = menu_button->get_popup();
+	menu_popup = memnew(PopupMenu);
+	menu_popup->hide();
+	menu_popup->set_as_toplevel(true);
+	menu_popup->set_pass_on_modal_close_click(false);
+
+	editor->add_tool_submenu_item("Mono", menu_popup);
 
 	// TODO: Remove or edit this info dialog once Mono support is no longer in alpha
 	{
@@ -411,12 +457,12 @@ GodotSharpEditor::GodotSharpEditor(EditorNode *p_editor) {
 		about_label->set_v_size_flags(Control::SIZE_EXPAND_FILL);
 		about_label->set_autowrap(true);
 		String about_text =
-				String("C# support in Godot Engine is a brand new feature and a work in progress.\n") +
-				"It is currently in an alpha stage and is not suitable for use in production.\n\n" +
-				"As of Godot 3.1, C# support is not feature-complete and may crash in some situations. " +
-				"Bugs and usability issues will be addressed gradually over future 3.x releases, " +
-				"including compatibility breaking changes as new features are implemented for a better overall C# experience.\n\n" +
-				"If you experience issues with this Mono build, please report them on Godot's issue tracker with details about your system, Mono version, IDE, etc:\n\n" +
+				String("C# support in Godot Engine is in late alpha stage and, while already usable, ") +
+				"it is not meant for use in production.\n\n" +
+				"Projects can be exported to Linux, macOS and Windows, but not yet to mobile or web platforms. " +
+				"Bugs and usability issues will be addressed gradually over future releases, " +
+				"potentially including compatibility breaking changes as new features are implemented for a better overall C# experience.\n\n" +
+				"If you experience issues with this Mono build, please report them on Godot's issue tracker with details about your system, MSBuild version, IDE, etc.:\n\n" +
 				"        https://github.com/godotengine/godot/issues\n\n" +
 				"Your critical feedback at this stage will play a great role in shaping the C# support in future releases, so thank you!";
 		about_label->set_text(about_text);
@@ -434,7 +480,7 @@ GodotSharpEditor::GodotSharpEditor(EditorNode *p_editor) {
 	String csproj_path = GodotSharpDirs::get_project_csproj_path();
 
 	if (FileAccess::exists(sln_path) && FileAccess::exists(csproj_path)) {
-		// We can't use EditorProgress here. It calls Main::iterarion() and the main loop is not initialized yet.
+		// Defer this task because EditorProgress calls Main::iterarion() and the main loop is not yet initialized.
 		call_deferred("_make_api_solutions_if_needed");
 	} else {
 		bottom_panel_btn->hide();
@@ -443,22 +489,24 @@ GodotSharpEditor::GodotSharpEditor(EditorNode *p_editor) {
 
 	menu_popup->connect("id_pressed", this, "_menu_option_pressed");
 
-	if (menu_popup->get_item_count() == 0)
-		menu_button->hide();
-
-	editor->get_menu_hb()->add_child(menu_button);
+	ToolButton *build_button = memnew(ToolButton);
+	build_button->set_text("Build");
+	build_button->set_tooltip("Build solution");
+	build_button->set_focus_mode(Control::FOCUS_NONE);
+	build_button->connect("pressed", this, "_build_solution_pressed");
+	editor->get_menu_hb()->add_child(build_button);
 
 	// External editor settings
 	EditorSettings *ed_settings = EditorSettings::get_singleton();
 	EDITOR_DEF("mono/editor/external_editor", EDITOR_NONE);
 
-	String settings_hint_str = "None";
+	String settings_hint_str = "Disabled";
 
-#ifdef WINDOWS_ENABLED
+#if defined(WINDOWS_ENABLED)
 	settings_hint_str += ",MonoDevelop,Visual Studio Code";
-#elif OSX_ENABLED
+#elif defined(OSX_ENABLED)
 	settings_hint_str += ",Visual Studio,MonoDevelop,Visual Studio Code";
-#elif UNIX_ENABLED
+#elif defined(UNIX_ENABLED)
 	settings_hint_str += ",MonoDevelop,Visual Studio Code";
 #endif
 

@@ -31,6 +31,11 @@
 #ifndef ANIMATION_TRACK_EDITOR_H
 #define ANIMATION_TRACK_EDITOR_H
 
+#include "editor/editor_data.h"
+#include "editor/editor_spin_slider.h"
+#include "editor/property_editor.h"
+#include "editor/property_selector.h"
+#include "scene/animation/animation_cache.h"
 #include "scene/gui/control.h"
 #include "scene/gui/file_dialog.h"
 #include "scene/gui/menu_button.h"
@@ -40,12 +45,6 @@
 #include "scene/gui/tab_container.h"
 #include "scene/gui/texture_rect.h"
 #include "scene/gui/tool_button.h"
-
-#include "editor/property_selector.h"
-#include "editor_data.h"
-#include "editor_spin_slider.h"
-#include "property_editor.h"
-#include "scene/animation/animation_cache.h"
 #include "scene/resources/animation.h"
 #include "scene_tree_editor.h"
 
@@ -76,7 +75,7 @@ class AnimationTimelineEdit : public Range {
 	Rect2 hsize_rect;
 
 	bool editing;
-	bool *block_animation_update_ptr; //used to block all tracks re-gen (speed up)
+	bool use_fps;
 
 	bool panning_timeline;
 	float panning_timeline_from;
@@ -104,13 +103,15 @@ public:
 	void set_zoom(Range *p_zoom);
 	Range *get_zoom() const { return zoom; }
 	void set_undo_redo(UndoRedo *p_undo_redo);
-	void set_block_animation_update_ptr(bool *p_block_ptr);
 
 	void set_play_position(float p_pos);
 	float get_play_position() const;
 	void update_play_position();
 
 	void update_values();
+
+	void set_use_fps(bool p_use_fps);
+	bool is_using_fps() const;
 
 	void set_hscroll(HScrollBar *p_hscroll);
 
@@ -143,6 +144,7 @@ class AnimationTrackEdit : public Control {
 	Node *root;
 	Control *play_position; //separate control used to draw so updates for only position changed are much faster
 	float play_position_pos;
+	NodePath node_path;
 
 	Ref<Animation> animation;
 	int track;
@@ -170,12 +172,11 @@ class AnimationTrackEdit : public Control {
 
 	void _menu_selected(int p_index);
 
-	bool *block_animation_update_ptr; //used to block all tracks re-gen (speed up)
-
 	void _path_entered(const String &p_text);
 	void _play_position_draw();
-	mutable int dropping_at;
+	bool _is_value_key_valid(const Variant &p_key_value, Variant::Type &r_valid_type) const;
 
+	mutable int dropping_at;
 	float insert_at_pos;
 	bool moving_selection_attempt;
 	int select_single_attempt;
@@ -216,8 +217,7 @@ public:
 	AnimationTimelineEdit *get_timeline() const { return timeline; }
 	AnimationTrackEditor *get_editor() const { return editor; }
 	UndoRedo *get_undo_redo() const { return undo_redo; }
-	bool *get_block_animation_update_ptr() { return block_animation_update_ptr; }
-
+	NodePath get_path() const;
 	void set_animation_and_track(const Ref<Animation> &p_animation, int p_track);
 	virtual Size2 get_minimum_size() const;
 
@@ -225,8 +225,6 @@ public:
 	void set_timeline(AnimationTimelineEdit *p_timeline);
 	void set_editor(AnimationTrackEditor *p_editor);
 	void set_root(Node *p_root);
-
-	void set_block_animation_update_ptr(bool *p_block_ptr);
 
 	void set_play_position(float p_pos);
 	void update_play_position();
@@ -309,12 +307,14 @@ class AnimationTrackEditor : public VBoxContainer {
 	EditorSpinSlider *step;
 	TextureRect *zoom_icon;
 	ToolButton *snap;
+	OptionButton *snap_mode;
 
+	void _snap_mode_changed(int p_mode);
 	Vector<AnimationTrackEdit *> track_edits;
 	Vector<AnimationTrackEditGroup *> groups;
 
-	bool block_animation_update;
-
+	bool animation_changing_awaiting_update;
+	void _animation_update();
 	int _get_track_selected();
 	void _animation_changed();
 	void _update_tracks();
@@ -333,6 +333,8 @@ class AnimationTrackEditor : public VBoxContainer {
 	void _add_track(int p_type);
 	void _new_track_node_selected(NodePath p_path);
 	void _new_track_property_selected(String p_name);
+
+	void _update_step_spinbox();
 
 	PropertySelector *prop_selector;
 	PropertySelector *method_selector;
@@ -489,6 +491,9 @@ public:
 	Node *get_root() const;
 	void update_keying();
 	bool has_keying() const;
+
+	Dictionary get_state() const;
+	void set_state(const Dictionary &p_state);
 
 	void cleanup();
 

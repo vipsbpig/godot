@@ -61,8 +61,8 @@ void TileMapEditor::_notification(int p_what) {
 			if (is_visible_in_tree()) {
 				_update_palette();
 			}
-
-		} // fallthrough
+			FALLTHROUGH;
+		}
 
 		case NOTIFICATION_ENTER_TREE: {
 
@@ -363,6 +363,8 @@ void TileMapEditor::_update_palette() {
 
 	// Update the palette
 	Vector<int> selected = get_selected_tiles();
+	int selected_single = palette->get_current();
+	int selected_manual = manual_palette->get_current();
 	palette->clear();
 	manual_palette->clear();
 	manual_palette->hide();
@@ -470,24 +472,25 @@ void TileMapEditor::_update_palette() {
 	if (selected.get(0) != TileMap::INVALID_CELL) {
 		set_selected_tiles(selected);
 		sel_tile = selected.get(Math::rand() % selected.size());
-	} else {
+	} else if (palette->get_item_count() > 0) {
 		palette->select(0);
+		sel_tile = palette->get_selected_items().get(0);
 	}
 
 	if (sel_tile != TileMap::INVALID_CELL) {
 		if ((manual_autotile && tileset->tile_get_tile_mode(sel_tile) == TileSet::AUTO_TILE) || tileset->tile_get_tile_mode(sel_tile) == TileSet::ATLAS_TILE) {
 
-			const Map<Vector2, uint16_t> &tiles = tileset->autotile_get_bitmask_map(sel_tile);
+			const Map<Vector2, uint16_t> &tiles2 = tileset->autotile_get_bitmask_map(sel_tile);
 
-			Vector<Vector2> entries;
-			for (const Map<Vector2, uint16_t>::Element *E = tiles.front(); E; E = E->next()) {
-				entries.push_back(E->key());
+			Vector<Vector2> entries2;
+			for (const Map<Vector2, uint16_t>::Element *E = tiles2.front(); E; E = E->next()) {
+				entries2.push_back(E->key());
 			}
-			entries.sort();
+			entries2.sort();
 
 			Ref<Texture> tex = tileset->tile_get_texture(sel_tile);
 
-			for (int i = 0; i < entries.size(); i++) {
+			for (int i = 0; i < entries2.size(); i++) {
 
 				manual_palette->add_item(String());
 
@@ -496,7 +499,7 @@ void TileMapEditor::_update_palette() {
 					Rect2 region = tileset->tile_get_region(sel_tile);
 					int spacing = tileset->autotile_get_spacing(sel_tile);
 					region.size = tileset->autotile_get_size(sel_tile); // !!
-					region.position += (region.size + Vector2(spacing, spacing)) * entries[i];
+					region.position += (region.size + Vector2(spacing, spacing)) * entries2[i];
 
 					if (!region.has_no_area())
 						manual_palette->set_item_icon_region(manual_palette->get_item_count() - 1, region);
@@ -504,16 +507,17 @@ void TileMapEditor::_update_palette() {
 					manual_palette->set_item_icon(manual_palette->get_item_count() - 1, tex);
 				}
 
-				manual_palette->set_item_metadata(manual_palette->get_item_count() - 1, entries[i]);
+				manual_palette->set_item_metadata(manual_palette->get_item_count() - 1, entries2[i]);
 			}
 		}
 	}
 
 	if (manual_palette->get_item_count() > 0) {
 		// Only show the manual palette if at least tile exists in it
-		int selected = manual_palette->get_current();
-		if (selected == -1) selected = 0;
-		manual_palette->set_current(selected);
+		if (selected_manual == -1 || selected_single != palette->get_current())
+			selected_manual = 0;
+		if (selected_manual < manual_palette->get_item_count())
+			manual_palette->set_current(selected_manual);
 		manual_palette->show();
 	}
 
@@ -1157,7 +1161,7 @@ bool TileMapEditor::forward_gui_input(const Ref<InputEvent> &p_event) {
 					if (points.size() == 0)
 						return false;
 
-					undo_redo->create_action("Bucket Fill");
+					undo_redo->create_action(TTR("Bucket Fill"));
 
 					undo_redo->add_do_method(this, "_erase_points", points);
 					undo_redo->add_undo_method(this, "_fill_points", points, pop);
@@ -1434,9 +1438,9 @@ void TileMapEditor::forward_canvas_draw_over_viewport(Control *p_overlay) {
 		aabb.expand_to(node->world_to_map(xform_inv.xform(screen_size)));
 		Rect2i si = aabb.grow(1.0);
 
-		if (node->get_half_offset() != TileMap::HALF_OFFSET_X) {
+		if (node->get_half_offset() != TileMap::HALF_OFFSET_X && node->get_half_offset() != TileMap::HALF_OFFSET_NEGATIVE_X) {
 
-			int max_lines = 2000; //avoid crash if size too smal
+			int max_lines = 2000; //avoid crash if size too small
 
 			for (int i = (si.position.x) - 1; i <= (si.position.x + si.size.x); i++) {
 
@@ -1450,7 +1454,7 @@ void TileMapEditor::forward_canvas_draw_over_viewport(Control *p_overlay) {
 			}
 		} else {
 
-			int max_lines = 10000; //avoid crash if size too smal
+			int max_lines = 10000; //avoid crash if size too small
 
 			for (int i = (si.position.x) - 1; i <= (si.position.x + si.size.x); i++) {
 
@@ -1458,23 +1462,26 @@ void TileMapEditor::forward_canvas_draw_over_viewport(Control *p_overlay) {
 
 					Vector2 ofs;
 					if (ABS(j) & 1) {
-						ofs = cell_xf[0] * 0.5;
+						ofs = cell_xf[0] * (node->get_half_offset() == TileMap::HALF_OFFSET_X ? 0.5 : -0.5);
 					}
 
 					Vector2 from = xform.xform(node->map_to_world(Vector2(i, j), true) + ofs);
 					Vector2 to = xform.xform(node->map_to_world(Vector2(i, j + 1), true) + ofs);
+
 					Color col = i == 0 ? Color(1, 0.8, 0.2, 0.5) : Color(1, 0.3, 0.1, 0.2);
 					p_overlay->draw_line(from, to, col, 1);
 
-					if (max_lines-- == 0)
+					if (--max_lines == 0)
 						break;
 				}
+				if (max_lines == 0)
+					break;
 			}
 		}
 
 		int max_lines = 10000; //avoid crash if size too smal
 
-		if (node->get_half_offset() != TileMap::HALF_OFFSET_Y) {
+		if (node->get_half_offset() != TileMap::HALF_OFFSET_Y && node->get_half_offset() != TileMap::HALF_OFFSET_NEGATIVE_Y) {
 
 			for (int i = (si.position.y) - 1; i <= (si.position.y + si.size.y); i++) {
 
@@ -1495,17 +1502,20 @@ void TileMapEditor::forward_canvas_draw_over_viewport(Control *p_overlay) {
 
 					Vector2 ofs;
 					if (ABS(j) & 1) {
-						ofs = cell_xf[1] * 0.5;
+						ofs = cell_xf[1] * (node->get_half_offset() == TileMap::HALF_OFFSET_Y ? 0.5 : -0.5);
 					}
 
 					Vector2 from = xform.xform(node->map_to_world(Vector2(j, i), true) + ofs);
 					Vector2 to = xform.xform(node->map_to_world(Vector2(j + 1, i), true) + ofs);
+
 					Color col = i == 0 ? Color(1, 0.8, 0.2, 0.5) : Color(1, 0.3, 0.1, 0.2);
 					p_overlay->draw_line(from, to, col, 1);
 
-					if (max_lines-- == 0)
+					if (--max_lines == 0)
 						break;
 				}
+				if (max_lines == 0)
+					break;
 			}
 		}
 	}
@@ -1533,8 +1543,12 @@ void TileMapEditor::forward_canvas_draw_over_viewport(Control *p_overlay) {
 		for (int i = 0; i < 4; i++) {
 			if (node->get_half_offset() == TileMap::HALF_OFFSET_X && ABS(over_tile.y) & 1)
 				endpoints[i] += cell_xf[0] * 0.5;
+			if (node->get_half_offset() == TileMap::HALF_OFFSET_NEGATIVE_X && ABS(over_tile.y) & 1)
+				endpoints[i] += cell_xf[0] * -0.5;
 			if (node->get_half_offset() == TileMap::HALF_OFFSET_Y && ABS(over_tile.x) & 1)
 				endpoints[i] += cell_xf[1] * 0.5;
+			if (node->get_half_offset() == TileMap::HALF_OFFSET_NEGATIVE_Y && ABS(over_tile.x) & 1)
+				endpoints[i] += cell_xf[1] * -0.5;
 			endpoints[i] = xform.xform(endpoints[i]);
 		}
 		Color col;

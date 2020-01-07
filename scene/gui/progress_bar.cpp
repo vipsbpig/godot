@@ -39,9 +39,12 @@ Size2 ProgressBar::get_minimum_size() const {
 	Size2 minimum_size = bg->get_minimum_size();
 	minimum_size.height = MAX(minimum_size.height, fg->get_minimum_size().height);
 	minimum_size.width = MAX(minimum_size.width, fg->get_minimum_size().width);
-	//if (percent_visible) { this is needed, else the progressbar will collapse
-	minimum_size.height = MAX(minimum_size.height, bg->get_minimum_size().height + font->get_height());
-	//}
+	if (percent_visible) {
+		minimum_size.height = MAX(minimum_size.height, bg->get_minimum_size().height + font->get_height());
+	} else { // this is needed, else the progressbar will collapse
+		minimum_size.width = MAX(minimum_size.width, 1);
+		minimum_size.height = MAX(minimum_size.height, 1);
+	}
 	return minimum_size;
 }
 
@@ -57,7 +60,7 @@ void ProgressBar::_notification(int p_what) {
 		draw_style_box(bg, Rect2(Point2(), get_size()));
 		float r = get_as_ratio();
 		int mp = fg->get_minimum_size().width;
-		int p = r * get_size().width - mp;
+		int p = r * (get_size().width - mp);
 		if (p > 0) {
 
 			draw_style_box(fg, Rect2(Point2(), Size2(p + fg->get_minimum_size().width, get_size().height)));

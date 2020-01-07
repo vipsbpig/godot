@@ -33,6 +33,7 @@
 //#include "core/math/math_funcs.h"
 #include "core/io/ip_address.h"
 #include "core/os/os.h"
+#include "modules/regex/regex.h"
 #include <stdio.h>
 
 #include "test_string.h"
@@ -429,9 +430,20 @@ bool test_25() {
 
 bool test_26() {
 
-	//TODO: Do replacement RegEx test
-	return true;
-};
+	OS::get_singleton()->print("\n\nTest 26: RegEx substitution\n");
+
+	String s = "Double all the vowels.";
+
+	OS::get_singleton()->print("\tString: %ls\n", s.c_str());
+	OS::get_singleton()->print("\tRepeating instances of 'aeiou' once\n");
+
+	RegEx re("(?<vowel>[aeiou])");
+	s = re.sub(s, "$0$vowel", true);
+
+	OS::get_singleton()->print("\tResult: %ls\n", s.c_str());
+
+	return (s == "Doouublee aall thee vooweels.");
+}
 
 struct test_27_data {
 	char const *data;
@@ -457,7 +469,7 @@ bool test_27() {
 			state = s.begins_with(sb) == tc[i].expected;
 		}
 		if (!state) {
-			OS::get_singleton()->print("\n\t Failure on:\n\t\tstring: ", tc[i].data, "\n\t\tbegin: ", tc[i].begin, "\n\t\texpected: ", tc[i].expected ? "true" : "false", "\n");
+			OS::get_singleton()->print("\n\t Failure on:\n\t\tstring: %s\n\t\tbegin: %s\n\t\texpected: %s\n", tc[i].data, tc[i].begin, tc[i].expected ? "true" : "false");
 			break;
 		}
 	};
@@ -1046,6 +1058,26 @@ bool test_32() {
 #undef STRIP_TEST
 }
 
+bool test_33() {
+	OS::get_singleton()->print("\n\nTest 33: parse_utf8(null, -1)\n");
+
+	String empty;
+	return empty.parse_utf8(NULL, -1) == true;
+}
+
+bool test_34() {
+	OS::get_singleton()->print("\n\nTest 34: Cyrillic to_lower()\n");
+
+	String upper = L"АБВГДЕЁЖЗИЙКЛМНОПРСТУФХЦЧШЩЪЫЬЭЮЯ";
+	String lower = L"абвгдеёжзийклмнопрстуфхцчшщъыьэюя";
+
+	String test = upper.to_lower();
+
+	bool state = test == lower;
+
+	return state;
+}
+
 typedef bool (*TestFunc)(void);
 
 TestFunc test_funcs[] = {
@@ -1082,6 +1114,8 @@ TestFunc test_funcs[] = {
 	test_30,
 	test_31,
 	test_32,
+	test_33,
+	test_34,
 	0
 
 };

@@ -30,7 +30,7 @@
 
 #include "editor_file_system.h"
 
-#include "core/io/resource_import.h"
+#include "core/io/resource_importer.h"
 #include "core/io/resource_loader.h"
 #include "core/io/resource_saver.h"
 #include "core/os/file_access.h"
@@ -42,6 +42,8 @@
 #include "editor_settings.h"
 
 EditorFileSystem *EditorFileSystem::singleton = NULL;
+//the name is the version, to keep compatibility with different versions of Godot
+#define CACHE_FILE_NAME "filesystem_cache5"
 
 void EditorFileSystemDirectory::sort_files() {
 
@@ -203,14 +205,30 @@ void EditorFileSystem::_scan_filesystem() {
 
 	String project = ProjectSettings::get_singleton()->get_resource_path();
 
-	String fscache = EditorSettings::get_singleton()->get_project_settings_dir().plus_file("filesystem_cache4");
+	String fscache = EditorSettings::get_singleton()->get_project_settings_dir().plus_file(CACHE_FILE_NAME);
 	FileAccess *f = FileAccess::open(fscache, FileAccess::READ);
 
+	bool first = true;
 	if (f) {
 		//read the disk cache
 		while (!f->eof_reached()) {
 
 			String l = f->get_line().strip_edges();
+			if (first) {
+				if (first_scan) {
+					// only use this on first scan, afterwards it gets ignored
+					// this is so on first reimport we synchronize versions, then
+					// we dont care until editor restart. This is for usability mainly so
+					// your workflow is not killed after changing a setting by forceful reimporting
+					// everything there is.
+					filesystem_settings_version_for_import = l.strip_edges();
+					if (filesystem_settings_version_for_import != ResourceFormatImporter::get_singleton()->get_import_settings_hash()) {
+						revalidate_import_files = true;
+					}
+				}
+				first = false;
+				continue;
+			}
 			if (l == String())
 				continue;
 
@@ -260,12 +278,12 @@ void EditorFileSystem::_scan_filesystem() {
 
 	if (FileAccess::exists(update_cache)) {
 		{
-			FileAccessRef f = FileAccess::open(update_cache, FileAccess::READ);
-			String l = f->get_line().strip_edges();
+			FileAccessRef f2 = FileAccess::open(update_cache, FileAccess::READ);
+			String l = f2->get_line().strip_edges();
 			while (l != String()) {
 
 				file_cache.erase(l); //erase cache for this, so it gets updated
-				l = f->get_line().strip_edges();
+				l = f2->get_line().strip_edges();
 			}
 		}
 
@@ -291,29 +309,27 @@ void EditorFileSystem::_scan_filesystem() {
 
 	memdelete(d);
 
-	f = FileAccess::open(fscache, FileAccess::WRITE);
-	if (f == NULL) {
-		ERR_PRINTS("Error writing fscache: " + fscache);
-	} else {
-		_save_filesystem_cache(new_filesystem, f);
-		f->close();
-		memdelete(f);
+	if (!first_scan) {
+		//on the first scan this is done from the main thread after re-importing
+		_save_filesystem_cache();
 	}
 
 	scanning = false;
 }
 
 void EditorFileSystem::_save_filesystem_cache() {
-	String fscache = EditorSettings::get_singleton()->get_project_settings_dir().plus_file("filesystem_cache4");
+	String fscache = EditorSettings::get_singleton()->get_project_settings_dir().plus_file(CACHE_FILE_NAME);
 
 	FileAccess *f = FileAccess::open(fscache, FileAccess::WRITE);
 	if (f == NULL) {
-		ERR_PRINTS("Error writing fscache: " + fscache);
-	} else {
-		_save_filesystem_cache(filesystem, f);
-		f->close();
-		memdelete(f);
+		ERR_EXPLAIN("Cannot create file '" + fscache + "'. Check user write permissions.");
+		ERR_FAIL();
 	}
+
+	f->store_line(filesystem_settings_version_for_import);
+	_save_filesystem_cache(filesystem, f);
+	f->close();
+	memdelete(f);
 }
 
 void EditorFileSystem::_thread_func(void *_userdata) {
@@ -326,6 +342,15 @@ bool EditorFileSystem::_test_for_reimport(const String &p_path, bool p_only_impo
 
 	if (!reimport_on_missing_imported_files && p_only_imported_files)
 		return false;
+
+	if (!FileAccess::exists(p_path + ".import")) {
+		return true;
+	}
+
+	if (!ResourceFormatImporter::get_singleton()->are_import_settings_valid(p_path)) {
+		//reimport settings are not valid, reimport
+		return true;
+	}
 
 	Error err;
 	FileAccess *f = FileAccess::open(p_path + ".import", FileAccess::READ, &err);
@@ -562,6 +587,13 @@ bool EditorFileSystem::_update_scan_actions() {
 		reimport_files(reimports);
 	}
 
+	if (first_scan) {
+		//only on first scan this is valid and updated, then settings changed.
+		revalidate_import_files = false;
+		filesystem_settings_version_for_import = ResourceFormatImporter::get_singleton()->get_import_settings_hash();
+		_save_filesystem_cache();
+	}
+
 	if (reloads.size()) {
 		emit_signal("resources_reload", reloads);
 	}
@@ -595,7 +627,7 @@ void EditorFileSystem::scan() {
 		emit_signal("filesystem_changed");
 		emit_signal("sources_changed", sources_changed.size() > 0);
 		_queue_update_script_classes();
-
+		first_scan = false;
 	} else {
 
 		ERR_FAIL_COND(thread);
@@ -686,17 +718,17 @@ void EditorFileSystem::_scan_new_dir(EditorFileSystemDirectory *p_dir, DirAccess
 
 				_scan_new_dir(efd, da, p_progress.get_sub(idx, total));
 
-				int idx = 0;
+				int idx2 = 0;
 				for (int i = 0; i < p_dir->subdirs.size(); i++) {
 
 					if (efd->name < p_dir->subdirs[i]->name)
 						break;
-					idx++;
+					idx2++;
 				}
-				if (idx == p_dir->subdirs.size()) {
+				if (idx2 == p_dir->subdirs.size()) {
 					p_dir->subdirs.push_back(efd);
 				} else {
-					p_dir->subdirs.insert(idx, efd);
+					p_dir->subdirs.insert(idx2, efd);
 				}
 
 				da->change_dir("..");
@@ -737,10 +769,19 @@ void EditorFileSystem::_scan_new_dir(EditorFileSystemDirectory *p_dir, DirAccess
 				fi->deps = fc->deps;
 				fi->modified_time = fc->modification_time;
 				fi->import_modified_time = fc->import_modification_time;
+
 				fi->import_valid = fc->import_valid;
 				fi->script_class_name = fc->script_class_name;
 				fi->script_class_extends = fc->script_class_extends;
 				fi->script_class_icon_path = fc->script_class_icon_path;
+
+				if (revalidate_import_files && !ResourceFormatImporter::get_singleton()->are_import_settings_valid(path)) {
+					ItemAction ia;
+					ia.action = ItemAction::ACTION_FILE_TEST_REIMPORT;
+					ia.dir = p_dir;
+					ia.file = E->get();
+					scan_actions.push_back(ia);
+				}
 
 				if (fc->type == String()) {
 					fi->type = ResourceLoader::get_resource_type(path);
@@ -797,7 +838,7 @@ void EditorFileSystem::_scan_fs_changes(EditorFileSystemDirectory *p_dir, const 
 	bool updated_dir = false;
 	String cd = p_dir->get_path();
 
-	if (current_mtime != p_dir->modified_time || using_fat_32) {
+	if (current_mtime != p_dir->modified_time || using_fat32_or_exfat) {
 
 		updated_dir = true;
 		p_dir->modified_time = current_mtime;
@@ -1101,6 +1142,7 @@ void EditorFileSystem::_notification(int p_what) {
 							emit_signal("filesystem_changed");
 						emit_signal("sources_changed", sources_changed.size() > 0);
 						_queue_update_script_classes();
+						first_scan = false;
 					}
 				} else if (!scanning) {
 
@@ -1117,6 +1159,7 @@ void EditorFileSystem::_notification(int p_what) {
 					emit_signal("filesystem_changed");
 					emit_signal("sources_changed", sources_changed.size() > 0);
 					_queue_update_script_classes();
+					first_scan = false;
 				}
 			}
 		} break;
@@ -1328,6 +1371,10 @@ void EditorFileSystem::_save_late_updated_files() {
 	//files that already existed, and were modified, need re-scanning for dependencies upon project restart. This is done via saving this special file
 	String fscache = EditorSettings::get_singleton()->get_project_settings_dir().plus_file("filesystem_update4");
 	FileAccessRef f = FileAccess::open(fscache, FileAccess::WRITE);
+	if (!f) {
+		ERR_EXPLAIN("Cannot create file '" + fscache + "'. Check user write permissions.");
+		ERR_FAIL();
+	}
 	for (Set<String>::Element *E = late_update_files.front(); E; E = E->next()) {
 		f->store_line(E->get());
 	}
@@ -1569,8 +1616,8 @@ void EditorFileSystem::_reimport_file(const String &p_file) {
 
 	List<String> import_variants;
 	List<String> gen_files;
-
-	Error err = importer->import(p_file, base_path, params, &import_variants, &gen_files);
+	Variant metadata;
+	Error err = importer->import(p_file, base_path, params, &import_variants, &gen_files, &metadata);
 
 	if (err != OK) {
 		ERR_PRINTS("Error importing: " + p_file);
@@ -1613,6 +1660,10 @@ void EditorFileSystem::_reimport_file(const String &p_file) {
 	} else {
 
 		f->store_line("valid=false");
+	}
+
+	if (metadata != Variant()) {
+		f->store_line("metadata=" + metadata.get_construct_string());
 	}
 
 	f->store_line("");
@@ -1809,12 +1860,14 @@ EditorFileSystem::EditorFileSystem() {
 	if (da->change_dir("res://.import") != OK) {
 		da->make_dir("res://.import");
 	}
-	//this should probably also work on Unix and use the string it returns for FAT32
-	using_fat_32 = da->get_filesystem_type() == "FAT32";
+	// This should probably also work on Unix and use the string it returns for FAT32 or exFAT
+	using_fat32_or_exfat = (da->get_filesystem_type() == "FAT32" || da->get_filesystem_type() == "exFAT");
 	memdelete(da);
 
 	scan_total = 0;
 	update_script_classes_queued = false;
+	first_scan = true;
+	revalidate_import_files = false;
 }
 
 EditorFileSystem::~EditorFileSystem() {

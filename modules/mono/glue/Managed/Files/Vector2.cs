@@ -14,6 +14,7 @@ using real_t = System.Single;
 
 namespace Godot
 {
+    [Serializable]
     [StructLayout(LayoutKind.Sequential)]
     public struct Vector2 : IEquatable<Vector2>
     {
@@ -84,7 +85,7 @@ namespace Godot
 
         public real_t AngleToPoint(Vector2 to)
         {
-            return Mathf.Atan2(x - to.x, y - to.y);
+            return Mathf.Atan2(y - to.y, x - to.x);
         }
 
         public real_t Aspect()
@@ -130,6 +131,11 @@ namespace Godot
                                 (-p0 + p2) * t +
                                 (2.0f * p0 - 5.0f * p1 + 4 * p2 - p3) * t2 +
                                 (-p0 + 3.0f * p1 - 3.0f * p2 + p3) * t3);
+        }
+
+        public Vector2 DirectionTo(Vector2 b)
+        {
+            return new Vector2(b.x - x, b.y - y).Normalized();
         }
 
         public real_t DistanceSquaredTo(Vector2 to)

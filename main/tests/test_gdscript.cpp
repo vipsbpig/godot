@@ -127,6 +127,7 @@ static String _parser_expr(const GDScriptParser::Node *p_expr) {
 
 				case GDScriptParser::OperatorNode::OP_PARENT_CALL:
 					txt += ".";
+					FALLTHROUGH;
 				case GDScriptParser::OperatorNode::OP_CALL: {
 
 					ERR_FAIL_COND_V(c_node->arguments.size() < 1, "");
@@ -360,9 +361,6 @@ static void _parser_show_block(const GDScriptParser::BlockNode *p_block, int p_i
 					case GDScriptParser::ControlFlowNode::CF_MATCH: {
 						// FIXME: Implement
 					} break;
-					case GDScriptParser::ControlFlowNode::CF_SWITCH: {
-
-					} break;
 					case GDScriptParser::ControlFlowNode::CF_CONTINUE: {
 
 						_print_indent(p_indent, "continue");
@@ -566,7 +564,7 @@ static void _disassemble_class(const Ref<GDScript> &p_class, const Vector<String
 				case GDScriptFunction::OPCODE_OPERATOR: {
 
 					int op = code[ip + 1];
-					txt += "op ";
+					txt += " op ";
 
 					String opname = Variant::get_operator_name(Variant::Operator(op));
 
@@ -911,11 +909,14 @@ MainLoop *test(TestType p_type) {
 	List<String> cmdlargs = OS::get_singleton()->get_cmdline_args();
 
 	if (cmdlargs.empty()) {
-		//try editor!
 		return NULL;
 	}
 
 	String test = cmdlargs.back()->get();
+	if (!test.ends_with(".gd") && !test.ends_with(".gdc")) {
+		print_line("This test expects a path to a GDScript file as its last parameter. Got: " + test);
+		return NULL;
+	}
 
 	FileAccess *fa = FileAccess::open(test, FileAccess::READ);
 
@@ -1041,10 +1042,10 @@ MainLoop *test(TestType p_type) {
 
 	} else if (p_type == TEST_BYTECODE) {
 
-		Vector<uint8_t> buf = GDScriptTokenizerBuffer::parse_code_string(code);
+		Vector<uint8_t> buf2 = GDScriptTokenizerBuffer::parse_code_string(code);
 		String dst = test.get_basename() + ".gdc";
 		FileAccess *fw = FileAccess::open(dst, FileAccess::WRITE);
-		fw->store_buffer(buf.ptr(), buf.size());
+		fw->store_buffer(buf2.ptr(), buf2.size());
 		memdelete(fw);
 	}
 

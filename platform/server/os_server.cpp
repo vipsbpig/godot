@@ -93,7 +93,7 @@ Error OS_Server::initialize(const VideoMode &p_desired, int p_video_driver, int 
 	input = memnew(InputDefault);
 
 #ifdef __APPLE__
-	power_manager = memnew(power_osx);
+	power_manager = memnew(PowerOSX);
 #else
 	power_manager = memnew(PowerX11);
 #endif
@@ -196,12 +196,6 @@ String OS_Server::get_name() {
 }
 
 void OS_Server::move_window_to_foreground() {
-}
-
-void OS_Server::set_cursor_shape(CursorShape p_shape) {
-}
-
-void OS_Server::set_custom_mouse_cursor(const RES &p_cursor, CursorShape p_shape, const Vector2 &p_hotspot) {
 }
 
 OS::PowerState OS_Server::get_power_state() {

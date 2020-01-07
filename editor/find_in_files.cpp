@@ -321,7 +321,7 @@ FindInFilesDialog::FindInFilesDialog() {
 	_search_text_line_edit->connect("text_entered", this, "_on_search_text_entered");
 	gc->add_child(_search_text_line_edit);
 
-	gc->add_child(memnew(Control)); // Space to mantain the grid aligned.
+	gc->add_child(memnew(Control)); // Space to maintain the grid aligned.
 
 	{
 		HBoxContainer *hbc = memnew(HBoxContainer);
@@ -751,7 +751,6 @@ void FindInFilesPanel::_on_replace_text_changed(String text) {
 void FindInFilesPanel::_on_replace_all_clicked() {
 
 	String replace_text = get_replace_text();
-	ERR_FAIL_COND(replace_text.empty());
 
 	PoolStringArray modified_files;
 
@@ -766,9 +765,9 @@ void FindInFilesPanel::_on_replace_all_clicked() {
 			if (!item->is_checked(0))
 				continue;
 
-			Map<TreeItem *, Result>::Element *E = _result_items.find(item);
-			ERR_FAIL_COND(E == NULL);
-			locations.push_back(E->value());
+			Map<TreeItem *, Result>::Element *F = _result_items.find(item);
+			ERR_FAIL_COND(F == NULL);
+			locations.push_back(F->value());
 		}
 
 		if (locations.size() != 0) {
@@ -887,7 +886,7 @@ String FindInFilesPanel::get_replace_text() {
 void FindInFilesPanel::update_replace_buttons() {
 
 	String text = get_replace_text();
-	bool disabled = text.empty() || _finder->is_searching();
+	bool disabled = _finder->is_searching();
 
 	_replace_all_button->set_disabled(disabled);
 }

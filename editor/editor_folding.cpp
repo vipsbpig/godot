@@ -112,14 +112,16 @@ void EditorFolding::_fill_folds(const Node *p_root, const Node *p_node, Array &p
 	List<PropertyInfo> plist;
 	p_node->get_property_list(&plist);
 	for (List<PropertyInfo>::Element *E = plist.front(); E; E = E->next()) {
-		if (E->get().type == Variant::OBJECT) {
-			RES res = p_node->get(E->get().name);
-			if (res.is_valid() && !resources.has(res) && res->get_path() != String() && !res->get_path().is_resource_file()) {
+		if (E->get().usage & PROPERTY_USAGE_EDITOR) {
+			if (E->get().type == Variant::OBJECT) {
+				RES res = p_node->get(E->get().name);
+				if (res.is_valid() && !resources.has(res) && res->get_path() != String() && !res->get_path().is_resource_file()) {
 
-				PoolVector<String> res_unfolds = _get_unfolds(res.ptr());
-				resource_folds.push_back(res->get_path());
-				resource_folds.push_back(res_unfolds);
-				resources.insert(res);
+					PoolVector<String> res_unfolds = _get_unfolds(res.ptr());
+					resource_folds.push_back(res->get_path());
+					resource_folds.push_back(res_unfolds);
+					resources.insert(res);
+				}
 			}
 		}
 	}
@@ -171,9 +173,9 @@ void EditorFolding::load_scene_folding(Node *p_scene, const String &p_path) {
 	ERR_FAIL_COND(res_unfolds.size() & 1);
 
 	for (int i = 0; i < unfolds.size(); i += 2) {
-		NodePath path = unfolds[i];
+		NodePath path2 = unfolds[i];
 		PoolVector<String> un = unfolds[i + 1];
-		Node *node = p_scene->get_node(path);
+		Node *node = p_scene->get_node_or_null(path2);
 		if (!node) {
 			continue;
 		}
@@ -181,17 +183,17 @@ void EditorFolding::load_scene_folding(Node *p_scene, const String &p_path) {
 	}
 
 	for (int i = 0; i < res_unfolds.size(); i += 2) {
-		String path = res_unfolds[i];
+		String path2 = res_unfolds[i];
 		RES res;
-		if (ResourceCache::has(path)) {
-			res = RES(ResourceCache::get(path));
+		if (ResourceCache::has(path2)) {
+			res = RES(ResourceCache::get(path2));
 		}
 		if (res.is_null()) {
 			continue;
 		}
 
-		PoolVector<String> unfolds = res_unfolds[i + 1];
-		_set_unfolds(res.ptr(), unfolds);
+		PoolVector<String> unfolds2 = res_unfolds[i + 1];
+		_set_unfolds(res.ptr(), unfolds2);
 	}
 }
 

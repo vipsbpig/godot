@@ -112,6 +112,7 @@ struct Vector3 {
 	_FORCE_INLINE_ Vector3 project(const Vector3 &p_b) const;
 
 	_FORCE_INLINE_ real_t angle_to(const Vector3 &p_b) const;
+	_FORCE_INLINE_ Vector3 direction_to(const Vector3 &p_b) const;
 
 	_FORCE_INLINE_ Vector3 slide(const Vector3 &p_normal) const;
 	_FORCE_INLINE_ Vector3 bounce(const Vector3 &p_normal) const;
@@ -151,7 +152,7 @@ struct Vector3 {
 };
 
 // Should be included after class definition, otherwise we get circular refs
-#include "core/math/matrix3.h"
+#include "core/math/basis.h"
 
 Vector3 Vector3::cross(const Vector3 &p_b) const {
 
@@ -217,12 +218,8 @@ Vector3 Vector3::linear_interpolate(const Vector3 &p_b, real_t p_t) const {
 }
 
 Vector3 Vector3::slerp(const Vector3 &p_b, real_t p_t) const {
-#ifdef MATH_CHECKS
-	ERR_FAIL_COND_V(!is_normalized(), Vector3());
-#endif
-
 	real_t theta = angle_to(p_b);
-	return rotated(cross(p_b), theta * p_t);
+	return rotated(cross(p_b).normalized(), theta * p_t);
 }
 
 real_t Vector3::distance_to(const Vector3 &p_b) const {
@@ -242,6 +239,12 @@ Vector3 Vector3::project(const Vector3 &p_b) const {
 real_t Vector3::angle_to(const Vector3 &p_b) const {
 
 	return Math::atan2(cross(p_b).length(), dot(p_b));
+}
+
+Vector3 Vector3::direction_to(const Vector3 &p_b) const {
+	Vector3 ret(p_b.x - x, p_b.y - y, p_b.z - z);
+	ret.normalize();
+	return ret;
 }
 
 /* Operators */
@@ -414,7 +417,7 @@ Vector3 Vector3::normalized() const {
 
 bool Vector3::is_normalized() const {
 	// use length_squared() instead of length() to avoid sqrt(), makes it more stringent.
-	return Math::is_equal_approx(length_squared(), 1.0);
+	return Math::is_equal_approx(length_squared(), 1.0, UNIT_EPSILON);
 }
 
 Vector3 Vector3::inverse() const {

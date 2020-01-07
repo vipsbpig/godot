@@ -1311,7 +1311,7 @@ Node *Node::_get_child_by_name(const StringName &p_name) const {
 	return NULL;
 }
 
-Node *Node::_get_node(const NodePath &p_path) const {
+Node *Node::get_node_or_null(const NodePath &p_path) const {
 
 	if (!data.inside_tree && p_path.is_absolute()) {
 		ERR_EXPLAIN("Can't use get_node() with absolute paths from outside the active scene tree.");
@@ -1376,7 +1376,7 @@ Node *Node::_get_node(const NodePath &p_path) const {
 
 Node *Node::get_node(const NodePath &p_path) const {
 
-	Node *node = _get_node(p_path);
+	Node *node = get_node_or_null(p_path);
 	if (!node) {
 		ERR_EXPLAIN("Node not found: " + p_path);
 		ERR_FAIL_COND_V(!node, NULL);
@@ -1386,7 +1386,7 @@ Node *Node::get_node(const NodePath &p_path) const {
 
 bool Node::has_node(const NodePath &p_path) const {
 
-	return _get_node(p_path) != NULL;
+	return get_node_or_null(p_path) != NULL;
 }
 
 Node *Node::find_node(const String &p_mask, bool p_recursive, bool p_owned) const {
@@ -2063,7 +2063,9 @@ Node *Node::_duplicate(int p_flags, Map<const Node *, Node *> *r_duplimap) const
 		}
 	}
 
-	node->set_name(get_name());
+	if (get_name() != String()) {
+		node->set_name(get_name());
+	}
 
 #ifdef TOOLS_ENABLED
 	if ((p_flags & DUPLICATE_FROM_EDITOR) && r_duplimap)
@@ -2417,7 +2419,7 @@ void Node::_replace_connections_target(Node *p_new_target) {
 
 		if (c.flags & CONNECT_PERSIST) {
 			c.source->disconnect(c.signal, this, c.method);
-			bool valid = p_new_target->has_method(c.method) || p_new_target->get_script().is_null() || Ref<Script>(p_new_target->get_script())->has_method(c.method);
+			bool valid = p_new_target->has_method(c.method) || Ref<Script>(p_new_target->get_script()).is_null() || Ref<Script>(p_new_target->get_script())->has_method(c.method);
 			ERR_EXPLAIN("Attempt to connect signal \'" + c.source->get_class() + "." + c.signal + "\' to nonexistent method \'" + c.target->get_class() + "." + c.method + "\'");
 			ERR_CONTINUE(!valid);
 			c.source->connect(c.signal, p_new_target, c.method, c.binds, c.flags);
@@ -2709,6 +2711,7 @@ void Node::_bind_methods() {
 	ClassDB::bind_method(D_METHOD("get_child", "idx"), &Node::get_child);
 	ClassDB::bind_method(D_METHOD("has_node", "path"), &Node::has_node);
 	ClassDB::bind_method(D_METHOD("get_node", "path"), &Node::get_node);
+	ClassDB::bind_method(D_METHOD("get_node_or_null", "path"), &Node::get_node_or_null);
 	ClassDB::bind_method(D_METHOD("get_parent"), &Node::get_parent);
 	ClassDB::bind_method(D_METHOD("find_node", "mask", "recursive", "owned"), &Node::find_node, DEFVAL(true), DEFVAL(true));
 	ClassDB::bind_method(D_METHOD("find_parent", "mask"), &Node::find_parent);

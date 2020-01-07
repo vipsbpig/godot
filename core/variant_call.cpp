@@ -341,6 +341,7 @@ struct _VariantCall {
 	VCALL_LOCALMEM1R(Vector2, project);
 	VCALL_LOCALMEM1R(Vector2, angle_to);
 	VCALL_LOCALMEM1R(Vector2, angle_to_point);
+	VCALL_LOCALMEM1R(Vector2, direction_to);
 	VCALL_LOCALMEM2R(Vector2, linear_interpolate);
 	VCALL_LOCALMEM2R(Vector2, slerp);
 	VCALL_LOCALMEM4R(Vector2, cubic_interpolate);
@@ -397,6 +398,7 @@ struct _VariantCall {
 	VCALL_LOCALMEM1R(Vector3, distance_squared_to);
 	VCALL_LOCALMEM1R(Vector3, project);
 	VCALL_LOCALMEM1R(Vector3, angle_to);
+	VCALL_LOCALMEM1R(Vector3, direction_to);
 	VCALL_LOCALMEM1R(Vector3, slide);
 	VCALL_LOCALMEM1R(Vector3, bounce);
 	VCALL_LOCALMEM1R(Vector3, reflect);
@@ -480,7 +482,7 @@ struct _VariantCall {
 	VCALL_LOCALMEM0(Dictionary, clear);
 	VCALL_LOCALMEM1R(Dictionary, has);
 	VCALL_LOCALMEM1R(Dictionary, has_all);
-	VCALL_LOCALMEM1(Dictionary, erase);
+	VCALL_LOCALMEM1R(Dictionary, erase);
 	VCALL_LOCALMEM0R(Dictionary, hash);
 	VCALL_LOCALMEM0R(Dictionary, keys);
 	VCALL_LOCALMEM0R(Dictionary, values);
@@ -773,6 +775,8 @@ struct _VariantCall {
 	VCALL_PTR0R(Basis, get_orthogonal_index);
 	VCALL_PTR0R(Basis, orthonormalized);
 	VCALL_PTR2R(Basis, slerp);
+	VCALL_PTR2R(Basis, is_equal_approx);
+	VCALL_PTR0R(Basis, get_rotation_quat);
 
 	VCALL_PTR0R(Transform, inverse);
 	VCALL_PTR0R(Transform, affine_inverse);
@@ -1227,15 +1231,15 @@ bool Variant::has_method(const StringName &p_method) const {
 #endif
 	}
 
-	const _VariantCall::TypeFunc &fd = _VariantCall::type_funcs[type];
-	return fd.functions.has(p_method);
+	const _VariantCall::TypeFunc &tf = _VariantCall::type_funcs[type];
+	return tf.functions.has(p_method);
 }
 
 Vector<Variant::Type> Variant::get_method_argument_types(Variant::Type p_type, const StringName &p_method) {
 
-	const _VariantCall::TypeFunc &fd = _VariantCall::type_funcs[p_type];
+	const _VariantCall::TypeFunc &tf = _VariantCall::type_funcs[p_type];
 
-	const Map<StringName, _VariantCall::FuncData>::Element *E = fd.functions.find(p_method);
+	const Map<StringName, _VariantCall::FuncData>::Element *E = tf.functions.find(p_method);
 	if (!E)
 		return Vector<Variant::Type>();
 
@@ -1244,9 +1248,9 @@ Vector<Variant::Type> Variant::get_method_argument_types(Variant::Type p_type, c
 
 bool Variant::is_method_const(Variant::Type p_type, const StringName &p_method) {
 
-	const _VariantCall::TypeFunc &fd = _VariantCall::type_funcs[p_type];
+	const _VariantCall::TypeFunc &tf = _VariantCall::type_funcs[p_type];
 
-	const Map<StringName, _VariantCall::FuncData>::Element *E = fd.functions.find(p_method);
+	const Map<StringName, _VariantCall::FuncData>::Element *E = tf.functions.find(p_method);
 	if (!E)
 		return false;
 
@@ -1255,9 +1259,9 @@ bool Variant::is_method_const(Variant::Type p_type, const StringName &p_method) 
 
 Vector<StringName> Variant::get_method_argument_names(Variant::Type p_type, const StringName &p_method) {
 
-	const _VariantCall::TypeFunc &fd = _VariantCall::type_funcs[p_type];
+	const _VariantCall::TypeFunc &tf = _VariantCall::type_funcs[p_type];
 
-	const Map<StringName, _VariantCall::FuncData>::Element *E = fd.functions.find(p_method);
+	const Map<StringName, _VariantCall::FuncData>::Element *E = tf.functions.find(p_method);
 	if (!E)
 		return Vector<StringName>();
 
@@ -1266,9 +1270,9 @@ Vector<StringName> Variant::get_method_argument_names(Variant::Type p_type, cons
 
 Variant::Type Variant::get_method_return_type(Variant::Type p_type, const StringName &p_method, bool *r_has_return) {
 
-	const _VariantCall::TypeFunc &fd = _VariantCall::type_funcs[p_type];
+	const _VariantCall::TypeFunc &tf = _VariantCall::type_funcs[p_type];
 
-	const Map<StringName, _VariantCall::FuncData>::Element *E = fd.functions.find(p_method);
+	const Map<StringName, _VariantCall::FuncData>::Element *E = tf.functions.find(p_method);
 	if (!E)
 		return Variant::NIL;
 
@@ -1280,9 +1284,9 @@ Variant::Type Variant::get_method_return_type(Variant::Type p_type, const String
 
 Vector<Variant> Variant::get_method_default_arguments(Variant::Type p_type, const StringName &p_method) {
 
-	const _VariantCall::TypeFunc &fd = _VariantCall::type_funcs[p_type];
+	const _VariantCall::TypeFunc &tf = _VariantCall::type_funcs[p_type];
 
-	const Map<StringName, _VariantCall::FuncData>::Element *E = fd.functions.find(p_method);
+	const Map<StringName, _VariantCall::FuncData>::Element *E = tf.functions.find(p_method);
 	if (!E)
 		return Vector<Variant>();
 
@@ -1291,9 +1295,9 @@ Vector<Variant> Variant::get_method_default_arguments(Variant::Type p_type, cons
 
 void Variant::get_method_list(List<MethodInfo> *p_list) const {
 
-	const _VariantCall::TypeFunc &fd = _VariantCall::type_funcs[type];
+	const _VariantCall::TypeFunc &tf = _VariantCall::type_funcs[type];
 
-	for (const Map<StringName, _VariantCall::FuncData>::Element *E = fd.functions.front(); E; E = E->next()) {
+	for (const Map<StringName, _VariantCall::FuncData>::Element *E = tf.functions.front(); E; E = E->next()) {
 
 		const _VariantCall::FuncData &fd = E->get();
 
@@ -1405,11 +1409,11 @@ Variant Variant::get_constant_value(Variant::Type p_type, const StringName &p_va
 
 	Map<StringName, int>::Element *E = cd.value.find(p_value);
 	if (!E) {
-		Map<StringName, Variant>::Element *E = cd.variant_value.find(p_value);
-		if (E) {
+		Map<StringName, Variant>::Element *F = cd.variant_value.find(p_value);
+		if (F) {
 			if (r_valid)
 				*r_valid = true;
-			return E->get();
+			return F->get();
 		} else {
 			return -1;
 		}
@@ -1497,9 +1501,9 @@ void register_variant_methods() {
 	ADDFUNC2R(STRING, STRING, String, replacen, STRING, "what", STRING, "forwhat", varray());
 	ADDFUNC2R(STRING, STRING, String, insert, INT, "position", STRING, "what", varray());
 	ADDFUNC0R(STRING, STRING, String, capitalize, varray());
-	ADDFUNC3R(STRING, POOL_STRING_ARRAY, String, split, STRING, "divisor", BOOL, "allow_empty", INT, "maxsplit", varray(true, 0));
-	ADDFUNC3R(STRING, POOL_STRING_ARRAY, String, rsplit, STRING, "divisor", BOOL, "allow_empty", INT, "maxsplit", varray(true, 0));
-	ADDFUNC2R(STRING, POOL_REAL_ARRAY, String, split_floats, STRING, "divisor", BOOL, "allow_empty", varray(true));
+	ADDFUNC3R(STRING, POOL_STRING_ARRAY, String, split, STRING, "delimiter", BOOL, "allow_empty", INT, "maxsplit", varray(true, 0));
+	ADDFUNC3R(STRING, POOL_STRING_ARRAY, String, rsplit, STRING, "delimiter", BOOL, "allow_empty", INT, "maxsplit", varray(true, 0));
+	ADDFUNC2R(STRING, POOL_REAL_ARRAY, String, split_floats, STRING, "delimiter", BOOL, "allow_empty", varray(true));
 
 	ADDFUNC0R(STRING, STRING, String, to_upper, varray());
 	ADDFUNC0R(STRING, STRING, String, to_lower, varray());
@@ -1554,6 +1558,7 @@ void register_variant_methods() {
 	ADDFUNC0R(VECTOR2, REAL, Vector2, angle, varray());
 	ADDFUNC0R(VECTOR2, REAL, Vector2, length_squared, varray());
 	ADDFUNC0R(VECTOR2, BOOL, Vector2, is_normalized, varray());
+	ADDFUNC1R(VECTOR2, VECTOR2, Vector2, direction_to, VECTOR2, "b", varray());
 	ADDFUNC1R(VECTOR2, REAL, Vector2, distance_to, VECTOR2, "to", varray());
 	ADDFUNC1R(VECTOR2, REAL, Vector2, distance_squared_to, VECTOR2, "to", varray());
 	ADDFUNC1R(VECTOR2, VECTOR2, Vector2, project, VECTOR2, "b", varray());
@@ -1602,6 +1607,7 @@ void register_variant_methods() {
 	ADDFUNC2R(VECTOR3, VECTOR3, Vector3, linear_interpolate, VECTOR3, "b", REAL, "t", varray());
 	ADDFUNC2R(VECTOR3, VECTOR3, Vector3, slerp, VECTOR3, "b", REAL, "t", varray());
 	ADDFUNC4R(VECTOR3, VECTOR3, Vector3, cubic_interpolate, VECTOR3, "b", VECTOR3, "pre_a", VECTOR3, "post_b", REAL, "t", varray());
+	ADDFUNC1R(VECTOR3, VECTOR3, Vector3, direction_to, VECTOR3, "b", varray());
 	ADDFUNC1R(VECTOR3, REAL, Vector3, dot, VECTOR3, "b", varray());
 	ADDFUNC1R(VECTOR3, VECTOR3, Vector3, cross, VECTOR3, "b", varray());
 	ADDFUNC1R(VECTOR3, BASIS, Vector3, outer, VECTOR3, "b", varray());
@@ -1842,6 +1848,8 @@ void register_variant_methods() {
 	ADDFUNC1R(BASIS, VECTOR3, Basis, xform_inv, VECTOR3, "v", varray());
 	ADDFUNC0R(BASIS, INT, Basis, get_orthogonal_index, varray());
 	ADDFUNC2R(BASIS, BASIS, Basis, slerp, BASIS, "b", REAL, "t", varray());
+	ADDFUNC2R(BASIS, BOOL, Basis, is_equal_approx, BASIS, "b", REAL, "epsilon", varray(CMP_EPSILON));
+	ADDFUNC0R(BASIS, QUAT, Basis, get_rotation_quat, varray());
 
 	ADDFUNC0R(TRANSFORM, TRANSFORM, Transform, inverse, varray());
 	ADDFUNC0R(TRANSFORM, TRANSFORM, Transform, affine_inverse, varray());
@@ -1923,9 +1931,9 @@ void register_variant_methods() {
 	_VariantCall::add_variant_constant(Variant::TRANSFORM, "IDENTITY", identity_transform);
 	transform_x.set(-1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, 0);
 	_VariantCall::add_variant_constant(Variant::TRANSFORM, "FLIP_X", transform_x);
-	transform_x.set(1, 0, 0, 0, -1, 0, 0, 0, 1, 0, 0, 0);
+	transform_y.set(1, 0, 0, 0, -1, 0, 0, 0, 1, 0, 0, 0);
 	_VariantCall::add_variant_constant(Variant::TRANSFORM, "FLIP_Y", transform_y);
-	transform_x.set(1, 0, 0, 0, 1, 0, 0, 0, -1, 0, 0, 0);
+	transform_z.set(1, 0, 0, 0, 1, 0, 0, 0, -1, 0, 0, 0);
 	_VariantCall::add_variant_constant(Variant::TRANSFORM, "FLIP_Z", transform_z);
 
 	_VariantCall::add_variant_constant(Variant::PLANE, "PLANE_YZ", Plane(Vector3(1, 0, 0), 0));

@@ -59,7 +59,7 @@ class ScriptTextEditor : public ScriptEditorBase {
 
 	PopupPanel *color_panel;
 	ColorPicker *color_picker;
-	int color_line;
+	Vector2 color_position;
 	String color_args;
 
 	void _update_member_keywords();
@@ -125,8 +125,8 @@ protected:
 	void _code_complete_script(const String &p_code, List<String> *r_options, bool &r_force);
 	void _load_theme_settings();
 	void _set_theme_for_script();
-	void _toggle_warning_pannel(const Ref<InputEvent> &p_event);
-	void _error_pressed(const Ref<InputEvent> &p_event);
+	void _show_warnings_panel(bool p_show);
+	void _error_pressed();
 	void _warning_clicked(Variant p_line);
 
 	void _notification(int p_what);

@@ -170,7 +170,7 @@ private:
 		Color line_number_color;
 		Color safe_line_number_color;
 		Color font_color;
-		Color font_selected_color;
+		Color font_color_selected;
 		Color keyword_color;
 		Color number_color;
 		Color function_color;
@@ -683,6 +683,7 @@ protected:
 	TextEdit *text_editor;
 
 public:
+	virtual ~SyntaxHighlighter() {}
 	virtual void _update_cache() = 0;
 	virtual Map<int, TextEdit::HighlighterInfo> _get_line_syntax_highlighting(int p_line) = 0;
 

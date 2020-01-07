@@ -139,13 +139,23 @@ void CSharpLanguage::finish() {
 	}
 #endif
 
-	// Release gchandle bindings before finalizing mono runtime
-	script_bindings.clear();
+	// Make sure all script binding gchandles are released before finalizing GDMono
+	for (Map<Object *, CSharpScriptBinding>::Element *E = script_bindings.front(); E; E = E->next()) {
+		CSharpScriptBinding &script_binding = E->value();
+
+		if (script_binding.gchandle.is_valid()) {
+			script_binding.gchandle->release();
+			script_binding.inited = false;
+		}
+	}
 
 	if (gdmono) {
 		memdelete(gdmono);
 		gdmono = NULL;
 	}
+
+	// Clear here, after finalizing all domains to make sure there is nothing else referencing the elements.
+	script_bindings.clear();
 
 	finalizing = false;
 }
@@ -439,7 +449,7 @@ static String variant_type_to_managed_name(const String &p_var_type_name) {
 		Variant::_RID
 	};
 
-	for (int i = 0; i < sizeof(var_types) / sizeof(Variant::Type); i++) {
+	for (unsigned int i = 0; i < sizeof(var_types) / sizeof(Variant::Type); i++) {
 		if (p_var_type_name == Variant::get_type_name(var_types[i]))
 			return p_var_type_name;
 	}
@@ -487,6 +497,47 @@ String CSharpLanguage::_get_indentation() const {
 	}
 #endif
 	return "\t";
+}
+
+String CSharpLanguage::debug_get_error() const {
+
+	return _debug_error;
+}
+
+int CSharpLanguage::debug_get_stack_level_count() const {
+
+	if (_debug_parse_err_line >= 0)
+		return 1;
+
+	// TODO: StackTrace
+	return 1;
+}
+
+int CSharpLanguage::debug_get_stack_level_line(int p_level) const {
+
+	if (_debug_parse_err_line >= 0)
+		return _debug_parse_err_line;
+
+	// TODO: StackTrace
+	return 1;
+}
+
+String CSharpLanguage::debug_get_stack_level_function(int p_level) const {
+
+	if (_debug_parse_err_line >= 0)
+		return String();
+
+	// TODO: StackTrace
+	return String();
+}
+
+String CSharpLanguage::debug_get_stack_level_source(int p_level) const {
+
+	if (_debug_parse_err_line >= 0)
+		return _debug_parse_err_file;
+
+	// TODO: StackTrace
+	return String();
 }
 
 Vector<ScriptLanguage::StackInfo> CSharpLanguage::debug_get_current_stack_info() {
@@ -578,7 +629,7 @@ void CSharpLanguage::frame() {
 
 				if (exc) {
 					GDMonoUtils::debug_unhandled_exception(exc);
-					_UNREACHABLE_();
+					GD_UNREACHABLE();
 				}
 			}
 		}
@@ -709,13 +760,13 @@ void CSharpLanguage::reload_assemblies(bool p_soft_reload) {
 		// Script::instances are deleted during managed object disposal, which happens on domain finalize.
 		// Only placeholders are kept. Therefore we need to keep a copy before that happens.
 
-		for (Set<Object *>::Element *E = script->instances.front(); E; E = E->next()) {
-			script->pending_reload_instances.insert(E->get()->get_instance_id());
+		for (Set<Object *>::Element *F = script->instances.front(); F; F = F->next()) {
+			script->pending_reload_instances.insert(F->get()->get_instance_id());
 		}
 
 #ifdef TOOLS_ENABLED
-		for (Set<PlaceHolderScriptInstance *>::Element *E = script->placeholders.front(); E; E = E->next()) {
-			script->pending_reload_instances.insert(E->get()->get_owner()->get_instance_id());
+		for (Set<PlaceHolderScriptInstance *>::Element *F = script->placeholders.front(); F; F = F->next()) {
+			script->pending_reload_instances.insert(F->get()->get_owner()->get_instance_id());
 		}
 #endif
 
@@ -868,7 +919,7 @@ void CSharpLanguage::reload_assemblies(bool p_soft_reload) {
 }
 #endif
 
-void CSharpLanguage::project_assembly_loaded() {
+void CSharpLanguage::_load_scripts_metadata() {
 
 	scripts_metadata.clear();
 
@@ -902,6 +953,7 @@ void CSharpLanguage::project_assembly_loaded() {
 		}
 
 		scripts_metadata = old_dict_var.operator Dictionary();
+		scripts_metadata_invalidated = false;
 
 		print_verbose("Successfully loaded scripts metadata");
 	} else {
@@ -948,12 +1000,11 @@ void CSharpLanguage::thread_exit() {
 
 bool CSharpLanguage::debug_break_parse(const String &p_file, int p_line, const String &p_error) {
 
-	// Break because of parse error
+	// Not a parser error in our case, but it's still used for other type of errors
 	if (ScriptDebugger::get_singleton() && Thread::get_caller_id() == Thread::get_main_id()) {
-		// TODO
-		//_debug_parse_err_line = p_line;
-		//_debug_parse_err_file = p_file;
-		//_debug_error = p_error;
+		_debug_parse_err_line = p_line;
+		_debug_parse_err_file = p_file;
+		_debug_error = p_error;
 		ScriptDebugger::get_singleton()->debug(this, false);
 		return true;
 	} else {
@@ -964,15 +1015,23 @@ bool CSharpLanguage::debug_break_parse(const String &p_file, int p_line, const S
 bool CSharpLanguage::debug_break(const String &p_error, bool p_allow_continue) {
 
 	if (ScriptDebugger::get_singleton() && Thread::get_caller_id() == Thread::get_main_id()) {
-		// TODO
-		//_debug_parse_err_line = -1;
-		//_debug_parse_err_file = "";
-		//_debug_error = p_error;
+		_debug_parse_err_line = -1;
+		_debug_parse_err_file = "";
+		_debug_error = p_error;
 		ScriptDebugger::get_singleton()->debug(this, p_allow_continue);
 		return true;
 	} else {
 		return false;
 	}
+}
+
+void CSharpLanguage::_on_scripts_domain_unloaded() {
+	for (Map<Object *, CSharpScriptBinding>::Element *E = script_bindings.front(); E; E = E->next()) {
+		CSharpScriptBinding &script_binding = E->value();
+		script_binding.inited = false;
+	}
+
+	scripts_metadata_invalidated = true;
 }
 
 void CSharpLanguage::set_language_index(int p_idx) {
@@ -1030,6 +1089,8 @@ CSharpLanguage::CSharpLanguage() {
 #endif
 
 	lang_idx = -1;
+
+	scripts_metadata_invalidated = true;
 }
 
 CSharpLanguage::~CSharpLanguage() {
@@ -1054,12 +1115,14 @@ CSharpLanguage::~CSharpLanguage() {
 	singleton = NULL;
 }
 
-void *CSharpLanguage::alloc_instance_binding_data(Object *p_object) {
+bool CSharpLanguage::setup_csharp_script_binding(CSharpScriptBinding &r_script_binding, Object *p_object) {
 
 #ifdef DEBUG_ENABLED
 	// I don't trust you
-	if (p_object->get_script_instance())
-		CRASH_COND(NULL != CAST_CSHARP_INSTANCE(p_object->get_script_instance()));
+	if (p_object->get_script_instance()) {
+		CSharpInstance *csharp_instance = CAST_CSHARP_INSTANCE(p_object->get_script_instance());
+		CRASH_COND(csharp_instance != NULL && !csharp_instance->is_destructing_script_instance());
+	}
 #endif
 
 	StringName type_name = p_object->get_class_name();
@@ -1068,29 +1131,21 @@ void *CSharpLanguage::alloc_instance_binding_data(Object *p_object) {
 	const ClassDB::ClassInfo *classinfo = ClassDB::classes.getptr(type_name);
 	while (classinfo && !classinfo->exposed)
 		classinfo = classinfo->inherits_ptr;
-	ERR_FAIL_NULL_V(classinfo, NULL);
+	ERR_FAIL_NULL_V(classinfo, false);
 	type_name = classinfo->name;
 
 	GDMonoClass *type_class = GDMonoUtils::type_get_proxy_class(type_name);
 
-	ERR_FAIL_NULL_V(type_class, NULL);
+	ERR_FAIL_NULL_V(type_class, false);
 
 	MonoObject *mono_object = GDMonoUtils::create_managed_for_godot_object(type_class, type_name, p_object);
 
-	ERR_FAIL_NULL_V(mono_object, NULL);
+	ERR_FAIL_NULL_V(mono_object, false);
 
-	CSharpScriptBinding script_binding;
-
-	script_binding.type_name = type_name;
-	script_binding.wrapper_class = type_class; // cache
-	script_binding.gchandle = MonoGCHandle::create_strong(mono_object);
-
-	void *data;
-
-	{
-		SCOPED_MUTEX_LOCK(language_bind_mutex);
-		data = (void *)script_bindings.insert(p_object, script_binding);
-	}
+	r_script_binding.inited = true;
+	r_script_binding.type_name = type_name;
+	r_script_binding.wrapper_class = type_class; // cache
+	r_script_binding.gchandle = MonoGCHandle::create_strong(mono_object);
 
 	// Tie managed to unmanaged
 	Reference *ref = Object::cast_to<Reference>(p_object);
@@ -1104,7 +1159,28 @@ void *CSharpLanguage::alloc_instance_binding_data(Object *p_object) {
 		ref->reference();
 	}
 
-	return data;
+	return true;
+}
+
+void *CSharpLanguage::alloc_instance_binding_data(Object *p_object) {
+
+	SCOPED_MUTEX_LOCK(language_bind_mutex);
+
+	Map<Object *, CSharpScriptBinding>::Element *match = script_bindings.find(p_object);
+	if (match)
+		return (void *)match;
+
+	CSharpScriptBinding script_binding;
+
+	if (!setup_csharp_script_binding(script_binding, p_object))
+		return NULL;
+
+	return (void *)insert_script_binding(p_object, script_binding);
+}
+
+Map<Object *, CSharpScriptBinding>::Element *CSharpLanguage::insert_script_binding(Object *p_object, const CSharpScriptBinding &p_script_binding) {
+
+	return script_bindings.insert(p_object, p_script_binding);
 }
 
 void CSharpLanguage::free_instance_binding_data(void *p_data) {
@@ -1125,10 +1201,15 @@ void CSharpLanguage::free_instance_binding_data(void *p_data) {
 
 		Map<Object *, CSharpScriptBinding>::Element *data = (Map<Object *, CSharpScriptBinding>::Element *)p_data;
 
-		// Set the native instance field to IntPtr.Zero, if not yet garbage collected
-		MonoObject *mono_object = data->value().gchandle->get_target();
-		if (mono_object) {
-			CACHED_FIELD(GodotObject, ptr)->set_value_raw(mono_object, NULL);
+		CSharpScriptBinding &script_binding = data->value();
+
+		if (script_binding.inited) {
+			// Set the native instance field to IntPtr.Zero, if not yet garbage collected.
+			// This is done to avoid trying to dispose the native instance from Dispose(bool).
+			MonoObject *mono_object = script_binding.gchandle->get_target();
+			if (mono_object) {
+				CACHED_FIELD(GodotObject, ptr)->set_value_raw(mono_object, NULL);
+			}
 		}
 
 		script_bindings.erase(data);
@@ -1144,9 +1225,10 @@ void CSharpLanguage::refcount_incremented_instance_binding(Object *p_object) {
 #endif
 
 	void *data = p_object->get_script_instance_binding(get_language_index());
-	if (!data)
-		return;
-	Ref<MonoGCHandle> &gchandle = ((Map<Object *, CSharpScriptBinding>::Element *)data)->get().gchandle;
+	CRASH_COND(!data);
+
+	CSharpScriptBinding &script_binding = ((Map<Object *, CSharpScriptBinding>::Element *)data)->get();
+	Ref<MonoGCHandle> &gchandle = script_binding.gchandle;
 
 	if (ref_owner->reference_get_count() > 1 && gchandle->is_weak()) { // The managed side also holds a reference, hence 1 instead of 0
 		// The reference count was increased after the managed side was the only one referencing our owner.
@@ -1175,9 +1257,10 @@ bool CSharpLanguage::refcount_decremented_instance_binding(Object *p_object) {
 	int refcount = ref_owner->reference_get_count();
 
 	void *data = p_object->get_script_instance_binding(get_language_index());
-	if (!data)
-		return refcount == 0;
-	Ref<MonoGCHandle> &gchandle = ((Map<Object *, CSharpScriptBinding>::Element *)data)->get().gchandle;
+	CRASH_COND(!data);
+
+	CSharpScriptBinding &script_binding = ((Map<Object *, CSharpScriptBinding>::Element *)data)->get();
+	Ref<MonoGCHandle> &gchandle = script_binding.gchandle;
 
 	if (refcount == 1 && gchandle.is_valid() && !gchandle->is_weak()) { // The managed side also holds a reference, hence 1 instead of 0
 		// If owner owner is no longer referenced by the unmanaged side,
@@ -1223,6 +1306,10 @@ MonoObject *CSharpInstance::get_mono_object() const {
 	return gchandle->get_target();
 }
 
+Object *CSharpInstance::get_owner() {
+	return owner;
+}
+
 bool CSharpInstance::set(const StringName &p_name, const Variant &p_value) {
 
 	ERR_FAIL_COND_V(!script.is_valid(), false);
@@ -1233,14 +1320,14 @@ bool CSharpInstance::set(const StringName &p_name, const Variant &p_value) {
 	GDMonoClass *top = script->script_class;
 
 	while (top && top != script->native) {
-		GDMonoField *field = script->script_class->get_field(p_name);
+		GDMonoField *field = top->get_field(p_name);
 
 		if (field) {
 			field->set_value_from_variant(mono_object, p_value);
 			return true;
 		}
 
-		GDMonoProperty *property = script->script_class->get_property(p_name);
+		GDMonoProperty *property = top->get_property(p_name);
 
 		if (property) {
 			property->set_value(mono_object, GDMonoMarshal::variant_to_mono_object(p_value, property->get_type()));
@@ -1341,6 +1428,34 @@ void CSharpInstance::get_property_list(List<PropertyInfo> *p_properties) const {
 
 	for (Map<StringName, PropertyInfo>::Element *E = script->member_info.front(); E; E = E->next()) {
 		p_properties->push_back(E->value());
+	}
+
+	// Call _get_property_list
+
+	ERR_FAIL_COND(!script.is_valid());
+
+	MonoObject *mono_object = get_mono_object();
+	ERR_FAIL_NULL(mono_object);
+
+	GDMonoClass *top = script->script_class;
+
+	while (top && top != script->native) {
+		GDMonoMethod *method = top->get_method(CACHED_STRING_NAME(_get_property_list), 0);
+
+		if (method) {
+			MonoObject *ret = method->invoke(mono_object);
+
+			if (ret) {
+				Array array = Array(GDMonoMarshal::mono_object_to_variant(ret));
+				for (int i = 0, size = array.size(); i < size; i++)
+					p_properties->push_back(PropertyInfo::from_dict(array.get(i)));
+				return;
+			}
+
+			break;
+		}
+
+		top = top->get_parent_class();
 	}
 }
 
@@ -1483,14 +1598,8 @@ bool CSharpInstance::_unreference_owner_unsafe() {
 	// Unsafe refcount decrement. The managed instance also counts as a reference.
 	// See: _reference_owner_unsafe()
 
-	bool die = static_cast<Reference *>(owner)->unreference();
-
-	if (die) {
-		memdelete(owner);
-		owner = NULL;
-	}
-
-	return die;
+	// Destroying the owner here means self destructing, so we defer the owner destruction to the caller.
+	return static_cast<Reference *>(owner)->unreference();
 }
 
 MonoObject *CSharpInstance::_internal_new_managed() {
@@ -1498,31 +1607,45 @@ MonoObject *CSharpInstance::_internal_new_managed() {
 	CRASH_COND(!gchandle.is_valid());
 #endif
 
+	// Search the constructor first, to fail with an error if it's not found before allocating anything else.
+	GDMonoMethod *ctor = script->script_class->get_method(CACHED_STRING_NAME(dotctor), 0);
+	if (ctor == NULL) {
+		ERR_PRINTS("Cannot create script instance because the class does not define a parameterless constructor: " + script->get_path());
+
+		ERR_EXPLAIN("Constructor not found");
+		ERR_FAIL_V(NULL);
+	}
+
 	CSharpLanguage::get_singleton()->release_script_gchandle(gchandle);
 
 	ERR_FAIL_NULL_V(owner, NULL);
 	ERR_FAIL_COND_V(script.is_null(), NULL);
 
-	if (base_ref)
-		_reference_owner_unsafe();
-
 	MonoObject *mono_object = mono_object_new(SCRIPTS_DOMAIN, script->script_class->get_mono_ptr());
 
 	if (!mono_object) {
+		// Important to clear this before destroying the script instance here
 		script = Ref<CSharpScript>();
-		owner->set_script_instance(NULL);
+		owner = NULL;
+
+		bool die = _unreference_owner_unsafe();
+		// Not ok for the owner to die here. If there is a situation where this can happen, it will be considered a bug.
+		CRASH_COND(die == true);
+
 		ERR_EXPLAIN("Failed to allocate memory for the object");
 		ERR_FAIL_V(NULL);
 	}
 
+	// Tie managed to unmanaged
+	gchandle = MonoGCHandle::create_strong(mono_object);
+
+	if (base_ref)
+		_reference_owner_unsafe(); // Here, after assigning the gchandle (for the refcount_incremented callback)
+
 	CACHED_FIELD(GodotObject, ptr)->set_value_raw(mono_object, owner);
 
 	// Construct
-	GDMonoMethod *ctor = script->script_class->get_method(CACHED_STRING_NAME(dotctor), 0);
 	ctor->invoke_raw(mono_object, NULL);
-
-	// Tie managed to unmanaged
-	gchandle = MonoGCHandle::create_strong(mono_object);
 
 	return mono_object;
 }
@@ -1536,25 +1659,36 @@ void CSharpInstance::mono_object_disposed(MonoObject *p_obj) {
 	CSharpLanguage::get_singleton()->release_script_gchandle(p_obj, gchandle);
 }
 
-void CSharpInstance::mono_object_disposed_baseref(MonoObject *p_obj, bool p_is_finalizer, bool &r_owner_deleted) {
+void CSharpInstance::mono_object_disposed_baseref(MonoObject *p_obj, bool p_is_finalizer, bool &r_delete_owner, bool &r_remove_script_instance) {
 
 #ifdef DEBUG_ENABLED
 	CRASH_COND(!base_ref);
 	CRASH_COND(gchandle.is_null());
 #endif
+
+	r_remove_script_instance = false;
+
 	if (_unreference_owner_unsafe()) {
-		r_owner_deleted = true;
+		// Safe to self destruct here with memdelete(owner), but it's deferred to the caller to prevent future mistakes.
+		r_delete_owner = true;
 	} else {
-		r_owner_deleted = false;
+		r_delete_owner = false;
 		CSharpLanguage::get_singleton()->release_script_gchandle(p_obj, gchandle);
-		if (p_is_finalizer && !GDMono::get_singleton()->is_finalizing_scripts_domain()) {
-			// If the native instance is still alive, then it was
-			// referenced from another thread before the finalizer could
-			// unreference it and delete it, so we want to keep it.
-			// GC.ReRegisterForFinalize(this) is not safe because the objects
-			// referenced by this could have already been collected.
-			// Instead we will create a new managed instance here.
-			_internal_new_managed();
+
+		if (!p_is_finalizer) {
+			// If the native instance is still alive and Dispose() was called
+			// (instead of the finalizer), then we remove the script instance.
+			r_remove_script_instance = true;
+		} else if (!GDMono::get_singleton()->is_finalizing_scripts_domain()) {
+			// If the native instance is still alive and this is called from the finalizer,
+			// then it was referenced from another thread before the finalizer could
+			// unreference and delete it, so we want to keep it.
+			// GC.ReRegisterForFinalize(this) is not safe because the objects referenced by 'this'
+			// could have already been collected. Instead we will create a new managed instance here.
+			MonoObject *new_managed = _internal_new_managed();
+			if (!new_managed) {
+				r_remove_script_instance = true;
+			}
 		}
 	}
 }
@@ -1608,7 +1742,7 @@ bool CSharpInstance::refcount_decremented() {
 	return ref_dying;
 }
 
-MultiplayerAPI::RPCMode CSharpInstance::_member_get_rpc_mode(GDMonoClassMember *p_member) const {
+MultiplayerAPI::RPCMode CSharpInstance::_member_get_rpc_mode(IMonoClassMember *p_member) const {
 
 	if (p_member->has_attribute(CACHED_CLASS(RemoteAttribute)))
 		return MultiplayerAPI::RPC_MODE_REMOTE;
@@ -1750,6 +1884,8 @@ CSharpInstance::CSharpInstance() :
 
 CSharpInstance::~CSharpInstance() {
 
+	destructing_script_instance = true;
+
 	if (gchandle.is_valid()) {
 		if (!predelete_notified && !ref_dying) {
 			// This destructor is not called from the owners destructor.
@@ -1762,9 +1898,7 @@ CSharpInstance::~CSharpInstance() {
 
 			if (mono_object) {
 				MonoException *exc = NULL;
-				destructing_script_instance = true;
 				GDMonoUtils::dispose(mono_object, &exc);
-				destructing_script_instance = false;
 
 				if (exc) {
 					GDMonoUtils::set_pending_exception(exc);
@@ -1772,11 +1906,23 @@ CSharpInstance::~CSharpInstance() {
 			}
 		}
 
-		gchandle->release(); // Make sure it's released
+		gchandle->release(); // Make sure the gchandle is released
 	}
 
-	if (base_ref && !ref_dying && owner) { // it may be called from the owner's destructor
-		_unreference_owner_unsafe();
+	// If not being called from the owner's destructor, and we still hold a reference to the owner
+	if (base_ref && !ref_dying && owner && unsafe_referenced) {
+		// The owner's script or script instance is being replaced (or removed)
+
+		// Transfer ownership to an "instance binding"
+
+		void *data = owner->get_script_instance_binding(CSharpLanguage::get_singleton()->get_language_index());
+		CRASH_COND(data == NULL);
+
+		CSharpScriptBinding &script_binding = ((Map<Object *, CSharpScriptBinding>::Element *)data)->get();
+		CRASH_COND(!script_binding.inited);
+
+		bool die = _unreference_owner_unsafe();
+		CRASH_COND(die == true); // The "instance binding" should be holding a reference
 	}
 
 	if (script.is_valid() && owner) {
@@ -1820,6 +1966,9 @@ void CSharpScript::_update_exports_values(Map<StringName, Variant> &values, List
 bool CSharpScript::_update_exports() {
 
 #ifdef TOOLS_ENABLED
+	if (!Engine::get_singleton()->is_editor_hint())
+		return false;
+
 	placeholder_fallback_enabled = true; // until proven otherwise
 
 	if (!valid)
@@ -1841,13 +1990,21 @@ bool CSharpScript::_update_exports() {
 		MonoObject *tmp_object = mono_object_new(SCRIPTS_DOMAIN, script_class->get_mono_ptr());
 
 		if (!tmp_object) {
-			ERR_PRINT("Failed to create temporary MonoObject");
+			ERR_PRINT("Failed to allocate temporary MonoObject");
 			return false;
 		}
 
 		uint32_t tmp_pinned_gchandle = MonoGCHandle::new_strong_handle_pinned(tmp_object); // pin it (not sure if needed)
 
 		GDMonoMethod *ctor = script_class->get_method(CACHED_STRING_NAME(dotctor), 0);
+
+		if (ctor == NULL) {
+			ERR_PRINTS("Cannot construct temporary MonoObject because the class does not define a parameterless constructor: " + get_path());
+
+			ERR_EXPLAIN("Constructor not found");
+			ERR_FAIL_V(NULL);
+		}
+
 		MonoException *ctor_exc = NULL;
 		ctor->invoke(tmp_object, NULL, &ctor_exc);
 
@@ -2019,7 +2176,7 @@ bool CSharpScript::_get_signal(GDMonoClass *p_class, GDMonoClass *p_delegate, Ve
  * Returns false if there was an error, otherwise true.
  * If there was an error, r_prop_info and r_exported are not assigned any value.
  */
-bool CSharpScript::_get_member_export(GDMonoClass *p_class, GDMonoClassMember *p_member, PropertyInfo &r_prop_info, bool &r_exported) {
+bool CSharpScript::_get_member_export(GDMonoClass *p_class, IMonoClassMember *p_member, PropertyInfo &r_prop_info, bool &r_exported) {
 
 	StringName name = p_member->get_name();
 
@@ -2034,9 +2191,9 @@ bool CSharpScript::_get_member_export(GDMonoClass *p_class, GDMonoClassMember *p
 
 	ManagedType type;
 
-	if (p_member->get_member_type() == GDMonoClassMember::MEMBER_TYPE_FIELD) {
+	if (p_member->get_member_type() == IMonoClassMember::MEMBER_TYPE_FIELD) {
 		type = static_cast<GDMonoField *>(p_member)->get_type();
-	} else if (p_member->get_member_type() == GDMonoClassMember::MEMBER_TYPE_PROPERTY) {
+	} else if (p_member->get_member_type() == IMonoClassMember::MEMBER_TYPE_PROPERTY) {
 		type = static_cast<GDMonoProperty *>(p_member)->get_type();
 	} else {
 		CRASH_NOW();
@@ -2050,7 +2207,7 @@ bool CSharpScript::_get_member_export(GDMonoClass *p_class, GDMonoClassMember *p
 		return true;
 	}
 
-	if (p_member->get_member_type() == GDMonoClassMember::MEMBER_TYPE_PROPERTY) {
+	if (p_member->get_member_type() == IMonoClassMember::MEMBER_TYPE_PROPERTY) {
 		GDMonoProperty *property = static_cast<GDMonoProperty *>(p_member);
 		if (!property->has_getter() || !property->has_setter()) {
 			ERR_PRINTS("Cannot export property because it does not provide a getter or a setter: " + p_class->get_full_name() + "." + name.operator String());
@@ -2113,7 +2270,7 @@ bool CSharpScript::_get_member_export(GDMonoClass *p_class, GDMonoClassMember *p
 				return false;
 			}
 
-			if (val != i) {
+			if (val != (unsigned int)i) {
 				uses_default_values = false;
 			}
 
@@ -2128,8 +2285,11 @@ bool CSharpScript::_get_member_export(GDMonoClass *p_class, GDMonoClassMember *p
 			hint_string = name_only_hint_string;
 		}
 	} else if (variant_type == Variant::OBJECT && CACHED_CLASS(GodotReference)->is_assignable_from(type.type_class)) {
+		GDMonoClass *field_native_class = GDMonoUtils::get_class_native_base(type.type_class);
+		CRASH_COND(field_native_class == NULL);
+
 		hint = PROPERTY_HINT_RESOURCE_TYPE;
-		hint_string = NATIVE_GDMONOCLASS_NAME(type.type_class);
+		hint_string = NATIVE_GDMONOCLASS_NAME(field_native_class);
 	} else {
 		hint = PropertyHint(CACHED_FIELD(ExportAttribute, hint)->get_int_value(attr));
 		hint_string = CACHED_FIELD(ExportAttribute, hintString)->get_string_value(attr);
@@ -2224,17 +2384,18 @@ void CSharpScript::_bind_methods() {
 	ClassDB::bind_vararg_method(METHOD_FLAGS_DEFAULT, "new", &CSharpScript::_new, MethodInfo(Variant::OBJECT, "new"));
 }
 
-Ref<CSharpScript> CSharpScript::create_for_managed_type(GDMonoClass *p_class) {
+Ref<CSharpScript> CSharpScript::create_for_managed_type(GDMonoClass *p_class, GDMonoClass *p_native) {
 
 	// This method should not fail
 
 	CRASH_COND(!p_class);
 
+	// TODO: Cache the 'CSharpScript' associated with this 'p_class' instead of allocating a new one every time
 	Ref<CSharpScript> script = memnew(CSharpScript);
 
 	script->name = p_class->get_name();
 	script->script_class = p_class;
-	script->native = GDMonoUtils::get_class_native_base(script->script_class);
+	script->native = p_native;
 
 	CRASH_COND(script->native == NULL);
 
@@ -2328,22 +2489,64 @@ CSharpInstance *CSharpScript::_create_instance(const Variant **p_args, int p_arg
 
 	/* STEP 1, CREATE */
 
+	// Search the constructor first, to fail with an error if it's not found before allocating anything else.
+	GDMonoMethod *ctor = script_class->get_method(CACHED_STRING_NAME(dotctor), p_argcount);
+	if (ctor == NULL) {
+		if (p_argcount == 0) {
+			ERR_PRINTS("Cannot create script instance because the class does not define a parameterless constructor: " + get_path());
+		}
+
+		ERR_EXPLAIN("Constructor not found");
+		ERR_FAIL_V(NULL);
+	}
+
+	Ref<Reference> ref;
+	if (p_isref) {
+		// Hold it alive. Important if we have to dispose a script instance binding before creating the CSharpInstance.
+		ref = Ref<Reference>(static_cast<Reference *>(p_owner));
+	}
+
+	// If the object had a script instance binding, dispose it before adding the CSharpInstance
+	if (p_owner->has_script_instance_binding(CSharpLanguage::get_singleton()->get_language_index())) {
+		void *data = p_owner->get_script_instance_binding(CSharpLanguage::get_singleton()->get_language_index());
+		CRASH_COND(data == NULL);
+
+		CSharpScriptBinding &script_binding = ((Map<Object *, CSharpScriptBinding>::Element *)data)->get();
+		if (script_binding.inited && script_binding.gchandle.is_valid()) {
+			MonoObject *mono_object = script_binding.gchandle->get_target();
+			if (mono_object) {
+				MonoException *exc = NULL;
+				GDMonoUtils::dispose(mono_object, &exc);
+
+				if (exc) {
+					GDMonoUtils::set_pending_exception(exc);
+				}
+			}
+
+			script_binding.inited = false;
+		}
+	}
+
 	CSharpInstance *instance = memnew(CSharpInstance);
 	instance->base_ref = p_isref;
 	instance->script = Ref<CSharpScript>(this);
 	instance->owner = p_owner;
 	instance->owner->set_script_instance(instance);
 
-	if (instance->base_ref)
-		instance->_reference_owner_unsafe();
-
 	/* STEP 2, INITIALIZE AND CONSTRUCT */
 
 	MonoObject *mono_object = mono_object_new(SCRIPTS_DOMAIN, script_class->get_mono_ptr());
 
 	if (!mono_object) {
+		// Important to clear this before destroying the script instance here
 		instance->script = Ref<CSharpScript>();
-		instance->owner->set_script_instance(NULL);
+		instance->owner = NULL;
+
+		bool die = instance->_unreference_owner_unsafe();
+		// Not ok for the owner to die here. If there is a situation where this can happen, it will be considered a bug.
+		CRASH_COND(die == true);
+
+		p_owner->set_script_instance(NULL);
 		r_error.error = Variant::CallError::CALL_ERROR_INSTANCE_IS_NULL;
 		ERR_EXPLAIN("Failed to allocate memory for the object");
 		ERR_FAIL_V(NULL);
@@ -2351,6 +2554,9 @@ CSharpInstance *CSharpScript::_create_instance(const Variant **p_args, int p_arg
 
 	// Tie managed to unmanaged
 	instance->gchandle = MonoGCHandle::create_strong(mono_object);
+
+	if (instance->base_ref)
+		instance->_reference_owner_unsafe(); // Here, after assigning the gchandle (for the refcount_incremented callback)
 
 	{
 		SCOPED_MUTEX_LOCK(CSharpLanguage::get_singleton()->script_instances_mutex);
@@ -2360,7 +2566,6 @@ CSharpInstance *CSharpScript::_create_instance(const Variant **p_args, int p_arg
 	CACHED_FIELD(GodotObject, ptr)->set_value_raw(mono_object, instance->owner);
 
 	// Construct
-	GDMonoMethod *ctor = script_class->get_method(CACHED_STRING_NAME(dotctor), p_argcount);
 	ctor->invoke(mono_object, p_args);
 
 	/* STEP 3, PARTY */
@@ -2579,6 +2784,7 @@ Error CSharpScript::reload(bool p_keep_state) {
 			}
 
 			load_script_signals(script_class, native);
+			_update_exports();
 		}
 
 		return OK;
@@ -2847,6 +3053,7 @@ CSharpLanguage::StringNameCache::StringNameCache() {
 	_signal_callback = StaticCString::create("_signal_callback");
 	_set = StaticCString::create("_set");
 	_get = StaticCString::create("_get");
+	_get_property_list = StaticCString::create("_get_property_list");
 	_notification = StaticCString::create("_notification");
 	_script_source = StaticCString::create("script/source");
 	dotctor = StaticCString::create(".ctor");

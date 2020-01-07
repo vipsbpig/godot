@@ -849,8 +849,7 @@ void ScriptEditor::_file_dialog_action(String p_file) {
 			}
 			file->close();
 			memdelete(file);
-
-			// fallthrough to open the file.
+			FALLTHROUGH;
 		}
 		case FILE_OPEN: {
 
@@ -978,6 +977,10 @@ void ScriptEditor::_menu_option(int p_option) {
 		case SEARCH_WEBSITE: {
 
 			OS::get_singleton()->shell_open("https://docs.godotengine.org/");
+		} break;
+		case REQUEST_DOCS: {
+
+			OS::get_singleton()->shell_open("https://github.com/godotengine/godot-docs/issues/new");
 		} break;
 
 		case WINDOW_NEXT: {
@@ -1308,6 +1311,7 @@ void ScriptEditor::_notification(int p_what) {
 			EditorSettings::get_singleton()->connect("settings_changed", this, "_editor_settings_changed");
 			help_search->set_icon(get_icon("HelpSearch", "EditorIcons"));
 			site_search->set_icon(get_icon("Instance", "EditorIcons"));
+			request_docs->set_icon(get_icon("Issue", "EditorIcons"));
 
 			script_forward->set_icon(get_icon("Forward", "EditorIcons"));
 			script_back->set_icon(get_icon("Back", "EditorIcons"));
@@ -1684,7 +1688,19 @@ void ScriptEditor::_update_script_names() {
 			Ref<Texture> icon = se->get_icon();
 			String path = se->get_edited_resource()->get_path();
 			bool built_in = !path.is_resource_file();
-			String name = built_in ? path.get_file() : se->get_name();
+			String name;
+
+			if (built_in) {
+
+				name = path.get_file();
+				String resource_name = se->get_edited_resource()->get_name();
+				if (resource_name != "") {
+					name = name.substr(0, name.find("::", 0) + 2) + resource_name;
+				}
+			} else {
+
+				name = se->get_name();
+			}
 
 			_ScriptEditorItemData sd;
 			sd.icon = icon;
@@ -1731,7 +1747,7 @@ void ScriptEditor::_update_script_names() {
 
 			String name = eh->get_class();
 			Ref<Texture> icon = get_icon("Help", "EditorIcons");
-			String tooltip = name + TTR(" Class Reference");
+			String tooltip = vformat(TTR("%s Class Reference"), name);
 
 			_ScriptEditorItemData sd;
 			sd.icon = icon;
@@ -1890,10 +1906,11 @@ bool ScriptEditor::edit(const RES &p_resource, int p_line, int p_col, bool p_gra
 		String flags = EditorSettings::get_singleton()->get("text_editor/external/exec_flags");
 
 		List<String> args;
+		bool has_file_flag = false;
+		String script_path = ProjectSettings::get_singleton()->globalize_path(p_resource->get_path());
 
 		if (flags.size()) {
 			String project_path = ProjectSettings::get_singleton()->get_resource_path();
-			String script_path = ProjectSettings::get_singleton()->globalize_path(p_resource->get_path());
 
 			flags = flags.replacen("{line}", itos(p_line > 0 ? p_line : 0));
 			flags = flags.replacen("{col}", itos(p_col));
@@ -1915,6 +1932,9 @@ bool ScriptEditor::edit(const RES &p_resource, int p_line, int p_col, bool p_gra
 				} else if (flags[i] == '\0' || (!inside_quotes && flags[i] == ' ')) {
 
 					String arg = flags.substr(from, num_chars);
+					if (arg.find("{file}") != -1) {
+						has_file_flag = true;
+					}
 
 					// do path replacement here, else there will be issues with spaces and quotes
 					arg = arg.replacen("{project}", project_path);
@@ -1927,6 +1947,11 @@ bool ScriptEditor::edit(const RES &p_resource, int p_line, int p_col, bool p_gra
 					num_chars++;
 				}
 			}
+		}
+
+		// Default to passing script path if no {file} flag is specified.
+		if (!has_file_flag) {
+			args.push_back(script_path);
 		}
 
 		Error err = OS::get_singleton()->execute(path, args, false);
@@ -1951,8 +1976,9 @@ bool ScriptEditor::edit(const RES &p_resource, int p_line, int p_col, bool p_gra
 				if (is_visible_in_tree())
 					se->ensure_focus();
 
-				if (p_line >= 0)
+				if (p_line > 0) {
 					se->goto_line(p_line - 1);
+				}
 			}
 			return true;
 		}
@@ -2012,8 +2038,9 @@ bool ScriptEditor::edit(const RES &p_resource, int p_line, int p_col, bool p_gra
 	_test_script_times_on_disk(p_resource);
 	_update_modified_scripts_for_external_editor(p_resource);
 
-	if (p_line >= 0)
+	if (p_line > 0) {
 		se->goto_line(p_line - 1);
+	}
 
 	notify_script_changed(p_resource);
 	_add_recent_script(p_resource->get_path());
@@ -2205,6 +2232,9 @@ void ScriptEditor::_script_split_dragged(float) {
 }
 
 Variant ScriptEditor::get_drag_data_fw(const Point2 &p_point, Control *p_from) {
+
+	if (tab_container->get_child_count() == 0)
+		return Variant();
 
 	Node *cur_node = tab_container->get_child(tab_container->get_current_tab());
 
@@ -3076,6 +3106,12 @@ ScriptEditor::ScriptEditor(EditorNode *p_editor) {
 	menu_hb->add_child(site_search);
 	site_search->set_tooltip(TTR("Open Godot online documentation"));
 
+	request_docs = memnew(ToolButton);
+	request_docs->set_text(TTR("Request Docs"));
+	request_docs->connect("pressed", this, "_menu_option", varray(REQUEST_DOCS));
+	menu_hb->add_child(request_docs);
+	request_docs->set_tooltip(TTR("Help improve the Godot documentation by giving feedback"));
+
 	help_search = memnew(ToolButton);
 	help_search->set_text(TTR("Search Help"));
 	help_search->connect("pressed", this, "_menu_option", varray(SEARCH_HELP));
@@ -3304,7 +3340,8 @@ ScriptEditorPlugin::ScriptEditorPlugin(EditorNode *p_node) {
 	EditorSettings::get_singleton()->add_property_hint(PropertyInfo(Variant::INT, "text_editor/open_scripts/list_script_names_as", PROPERTY_HINT_ENUM, "Name,Parent Directory And Name,Full Path"));
 	EDITOR_DEF("text_editor/open_scripts/list_script_names_as", 0);
 	EditorSettings::get_singleton()->add_property_hint(PropertyInfo(Variant::STRING, "text_editor/external/exec_path", PROPERTY_HINT_GLOBAL_FILE));
-	EDITOR_DEF("text_editor/external/exec_flags", "");
+	EDITOR_DEF("text_editor/external/exec_flags", "{file}");
+	EditorSettings::get_singleton()->add_property_hint(PropertyInfo(Variant::STRING, "text_editor/external/exec_flags", PROPERTY_HINT_PLACEHOLDER_TEXT, "Call flags with placeholders: {project}, {file}, {col}, {line}."));
 
 	ED_SHORTCUT("script_editor/open_recent", TTR("Open Recent"), KEY_MASK_CMD | KEY_MASK_SHIFT | KEY_T);
 	ED_SHORTCUT("script_editor/clear_recent", TTR("Clear Recent Files"));

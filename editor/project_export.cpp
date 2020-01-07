@@ -631,6 +631,7 @@ void ProjectExportDialog::_delete_preset_confirm() {
 
 	int idx = presets->get_current();
 	_edit_preset(-1);
+	export_button->set_disabled(true);
 	EditorExport::get_singleton()->remove_export_preset(idx);
 	_update_presets();
 }
@@ -972,10 +973,15 @@ void ProjectExportDialog::_export_project_to_path(const String &p_path) {
 
 	Error err = platform->export_project(current, export_debug->is_pressed(), p_path, 0);
 	if (err != OK) {
-		error_dialog->set_text(TTR("Export templates for this platform are missing/corrupted:") + " " + platform->get_name());
+		if (err == ERR_FILE_NOT_FOUND) {
+			error_dialog->set_text(vformat(TTR("Failed to export the project for platform '%s'.\nExport templates seem to be missing or invalid."), platform->get_name()));
+		} else { // Assume misconfiguration. FIXME: Improve error handling and preset config validation.
+			error_dialog->set_text(vformat(TTR("Failed to export the project for platform '%s'.\nThis might be due to a configuration issue in the export preset or your export settings."), platform->get_name()));
+		}
+
+		ERR_PRINTS(vformat("Failed to export the project for platform '%s'.", platform->get_name()));
 		error_dialog->show();
 		error_dialog->popup_centered_minsize(Size2(300, 80));
-		ERR_PRINT("Failed to export project");
 	}
 }
 
@@ -1007,7 +1013,11 @@ void ProjectExportDialog::_export_all(bool p_debug) {
 
 		Error err = platform->export_project(preset, p_debug, preset->get_export_path(), 0);
 		if (err != OK) {
-			error_dialog->set_text(TTR("Export templates for this platform are missing/corrupted:") + " " + platform->get_name());
+			if (err == ERR_FILE_BAD_PATH) {
+				error_dialog->set_text(TTR("The given export path doesn't exist:") + "\n" + preset->get_export_path().get_base_dir());
+			} else {
+				error_dialog->set_text(TTR("Export templates for this platform are missing/corrupted:") + " " + platform->get_name());
+			}
 			error_dialog->show();
 			error_dialog->popup_centered_minsize(Size2(300, 80));
 			ERR_PRINT("Failed to export project");
@@ -1103,6 +1113,7 @@ ProjectExportDialog::ProjectExportDialog() {
 	name->connect("text_changed", this, "_name_changed");
 	runnable = memnew(CheckButton);
 	runnable->set_text(TTR("Runnable"));
+	runnable->set_tooltip(TTR("If checked, the preset will be available for use in one-click deploy.\nOnly one preset per platform may be marked as runnable."));
 	runnable->connect("pressed", this, "_runnable_pressed");
 	settings_vb->add_child(runnable);
 

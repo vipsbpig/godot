@@ -285,16 +285,26 @@ static void clear_touches() {
 			kEAGLDrawablePropertyColorFormat,
 			nil];
 
-	// Create our EAGLContext, and if successful make it current and create our framebuffer.
-	context = [[EAGLContext alloc] initWithAPI:kEAGLRenderingAPIOpenGLES3];
-
-	if (!context || ![EAGLContext setCurrentContext:context] || ![self createFramebuffer]) {
+	// Create a context based on the gl driver from project settings
+	if (GLOBAL_GET("rendering/quality/driver/driver_name") == "GLES3") {
+		context = [[EAGLContext alloc] initWithAPI:kEAGLRenderingAPIOpenGLES3];
+		NSLog(@"Setting up an OpenGL ES 3 context. Based on Project Settings \"rendering/quality/driver/driver_name\"");
+	} else if (GLOBAL_GET("rendering/quality/driver/driver_name") == "GLES2") {
 		context = [[EAGLContext alloc] initWithAPI:kEAGLRenderingAPIOpenGLES2];
 		gles3_available = false;
-		if (!context || ![EAGLContext setCurrentContext:context] || ![self createFramebuffer]) {
-			[self release];
-			return nil;
-		}
+		NSLog(@"Setting up an OpenGL ES 2 context. Based on Project Settings \"rendering/quality/driver/driver_name\"");
+	}
+	if (!context) {
+		NSLog(@"Failed to create OpenGL ES context!");
+		return nil;
+	}
+	if (![EAGLContext setCurrentContext:context]) {
+		NSLog(@"Failed to set EAGLContext!");
+		return nil;
+	}
+	if (![self createFramebuffer]) {
+		NSLog(@"Failed to create frame buffer!");
+		return nil;
 	}
 
 	// Default the animation interval to 1/60th of a second.
@@ -323,7 +333,6 @@ static void clear_touches() {
 	[EAGLContext setCurrentContext:context];
 	[self destroyFramebuffer];
 	[self createFramebuffer];
-	[self drawView];
 	[self drawView];
 }
 
@@ -440,22 +449,22 @@ static void clear_touches() {
 
 // Updates the OpenGL view when the timer fires
 - (void)drawView {
-	if (useCADisplayLink) {
-		// Pause the CADisplayLink to avoid recursion
-		[displayLink setPaused:YES];
-
-		// Process all input events
-		while (CFRunLoopRunInMode(kCFRunLoopDefaultMode, 0, TRUE) == kCFRunLoopRunHandledSource)
-			;
-
-		// We are good to go, resume the CADisplayLink
-		[displayLink setPaused:NO];
-	}
 
 	if (!active) {
 		printf("draw view not active!\n");
 		return;
 	};
+	if (useCADisplayLink) {
+		// Pause the CADisplayLink to avoid recursion
+		[displayLink setPaused:YES];
+
+		// Process all input events
+		while (CFRunLoopRunInMode(kCFRunLoopDefaultMode, 0.0, TRUE) == kCFRunLoopRunHandledSource)
+			;
+
+		// We are good to go, resume the CADisplayLink
+		[displayLink setPaused:NO];
+	}
 
 	// Make sure that you are drawing to the current context
 	[EAGLContext setCurrentContext:context];

@@ -8,6 +8,7 @@
     <RootNamespace>GodotSharpTools</RootNamespace>
     <AssemblyName>GodotSharpTools</AssemblyName>
     <TargetFrameworkVersion>v4.5</TargetFrameworkVersion>
+    <BaseIntermediateOutputPath>obj</BaseIntermediateOutputPath>
   </PropertyGroup>
   <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Debug|AnyCPU' ">
     <DebugSymbols>true</DebugSymbols>
@@ -40,6 +41,7 @@
     <Compile Include="Build\BuildSystem.cs" />
     <Compile Include="Editor\MonoDevelopInstance.cs" />
     <Compile Include="Project\ProjectExtensions.cs" />
+    <Compile Include="Project\IdentifierUtils.cs" />
     <Compile Include="Project\ProjectGenerator.cs" />
     <Compile Include="Project\ProjectUtils.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />

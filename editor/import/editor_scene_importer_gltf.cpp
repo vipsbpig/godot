@@ -237,15 +237,14 @@ Error EditorSceneImporterGLTF::_parse_nodes(GLTFState &state) {
 				node->scale = _arr_to_vec3(n["scale"]);
 			}
 
-			node->xform.basis = Basis(node->rotation);
-			node->xform.basis.scale(node->scale);
+			node->xform.basis.set_quat_scale(node->rotation, node->scale);
 			node->xform.origin = node->translation;
 		}
 
 		if (n.has("children")) {
 			Array children = n["children"];
-			for (int i = 0; i < children.size(); i++) {
-				node->children.push_back(children[i]);
+			for (int j = 0; j < children.size(); j++) {
+				node->children.push_back(children[j]);
 			}
 		}
 
@@ -879,7 +878,7 @@ Error EditorSceneImporterGLTF::_parse_meshes(GLTFState &state) {
 			if (p.has("mode")) {
 				int mode = p["mode"];
 				ERR_FAIL_INDEX_V(mode, 7, ERR_FILE_CORRUPT);
-				static const Mesh::PrimitiveType primitives[7] = {
+				static const Mesh::PrimitiveType primitives2[7] = {
 					Mesh::PRIMITIVE_POINTS,
 					Mesh::PRIMITIVE_LINES,
 					Mesh::PRIMITIVE_LINE_LOOP,
@@ -889,12 +888,14 @@ Error EditorSceneImporterGLTF::_parse_meshes(GLTFState &state) {
 					Mesh::PRIMITIVE_TRIANGLE_FAN,
 				};
 
-				primitive = primitives[mode];
+				primitive = primitives2[mode];
 			}
 
+			ERR_FAIL_COND_V(!a.has("POSITION"), ERR_PARSE_ERROR);
 			if (a.has("POSITION")) {
 				array[Mesh::ARRAY_VERTEX] = _decode_accessor_as_vec3(state, a["POSITION"], true);
 			}
+
 			if (a.has("NORMAL")) {
 				array[Mesh::ARRAY_NORMAL] = _decode_accessor_as_vec3(state, a["NORMAL"], true);
 			}
@@ -922,17 +923,17 @@ Error EditorSceneImporterGLTF::_parse_meshes(GLTFState &state) {
 					//PoolVector<int> v = array[Mesh::ARRAY_BONES];
 					//PoolVector<int>::Read r = v.read();
 
-					for (int j = 0; j < wc; j += 4) {
+					for (int k = 0; k < wc; k += 4) {
 						float total = 0.0;
-						total += w[j + 0];
-						total += w[j + 1];
-						total += w[j + 2];
-						total += w[j + 3];
+						total += w[k + 0];
+						total += w[k + 1];
+						total += w[k + 2];
+						total += w[k + 3];
 						if (total > 0.0) {
-							w[j + 0] /= total;
-							w[j + 1] /= total;
-							w[j + 2] /= total;
-							w[j + 3] /= total;
+							w[k + 0] /= total;
+							w[k + 1] /= total;
+							w[k + 2] /= total;
+							w[k + 3] /= total;
 						}
 
 						//print_verbose(itos(j / 4) + ": " + itos(r[j + 0]) + ":" + rtos(w[j + 0]) + ", " + itos(r[j + 1]) + ":" + rtos(w[j + 1]) + ", " + itos(r[j + 2]) + ":" + rtos(w[j + 2]) + ", " + itos(r[j + 3]) + ":" + rtos(w[j + 3]));
@@ -950,8 +951,8 @@ Error EditorSceneImporterGLTF::_parse_meshes(GLTFState &state) {
 
 					int is = indices.size();
 					PoolVector<int>::Write w = indices.write();
-					for (int i = 0; i < is; i += 3) {
-						SWAP(w[i + 1], w[i + 2]);
+					for (int k = 0; k < is; k += 3) {
+						SWAP(w[k + 1], w[k + 2]);
 					}
 				}
 				array[Mesh::ARRAY_INDEX] = indices;
@@ -964,10 +965,10 @@ Error EditorSceneImporterGLTF::_parse_meshes(GLTFState &state) {
 				indices.resize(vs);
 				{
 					PoolVector<int>::Write w = indices.write();
-					for (int i = 0; i < vs; i += 3) {
-						w[i] = i;
-						w[i + 1] = i + 2;
-						w[i + 2] = i + 1;
+					for (int k = 0; k < vs; k += 3) {
+						w[k] = k;
+						w[k + 1] = k + 2;
+						w[k + 2] = k + 1;
 					}
 				}
 				array[Mesh::ARRAY_INDEX] = indices;
@@ -1696,6 +1697,22 @@ void EditorSceneImporterGLTF::_assign_scene_names(GLTFState &state) {
 	}
 }
 
+void EditorSceneImporterGLTF::_reparent_skeleton(GLTFState &state, int p_node, Vector<Skeleton *> &skeletons, Node *p_parent_node) {
+	//reparent skeletons to proper place
+	Vector<int> nodes = state.skeleton_nodes[p_node];
+	for (int i = 0; i < nodes.size(); i++) {
+		Skeleton *skeleton = skeletons[nodes[i]];
+		Node *owner = skeleton->get_owner();
+		skeleton->get_parent()->remove_child(skeleton);
+		p_parent_node->add_child(skeleton);
+		skeleton->set_owner(owner);
+		//may have meshes as children, set owner in them too
+		for (int j = 0; j < skeleton->get_child_count(); j++) {
+			skeleton->get_child(j)->set_owner(owner);
+		}
+	}
+}
+
 void EditorSceneImporterGLTF::_generate_node(GLTFState &state, int p_node, Node *p_parent, Node *p_owner, Vector<Skeleton *> &skeletons) {
 	ERR_FAIL_INDEX(p_node, state.nodes.size());
 
@@ -1767,24 +1784,17 @@ void EditorSceneImporterGLTF::_generate_node(GLTFState &state, int p_node, Node 
 			_generate_node(state, n->children[i], node, p_owner, skeletons);
 		}
 	}
+
+	if (state.skeleton_nodes.has(p_node)) {
+		_reparent_skeleton(state, p_node, skeletons, node);
+	}
 }
 
 void EditorSceneImporterGLTF::_generate_bone(GLTFState &state, int p_node, Vector<Skeleton *> &skeletons, Node *p_parent_node) {
 	ERR_FAIL_INDEX(p_node, state.nodes.size());
 
 	if (state.skeleton_nodes.has(p_node)) {
-		//reparent skeletons to proper place
-		Vector<int> nodes = state.skeleton_nodes[p_node];
-		for (int i = 0; i < nodes.size(); i++) {
-			Node *owner = skeletons[i]->get_owner();
-			skeletons[i]->get_parent()->remove_child(skeletons[i]);
-			p_parent_node->add_child(skeletons[i]);
-			skeletons[i]->set_owner(owner);
-			//may have meshes as children, set owner in them too
-			for (int j = 0; j < skeletons[i]->get_child_count(); j++) {
-				skeletons[i]->get_child(j)->set_owner(owner);
-			}
-		}
+		_reparent_skeleton(state, p_node, skeletons, p_parent_node);
 	}
 
 	GLTFNode *n = state.nodes[p_node];
@@ -2077,22 +2087,23 @@ void EditorSceneImporterGLTF::_import_animation(GLTFState &state, AnimationPlaye
 				animation->add_track(Animation::TYPE_VALUE);
 				animation->track_set_path(track_idx, node_path);
 
-				if (track.weight_tracks[i].interpolation <= GLTFAnimation::INTERP_STEP) {
-					animation->track_set_interpolation_type(track_idx, track.weight_tracks[i].interpolation == GLTFAnimation::INTERP_STEP ? Animation::INTERPOLATION_NEAREST : Animation::INTERPOLATION_NEAREST);
+				// Only LINEAR and STEP (NEAREST) can be supported out of the box by Godot's Animation,
+				// the other modes have to be baked.
+				GLTFAnimation::Interpolation gltf_interp = track.weight_tracks[i].interpolation;
+				if (gltf_interp == GLTFAnimation::INTERP_LINEAR || gltf_interp == GLTFAnimation::INTERP_STEP) {
+					animation->track_set_interpolation_type(track_idx, gltf_interp == GLTFAnimation::INTERP_STEP ? Animation::INTERPOLATION_NEAREST : Animation::INTERPOLATION_LINEAR);
 					for (int j = 0; j < track.weight_tracks[i].times.size(); j++) {
 						float t = track.weight_tracks[i].times[j];
 						float w = track.weight_tracks[i].values[j];
 						animation->track_insert_key(track_idx, t, w);
 					}
 				} else {
-					//must bake, apologies.
+					// CATMULLROMSPLINE or CUBIC_SPLINE have to be baked, apologies.
 					float increment = 1.0 / float(bake_fps);
 					float time = 0.0;
-
 					bool last = false;
 					while (true) {
-
-						_interpolate_track<float>(track.weight_tracks[i].times, track.weight_tracks[i].values, time, track.weight_tracks[i].interpolation);
+						_interpolate_track<float>(track.weight_tracks[i].times, track.weight_tracks[i].values, time, gltf_interp);
 						if (last) {
 							break;
 						}
@@ -2119,6 +2130,7 @@ Spatial *EditorSceneImporterGLTF::_generate_scene(GLTFState &state, int p_bake_f
 	Vector<Skeleton *> skeletons;
 	for (int i = 0; i < state.skins.size(); i++) {
 		Skeleton *s = memnew(Skeleton);
+		s->set_use_bones_in_world_transform(false); //GLTF does not need this since meshes are always local
 		String name = state.skins[i].name;
 		if (name == "") {
 			name = _gen_unique_name(state, "Skeleton");

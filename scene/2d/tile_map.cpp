@@ -75,15 +75,15 @@ void TileMap::_notification(int p_what) {
 
 				Quadrant &q = E->get();
 				if (navigation) {
-					for (Map<PosKey, Quadrant::NavPoly>::Element *E = q.navpoly_ids.front(); E; E = E->next()) {
+					for (Map<PosKey, Quadrant::NavPoly>::Element *F = q.navpoly_ids.front(); F; F = F->next()) {
 
-						navigation->navpoly_remove(E->get().id);
+						navigation->navpoly_remove(F->get().id);
 					}
 					q.navpoly_ids.clear();
 				}
 
-				for (Map<PosKey, Quadrant::Occluder>::Element *E = q.occluder_instances.front(); E; E = E->next()) {
-					VS::get_singleton()->free(E->get().id);
+				for (Map<PosKey, Quadrant::Occluder>::Element *F = q.occluder_instances.front(); F; F = F->next()) {
+					VS::get_singleton()->free(F->get().id);
 				}
 				q.occluder_instances.clear();
 			}
@@ -129,14 +129,14 @@ void TileMap::_update_quadrant_transform() {
 		Physics2DServer::get_singleton()->body_set_state(q.body, Physics2DServer::BODY_STATE_TRANSFORM, xform);
 
 		if (navigation) {
-			for (Map<PosKey, Quadrant::NavPoly>::Element *E = q.navpoly_ids.front(); E; E = E->next()) {
+			for (Map<PosKey, Quadrant::NavPoly>::Element *F = q.navpoly_ids.front(); F; F = F->next()) {
 
-				navigation->navpoly_set_transform(E->get().id, nav_rel * E->get().xform);
+				navigation->navpoly_set_transform(F->get().id, nav_rel * F->get().xform);
 			}
 		}
 
-		for (Map<PosKey, Quadrant::Occluder>::Element *E = q.occluder_instances.front(); E; E = E->next()) {
-			VS::get_singleton()->canvas_light_occluder_set_transform(E->get().id, global_transform * E->get().xform);
+		for (Map<PosKey, Quadrant::Occluder>::Element *F = q.occluder_instances.front(); F; F = F->next()) {
+			VS::get_singleton()->canvas_light_occluder_set_transform(F->get().id, global_transform * F->get().xform);
 		}
 	}
 }
@@ -462,27 +462,45 @@ void TileMap::update_dirty_quadrants() {
 
 			Vector<TileSet::ShapeData> shapes = tile_set->tile_get_shapes(c.id);
 
-			for (int i = 0; i < shapes.size(); i++) {
-				Ref<Shape2D> shape = shapes[i].shape;
+			for (int j = 0; j < shapes.size(); j++) {
+				Ref<Shape2D> shape = shapes[j].shape;
 				if (shape.is_valid()) {
-					if (tile_set->tile_get_tile_mode(c.id) == TileSet::SINGLE_TILE || (shapes[i].autotile_coord.x == c.autotile_coord_x && shapes[i].autotile_coord.y == c.autotile_coord_y)) {
+					if (tile_set->tile_get_tile_mode(c.id) == TileSet::SINGLE_TILE || (shapes[j].autotile_coord.x == c.autotile_coord_x && shapes[j].autotile_coord.y == c.autotile_coord_y)) {
 						Transform2D xform;
 						xform.set_origin(offset.floor());
 
-						Vector2 shape_ofs = shapes[i].shape_transform.get_origin();
+						Vector2 shape_ofs = shapes[j].shape_transform.get_origin();
 
 						_fix_cell_transform(xform, c, shape_ofs + center_ofs, s);
 
-						xform *= shapes[i].shape_transform.untranslated();
+						xform *= shapes[j].shape_transform.untranslated();
 
 						if (debug_canvas_item.is_valid()) {
 							vs->canvas_item_add_set_transform(debug_canvas_item, xform);
 							shape->draw(debug_canvas_item, debug_collision_color);
 						}
-						ps->body_add_shape(q.body, shape->get_rid(), xform);
-						ps->body_set_shape_metadata(q.body, shape_idx, Vector2(E->key().x, E->key().y));
-						ps->body_set_shape_as_one_way_collision(q.body, shape_idx, shapes[i].one_way_collision, shapes[i].one_way_collision_margin);
-						shape_idx++;
+
+						if (shape->has_meta("decomposed")) {
+							Array _shapes = shape->get_meta("decomposed");
+							for (int k = 0; k < _shapes.size(); k++) {
+								Ref<ConvexPolygonShape2D> convex = _shapes[k];
+								if (convex.is_valid()) {
+									ps->body_add_shape(q.body, convex->get_rid(), xform);
+									ps->body_set_shape_metadata(q.body, shape_idx, Vector2(E->key().x, E->key().y));
+									ps->body_set_shape_as_one_way_collision(q.body, shape_idx, shapes[j].one_way_collision, shapes[j].one_way_collision_margin);
+									shape_idx++;
+#ifdef DEBUG_ENABLED
+								} else {
+									print_error("The TileSet asigned to the TileMap " + get_name() + " has an invalid convex shape.");
+#endif
+								}
+							}
+						} else {
+							ps->body_add_shape(q.body, shape->get_rid(), xform);
+							ps->body_set_shape_metadata(q.body, shape_idx, Vector2(E->key().x, E->key().y));
+							ps->body_set_shape_as_one_way_collision(q.body, shape_idx, shapes[j].one_way_collision, shapes[j].one_way_collision_margin);
+							shape_idx++;
+						}
 					}
 				}
 			}
@@ -531,23 +549,23 @@ void TileMap::update_dirty_quadrants() {
 								colors.resize(vsize);
 								{
 									PoolVector<Vector2>::Read vr = navigation_polygon_vertices.read();
-									for (int i = 0; i < vsize; i++) {
-										vertices.write[i] = vr[i];
-										colors.write[i] = debug_navigation_color;
+									for (int j = 0; j < vsize; j++) {
+										vertices.write[j] = vr[j];
+										colors.write[j] = debug_navigation_color;
 									}
 								}
 
 								Vector<int> indices;
 
-								for (int i = 0; i < navpoly->get_polygon_count(); i++) {
-									Vector<int> polygon = navpoly->get_polygon(i);
+								for (int j = 0; j < navpoly->get_polygon_count(); j++) {
+									Vector<int> polygon = navpoly->get_polygon(j);
 
-									for (int j = 2; j < polygon.size(); j++) {
+									for (int k = 2; k < polygon.size(); k++) {
 
-										int kofs[3] = { 0, j - 1, j };
-										for (int k = 0; k < 3; k++) {
+										int kofs[3] = { 0, k - 1, k };
+										for (int l = 0; l < 3; l++) {
 
-											int idx = polygon[kofs[k]];
+											int idx = polygon[kofs[l]];
 											ERR_FAIL_INDEX(idx, vsize);
 											indices.push_back(idx);
 										}
@@ -601,9 +619,9 @@ void TileMap::update_dirty_quadrants() {
 		for (Map<PosKey, Quadrant>::Element *E = quadrant_map.front(); E; E = E->next()) {
 
 			Quadrant &q = E->get();
-			for (List<RID>::Element *E = q.canvas_items.front(); E; E = E->next()) {
+			for (List<RID>::Element *F = q.canvas_items.front(); F; F = F->next()) {
 
-				VS::get_singleton()->canvas_item_set_draw_index(E->get(), index++);
+				VS::get_singleton()->canvas_item_set_draw_index(F->get(), index++);
 			}
 		}
 
@@ -742,7 +760,7 @@ void TileMap::set_cell(int p_x, int p_y, int p_tile, bool p_flip_x, bool p_flip_
 	if (!E && p_tile == INVALID_CELL)
 		return; //nothing to do
 
-	PosKey qk(p_x / _get_quadrant_size(), p_y / _get_quadrant_size());
+	PosKey qk = pk.to_quadrant(_get_quadrant_size());
 	if (p_tile == INVALID_CELL) {
 		//erase existing
 		tile_map.erase(pk);
@@ -755,6 +773,7 @@ void TileMap::set_cell(int p_x, int p_y, int p_tile, bool p_flip_x, bool p_flip_
 		else
 			_make_quadrant_dirty(Q);
 
+		used_size_cache_dirty = true;
 		return;
 	}
 
@@ -900,7 +919,7 @@ void TileMap::update_cell_bitmask(int p_x, int p_y) {
 			E->get().autotile_coord_x = (int)coord.x;
 			E->get().autotile_coord_y = (int)coord.y;
 
-			PosKey qk(p_x / _get_quadrant_size(), p_y / _get_quadrant_size());
+			PosKey qk = p.to_quadrant(_get_quadrant_size());
 			Map<PosKey, Quadrant>::Element *Q = quadrant_map.find(qk);
 			_make_quadrant_dirty(Q);
 
@@ -988,7 +1007,7 @@ void TileMap::set_cell_autotile_coord(int p_x, int p_y, const Vector2 &p_coord) 
 	c.autotile_coord_y = p_coord.y;
 	tile_map[pk] = c;
 
-	PosKey qk(p_x / _get_quadrant_size(), p_y / _get_quadrant_size());
+	PosKey qk = pk.to_quadrant(_get_quadrant_size());
 	Map<PosKey, Quadrant>::Element *Q = quadrant_map.find(qk);
 
 	if (!Q)
@@ -1015,7 +1034,7 @@ void TileMap::_recreate_quadrants() {
 
 	for (Map<PosKey, Cell>::Element *E = tile_map.front(); E; E = E->next()) {
 
-		PosKey qk(E->key().x / _get_quadrant_size(), E->key().y / _get_quadrant_size());
+		PosKey qk = PosKey(E->key().x, E->key().y).to_quadrant(_get_quadrant_size());
 
 		Map<PosKey, Quadrant>::Element *Q = quadrant_map.find(qk);
 		if (!Q) {
@@ -1053,9 +1072,9 @@ void TileMap::_update_all_items_material_state() {
 	for (Map<PosKey, Quadrant>::Element *E = quadrant_map.front(); E; E = E->next()) {
 
 		Quadrant &q = E->get();
-		for (List<RID>::Element *E = q.canvas_items.front(); E; E = E->next()) {
+		for (List<RID>::Element *F = q.canvas_items.front(); F; F = F->next()) {
 
-			_update_item_material_state(E->get());
+			_update_item_material_state(F->get());
 		}
 	}
 }
@@ -1155,7 +1174,11 @@ PoolVector<int> TileMap::_get_tile_data() const {
 }
 
 Rect2 TileMap::_edit_get_rect() const {
-	const_cast<TileMap *>(this)->update_dirty_quadrants();
+	if (pending_update) {
+		const_cast<TileMap *>(this)->update_dirty_quadrants();
+	} else {
+		const_cast<TileMap *>(this)->_recompute_rect_cache();
+	}
 	return rect_cache;
 }
 
@@ -1373,15 +1396,17 @@ Vector2 TileMap::_map_to_world(int p_x, int p_y, bool p_ignore_ofs) const {
 	if (!p_ignore_ofs) {
 		switch (half_offset) {
 
-			case HALF_OFFSET_X: {
+			case HALF_OFFSET_X:
+			case HALF_OFFSET_NEGATIVE_X: {
 				if (ABS(p_y) & 1) {
 
-					ret += get_cell_transform()[0] * 0.5;
+					ret += get_cell_transform()[0] * (half_offset == HALF_OFFSET_X ? 0.5 : -0.5);
 				}
 			} break;
-			case HALF_OFFSET_Y: {
+			case HALF_OFFSET_Y:
+			case HALF_OFFSET_NEGATIVE_Y: {
 				if (ABS(p_x) & 1) {
-					ret += get_cell_transform()[1] * 0.5;
+					ret += get_cell_transform()[1] * (half_offset == HALF_OFFSET_Y ? 0.5 : -0.5);
 				}
 			} break;
 			default: {}
@@ -1444,16 +1469,26 @@ Vector2 TileMap::world_to_map(const Vector2 &p_pos) const {
 				ret.x -= 0.5;
 			}
 		} break;
+		case HALF_OFFSET_NEGATIVE_X: {
+			if (ret.y > 0 ? int(ret.y) & 1 : (int(ret.y) - 1) & 1) {
+				ret.x += 0.5;
+			}
+		} break;
 		case HALF_OFFSET_Y: {
 			if (ret.x > 0 ? int(ret.x) & 1 : (int(ret.x) - 1) & 1) {
 				ret.y -= 0.5;
+			}
+		} break;
+		case HALF_OFFSET_NEGATIVE_Y: {
+			if (ret.x > 0 ? int(ret.x) & 1 : (int(ret.x) - 1) & 1) {
+				ret.y += 0.5;
 			}
 		} break;
 		default: {}
 	}
 
 	// Account for precision errors on the border (GH-23250).
-	// 0.00005 is 5*CMP_EPSILON, results would start being unpredictible if
+	// 0.00005 is 5*CMP_EPSILON, results would start being unpredictable if
 	// cell size is > 15,000, but we can hardly have more precision anyway with
 	// floating point.
 	ret += Vector2(0.00005, 0.00005);
@@ -1659,7 +1694,7 @@ void TileMap::_bind_methods() {
 	ADD_PROPERTY(PropertyInfo(Variant::VECTOR2, "cell_size", PROPERTY_HINT_RANGE, "1,8192,1"), "set_cell_size", "get_cell_size");
 	ADD_PROPERTY(PropertyInfo(Variant::INT, "cell_quadrant_size", PROPERTY_HINT_RANGE, "1,128,1"), "set_quadrant_size", "get_quadrant_size");
 	ADD_PROPERTY(PropertyInfo(Variant::TRANSFORM2D, "cell_custom_transform"), "set_custom_transform", "get_custom_transform");
-	ADD_PROPERTY(PropertyInfo(Variant::INT, "cell_half_offset", PROPERTY_HINT_ENUM, "Offset X,Offset Y,Disabled"), "set_half_offset", "get_half_offset");
+	ADD_PROPERTY(PropertyInfo(Variant::INT, "cell_half_offset", PROPERTY_HINT_ENUM, "Offset X,Offset Y,Disabled,Offset Negative X,Offset Negative Y"), "set_half_offset", "get_half_offset");
 	ADD_PROPERTY(PropertyInfo(Variant::INT, "cell_tile_origin", PROPERTY_HINT_ENUM, "Top Left,Center,Bottom Left"), "set_tile_origin", "get_tile_origin");
 	ADD_PROPERTY(PropertyInfo(Variant::BOOL, "cell_y_sort"), "set_y_sort_mode", "is_y_sort_mode_enabled");
 	ADD_PROPERTY(PropertyInfo(Variant::BOOL, "cell_clip_uv"), "set_clip_uv", "get_clip_uv");
@@ -1685,6 +1720,8 @@ void TileMap::_bind_methods() {
 	BIND_ENUM_CONSTANT(HALF_OFFSET_X);
 	BIND_ENUM_CONSTANT(HALF_OFFSET_Y);
 	BIND_ENUM_CONSTANT(HALF_OFFSET_DISABLED);
+	BIND_ENUM_CONSTANT(HALF_OFFSET_NEGATIVE_X);
+	BIND_ENUM_CONSTANT(HALF_OFFSET_NEGATIVE_Y);
 
 	BIND_ENUM_CONSTANT(TILE_ORIGIN_TOP_LEFT);
 	BIND_ENUM_CONSTANT(TILE_ORIGIN_CENTER);

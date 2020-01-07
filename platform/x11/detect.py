@@ -1,7 +1,7 @@
 import os
 import platform
 import sys
-from compat import decode_utf8
+from methods import get_compiler_version, using_gcc, using_clang
 
 
 def is_active():
@@ -20,12 +20,10 @@ def can_build():
     # Check the minimal dependencies
     x11_error = os.system("pkg-config --version > /dev/null")
     if (x11_error):
-        print("pkg-config not found.. x11 disabled.")
         return False
 
     x11_error = os.system("pkg-config x11 --modversion > /dev/null ")
     if (x11_error):
-        print("X11 not found.. x11 disabled.")
         return False
 
     x11_error = os.system("pkg-config xcursor --modversion > /dev/null ")
@@ -75,11 +73,7 @@ def get_opts():
 
 def get_flags():
 
-    return [
-        ('builtin_freetype', False),
-        ('builtin_libpng', False),
-        ('builtin_zlib', False),
-    ]
+    return []
 
 
 def configure(env):
@@ -161,16 +155,16 @@ def configure(env):
     env.Append(CCFLAGS=['-pipe'])
     env.Append(LINKFLAGS=['-pipe'])
 
-    # Check for gcc version > 5 before adding -no-pie
-    import re
-    import subprocess
-    proc = subprocess.Popen([env['CXX'], '--version'], stdout=subprocess.PIPE)
-    (stdout, _) = proc.communicate()
-    stdout = decode_utf8(stdout)
-    match = re.search('[0-9][0-9.]*', stdout)
-    if match is not None:
-        version = match.group().split('.')
-        if (version[0] > '5'):
+    # Check for gcc version >= 6 before adding -no-pie
+    if using_gcc(env):
+        version = get_compiler_version(env)
+        if version != None and version[0] >= '6':
+            env.Append(CCFLAGS=['-fpie'])
+            env.Append(LINKFLAGS=['-no-pie'])
+    # Do the same for clang should be fine with Clang 4 and higher
+    if using_clang(env):
+        version = get_compiler_version(env)
+        if version != None and version[0] >= '4':
             env.Append(CCFLAGS=['-fpie'])
             env.Append(LINKFLAGS=['-no-pie'])
 
@@ -205,7 +199,7 @@ def configure(env):
         # We need at least version 2.88
         import subprocess
         bullet_version = subprocess.check_output(['pkg-config', 'bullet', '--modversion']).strip()
-        if bullet_version < "2.88":
+        if str(bullet_version) < "2.88":
             # Abort as system bullet was requested but too old
             print("Bullet: System version {0} does not match minimal requirements ({1}). Aborting.".format(bullet_version, "2.88"))
             sys.exit(255)

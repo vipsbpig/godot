@@ -143,7 +143,10 @@ class EditorFileSystem : public Node {
 	bool abort_scan;
 	bool scanning;
 	bool importing;
+	bool first_scan;
 	float scan_total;
+	String filesystem_settings_version_for_import;
+	bool revalidate_import_files;
 
 	void _scan_filesystem();
 
@@ -231,7 +234,7 @@ class EditorFileSystem : public Node {
 
 	static Error _resource_import(const String &p_path);
 
-	bool using_fat_32; //workaround for projects in FAT32 filesystem (pendrives, most of the time)
+	bool using_fat32_or_exfat; // Workaround for projects in FAT32 or exFAT filesystem (pendrives, most of the time)
 
 protected:
 	void _notification(int p_what);

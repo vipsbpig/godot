@@ -18,8 +18,8 @@ msgid ""
 msgstr ""
 "Project-Id-Version: Godot Engine editor\n"
 "POT-Creation-Date: \n"
-"PO-Revision-Date: 2019-01-26 21:22+0000\n"
-"Last-Translator: ssantos <ssantos@web.de>\n"
+"PO-Revision-Date: 2019-06-16 19:42+0000\n"
+"Last-Translator: João Lopes <linux-man@hotmail.com>\n"
 "Language-Team: Portuguese (Portugal) <https://hosted.weblate.org/projects/"
 "godot-engine/godot/pt_PT/>\n"
 "Language: pt_PT\n"
@@ -27,7 +27,7 @@ msgstr ""
 "Content-Type: text/plain; charset=UTF-8\n"
 "Content-Transfer-Encoding: 8bit\n"
 "Plural-Forms: nplurals=2; plural=n != 1;\n"
-"X-Generator: Weblate 3.5-dev\n"
+"X-Generator: Weblate 3.7-dev\n"
 
 #: core/math/expression.cpp modules/gdscript/gdscript_functions.cpp
 #: modules/visual_script/visual_script_builtin_funcs.cpp
@@ -94,6 +94,14 @@ msgstr "Duplicar Chave(s) Selecionada(s)"
 msgid "Delete Selected Key(s)"
 msgstr "Apagar Chave(s) Selecionada(s)"
 
+#: editor/animation_bezier_editor.cpp
+msgid "Add Bezier Point"
+msgstr "Adicionar Ponto Bezier"
+
+#: editor/animation_bezier_editor.cpp
+msgid "Move Bezier Points"
+msgstr "Mover Ponto Bezier"
+
 #: editor/animation_bezier_editor.cpp editor/animation_track_editor.cpp
 msgid "Anim Duplicate Keys"
 msgstr "Anim Duplicar Chaves"
@@ -123,6 +131,15 @@ msgid "Anim Change Call"
 msgstr "Anim Mudar Chamada"
 
 #: editor/animation_track_editor.cpp
+msgid "Change Animation Length"
+msgstr "Mudar Duração da Animação"
+
+#: editor/animation_track_editor.cpp
+#: editor/plugins/sprite_frames_editor_plugin.cpp
+msgid "Change Animation Loop"
+msgstr "Mudar Ciclo da Animação"
+
+#: editor/animation_track_editor.cpp
 msgid "Property Track"
 msgstr "Pista de Propriedades"
 
@@ -147,12 +164,16 @@ msgid "Animation Playback Track"
 msgstr "Pista de Reprodução de Animação"
 
 #: editor/animation_track_editor.cpp
-msgid "Add Track"
-msgstr "Adicionar Pista"
+msgid "Animation length (frames)"
+msgstr "Duração da Animação (frames)"
 
 #: editor/animation_track_editor.cpp
-msgid "Animation Length Time (seconds)"
+msgid "Animation length (seconds)"
 msgstr "Duração da Animação (segundos)"
+
+#: editor/animation_track_editor.cpp
+msgid "Add Track"
+msgstr "Adicionar Pista"
 
 #: editor/animation_track_editor.cpp
 msgid "Animation Looping"
@@ -170,6 +191,10 @@ msgstr "Clips Áudio:"
 #: editor/animation_track_editor.cpp
 msgid "Anim Clips:"
 msgstr "Clips Anim:"
+
+#: editor/animation_track_editor.cpp
+msgid "Change Track Path"
+msgstr "Mudar Caminho da Pista"
 
 #: editor/animation_track_editor.cpp
 msgid "Toggle this track on/off."
@@ -194,6 +219,10 @@ msgstr "Remover esta Pista."
 #: editor/animation_track_editor.cpp
 msgid "Time (s): "
 msgstr "Tempo (s): "
+
+#: editor/animation_track_editor.cpp
+msgid "Toggle Track Enabled"
+msgstr "Alternar Pista Ativada"
 
 #: editor/animation_track_editor.cpp
 msgid "Continuous"
@@ -246,16 +275,28 @@ msgid "Delete Key(s)"
 msgstr "Apagar Chave(s)"
 
 #: editor/animation_track_editor.cpp
+msgid "Change Animation Update Mode"
+msgstr "Mudar o Modo de Atualização da Animação"
+
+#: editor/animation_track_editor.cpp
+msgid "Change Animation Interpolation Mode"
+msgstr "Mudar o Modo de Interpolação da Animação"
+
+#: editor/animation_track_editor.cpp
+msgid "Change Animation Loop Mode"
+msgstr "Mudar Modo do Loop da Animação"
+
+#: editor/animation_track_editor.cpp
 msgid "Remove Anim Track"
 msgstr "Remover Pista de Animação"
 
 #: editor/animation_track_editor.cpp
 msgid "Create NEW track for %s and insert key?"
-msgstr "Criar NOVA Pista para %s e inserir Chave?"
+msgstr "Criar NOVA pista para %s e inserir chave?"
 
 #: editor/animation_track_editor.cpp
 msgid "Create %d NEW tracks and insert keys?"
-msgstr "Criar %d NOVAS Pistas e inserir Chaves?"
+msgstr "Criar %d NOVAS pistas e inserir chaves?"
 
 #: editor/animation_track_editor.cpp editor/create_dialog.cpp
 #: editor/editor_audio_buses.cpp editor/editor_plugin_settings.cpp
@@ -289,6 +330,14 @@ msgid "Anim Insert Key"
 msgstr "Anim Inserir Chave"
 
 #: editor/animation_track_editor.cpp
+msgid "Change Animation Step"
+msgstr "Mudar Passo da Animação"
+
+#: editor/animation_track_editor.cpp
+msgid "Rearrange Tracks"
+msgstr "Reorganizar Pistas"
+
+#: editor/animation_track_editor.cpp
 msgid "Transform tracks only apply to Spatial-based nodes."
 msgstr "Pistas de Transformação só se aplicam a nós de base Espacial."
 
@@ -319,17 +368,32 @@ msgid "Not possible to add a new track without a root"
 msgstr "Não é possível adicionar nova pista sem uma raíz"
 
 #: editor/animation_track_editor.cpp
+msgid "Add Bezier Track"
+msgstr "Adicionar Pista Bezier"
+
+#: editor/animation_track_editor.cpp
 msgid "Track path is invalid, so can't add a key."
 msgstr "Caminho da pista é inválido, não se consegue adicionar uma chave."
 
 #: editor/animation_track_editor.cpp
 msgid "Track is not of type Spatial, can't insert key"
-msgstr "Pista não do tipo Spatial, não se consegue inserir chave"
+msgstr "Pista não do tipo Spatial, impossível inserir chave"
+
+#: editor/animation_track_editor.cpp
+msgid "Add Transform Track Key"
+msgstr "Adicionar Chave da Pista de Transformação"
+
+#: editor/animation_track_editor.cpp
+msgid "Add Track Key"
+msgstr "Adicionar Chave da Pista"
 
 #: editor/animation_track_editor.cpp
 msgid "Track path is invalid, so can't add a method key."
-msgstr ""
-"Caminho da pista é inválido, não se consegue adicionar uma chave método."
+msgstr "Caminho da pista é inválido, impossível adicionar uma chave método."
+
+#: editor/animation_track_editor.cpp
+msgid "Add Method Track Key"
+msgstr "Adicionar Chave da Pista Método"
 
 #: editor/animation_track_editor.cpp
 msgid "Method not found in object: "
@@ -342,6 +406,10 @@ msgstr "Anim Mover Chaves"
 #: editor/animation_track_editor.cpp
 msgid "Clipboard is empty"
 msgstr "Área de Transferência está vazia"
+
+#: editor/animation_track_editor.cpp
+msgid "Paste Tracks"
+msgstr "Colar Pistas"
 
 #: editor/animation_track_editor.cpp
 msgid "Anim Scale Keys"
@@ -362,12 +430,20 @@ msgid "Group tracks by node or display them as plain list."
 msgstr "Agrupar faixas por nó ou exibi-las como lista simples."
 
 #: editor/animation_track_editor.cpp
-msgid "Snap (s): "
-msgstr "Ajuste (s): "
+msgid "Snap:"
+msgstr "Ajustar:"
 
 #: editor/animation_track_editor.cpp
 msgid "Animation step value."
 msgstr "Valor passo da Animação."
+
+#: editor/animation_track_editor.cpp
+msgid "Seconds"
+msgstr "Segundos"
+
+#: editor/animation_track_editor.cpp
+msgid "FPS"
+msgstr "FPS"
 
 #: editor/animation_track_editor.cpp editor/editor_properties.cpp
 #: editor/plugins/polygon_2d_editor_plugin.cpp
@@ -385,10 +461,6 @@ msgstr "Propriedades da Animação."
 #: editor/animation_track_editor.cpp
 msgid "Copy Tracks"
 msgstr "Copiar Pistas"
-
-#: editor/animation_track_editor.cpp
-msgid "Paste Tracks"
-msgstr "Colar Pistas"
 
 #: editor/animation_track_editor.cpp
 msgid "Scale Selection"
@@ -436,7 +508,7 @@ msgstr "Usar Curvas Bezier"
 
 #: editor/animation_track_editor.cpp
 msgid "Anim. Optimizer"
-msgstr "Otimizador de Anim."
+msgstr "Otimizador de Anim"
 
 #: editor/animation_track_editor.cpp
 msgid "Max. Linear Error:"
@@ -489,6 +561,18 @@ msgstr "Selecionar pistas a copiar:"
 #: scene/gui/line_edit.cpp scene/gui/text_edit.cpp
 msgid "Copy"
 msgstr "Copiar"
+
+#: editor/animation_track_editor_plugins.cpp
+msgid "Add Audio Track Clip"
+msgstr "Adicionar Clip da Pista Áudio"
+
+#: editor/animation_track_editor_plugins.cpp
+msgid "Change Audio Track Clip Start Offset"
+msgstr "Alterar Compensação do Início do Clip da Pista Áudio"
+
+#: editor/animation_track_editor_plugins.cpp
+msgid "Change Audio Track Clip End Offset"
+msgstr "Alterar Compensação do Fim do Clip da Pista Áudio"
 
 #: editor/array_property_edit.cpp
 msgid "Resize Array"
@@ -554,21 +638,13 @@ msgstr "Zoom Out"
 msgid "Reset Zoom"
 msgstr "Repor Zoom"
 
-#: editor/code_editor.cpp
-msgid "Warnings:"
-msgstr "Avisos:"
+#: editor/code_editor.cpp modules/mono/editor/mono_bottom_panel.cpp
+msgid "Warnings"
+msgstr "Avisos"
 
 #: editor/code_editor.cpp
-msgid "Font Size:"
-msgstr "Tamanho do tipo de letra:"
-
-#: editor/code_editor.cpp
-msgid "Line:"
-msgstr "Linha:"
-
-#: editor/code_editor.cpp
-msgid "Col:"
-msgstr "Coluna:"
+msgid "Line and column numbers."
+msgstr "Números de Linha e Coluna."
 
 #: editor/connections_dialog.cpp
 msgid "Method in target Node must be specified!"
@@ -870,8 +946,8 @@ msgstr "Apagar arquivos selecionados?"
 #: editor/dependency_editor.cpp editor/editor_audio_buses.cpp
 #: editor/editor_file_dialog.cpp editor/editor_node.cpp
 #: editor/filesystem_dock.cpp editor/plugins/item_list_editor_plugin.cpp
-#: editor/project_export.cpp editor/project_settings_editor.cpp
-#: editor/scene_tree_dock.cpp
+#: editor/plugins/sprite_frames_editor_plugin.cpp editor/project_export.cpp
+#: editor/project_settings_editor.cpp editor/scene_tree_dock.cpp
 msgid "Delete"
 msgstr "Apagar"
 
@@ -1127,8 +1203,8 @@ msgid "Add Bus"
 msgstr "Adicionar Barramento"
 
 #: editor/editor_audio_buses.cpp
-msgid "Create a new Bus Layout."
-msgstr "Criar um novo Modelo de Barramento."
+msgid "Add a new Audio Bus to this layout."
+msgstr "Adicionar novo Barramento de Áudio a este modelo."
 
 #: editor/editor_audio_buses.cpp editor/editor_properties.cpp
 #: editor/plugins/animation_player_editor_plugin.cpp editor/property_editor.cpp
@@ -1155,6 +1231,10 @@ msgstr "Carregar Padrão"
 #: editor/editor_audio_buses.cpp
 msgid "Load the default Bus Layout."
 msgstr "Carregar o Modelo padrão de barramento."
+
+#: editor/editor_audio_buses.cpp
+msgid "Create a new Bus Layout."
+msgstr "Criar um novo Modelo de Barramento."
 
 #: editor/editor_autoload_settings.cpp
 msgid "Invalid name."
@@ -1305,6 +1385,34 @@ msgstr "Nenhum modelo de exportação encontrado no caminho previsto:"
 msgid "Packing"
 msgstr "Empacotamento"
 
+#: editor/editor_export.cpp
+msgid ""
+"Target platform requires 'ETC' texture compression for GLES2. Enable 'Import "
+"Etc' in Project Settings."
+msgstr ""
+"Plataforma Alvo exige compressão de textura 'ETC' para GLES2. Ative "
+"'Importar Etc' nas Configurações do Projeto."
+
+#: editor/editor_export.cpp
+msgid ""
+"Target platform requires 'ETC2' texture compression for GLES3. Enable "
+"'Import Etc 2' in Project Settings."
+msgstr ""
+"Plataforma Alvo exige compressão de textura 'ETC2' para GLES3. Ative "
+"'Importar Etc 2' nas Configurações do Projeto."
+
+#: editor/editor_export.cpp
+msgid ""
+"Target platform requires 'ETC' texture compression for the driver fallback "
+"to GLES2.\n"
+"Enable 'Import Etc' in Project Settings, or disable 'Driver Fallback "
+"Enabled'."
+msgstr ""
+"Plataforma Alvo exige compressão de textura 'ETC' para o driver de recurso "
+"em GLES2.\n"
+"Ative 'Importar Etc' nas Configurações do Projeto, ou desative 'Driver de "
+"Recurso ativo'."
+
 #: editor/editor_export.cpp platform/android/export/export.cpp
 #: platform/iphone/export/export.cpp platform/javascript/export/export.cpp
 #: platform/osx/export/export.cpp platform/uwp/export/export.cpp
@@ -1350,7 +1458,7 @@ msgstr "Mostrar no Gestor de Ficheiros"
 msgid "New Folder..."
 msgstr "Nova Diretoria..."
 
-#: editor/editor_file_dialog.cpp
+#: editor/editor_file_dialog.cpp scene/gui/file_dialog.cpp
 msgid "Refresh"
 msgstr "Atualizar"
 
@@ -1425,9 +1533,29 @@ msgstr "Mover Favorito para Cima"
 msgid "Move Favorite Down"
 msgstr "Mover Favorito para Baixo"
 
-#: editor/editor_file_dialog.cpp scene/gui/file_dialog.cpp
+#: editor/editor_file_dialog.cpp
+msgid "Previous Folder"
+msgstr "Pasta Anterior"
+
+#: editor/editor_file_dialog.cpp
+msgid "Next Folder"
+msgstr "Próxima Pasta"
+
+#: editor/editor_file_dialog.cpp
 msgid "Go to parent folder"
 msgstr "Ir para a pasta acima"
+
+#: editor/editor_file_dialog.cpp
+msgid "(Un)favorite current folder."
+msgstr "(Não) tornar favorita atual pasta."
+
+#: editor/editor_file_dialog.cpp editor/filesystem_dock.cpp
+msgid "View items as a grid of thumbnails."
+msgstr "Visualizar itens como grelha de miniaturas."
+
+#: editor/editor_file_dialog.cpp editor/filesystem_dock.cpp
+msgid "View items as a list."
+msgstr "Visualizar itens como lista."
 
 #: editor/editor_file_dialog.cpp scene/gui/file_dialog.cpp
 msgid "Directories & Files:"
@@ -1651,14 +1779,26 @@ msgstr "Limpar Saída"
 msgid "Project export failed with error code %d."
 msgstr "Exportação do projeto falhou com código de erro %d."
 
-#: editor/editor_node.cpp editor/plugins/animation_player_editor_plugin.cpp
-msgid "Error saving resource!"
-msgstr "Erro ao guardar recurso!"
+#: editor/editor_node.cpp
+msgid "Imported resources can't be saved."
+msgstr "Recursos importados não podem ser guardados."
 
 #: editor/editor_node.cpp editor/plugins/script_editor_plugin.cpp
 #: scene/gui/dialogs.cpp
 msgid "OK"
 msgstr "OK"
+
+#: editor/editor_node.cpp editor/plugins/animation_player_editor_plugin.cpp
+msgid "Error saving resource!"
+msgstr "Erro ao guardar recurso!"
+
+#: editor/editor_node.cpp
+msgid ""
+"This resource can't be saved because it does not belong to the edited scene. "
+"Make it unique first."
+msgstr ""
+"Este recurso não pode ser guardado porque não pertence à cena editada. Faça-"
+"o único."
 
 #: editor/editor_node.cpp editor/plugins/animation_player_editor_plugin.cpp
 msgid "Save Resource As..."
@@ -1882,6 +2022,14 @@ msgstr "Guardar & Fechar"
 #: editor/editor_node.cpp
 msgid "Save changes to '%s' before closing?"
 msgstr "Guardar alterações a '%s' antes de fechar?"
+
+#: editor/editor_node.cpp
+msgid "Saved %s modified resource(s)."
+msgstr "Guardado(s) %s recurso(s) modificado(s)."
+
+#: editor/editor_node.cpp
+msgid "A root node is required to save the scene."
+msgstr "É necessário um Nó Raiz para guardar a cena."
 
 #: editor/editor_node.cpp
 msgid "Save Scene As..."
@@ -2150,7 +2298,7 @@ msgstr "Converter Para..."
 
 #: editor/editor_node.cpp
 msgid "MeshLibrary..."
-msgstr "MeshLibrary..."
+msgstr "Bib. de Meshes..."
 
 #: editor/editor_node.cpp
 msgid "TileSet..."
@@ -2403,8 +2551,8 @@ msgid "Save & Restart"
 msgstr "Guardar & Reiniciar"
 
 #: editor/editor_node.cpp
-msgid "Spins when the editor window repaints!"
-msgstr "Roda quando a janela do Editor atualiza!"
+msgid "Spins when the editor window redraws."
+msgstr "Roda quando a janela do editor atualiza."
 
 #: editor/editor_node.cpp
 msgid "Update Always"
@@ -2700,7 +2848,7 @@ msgstr "Página: "
 
 #: editor/editor_properties_array_dict.cpp
 msgid "New Key:"
-msgstr "Novo Chave:"
+msgstr "Nova Chave:"
 
 #: editor/editor_properties_array_dict.cpp
 msgid "New Value:"
@@ -2967,14 +3115,6 @@ msgid "Cannot navigate to '%s' as it has not been found in the file system!"
 msgstr "'%s' não foi encontrado no Sistema de Ficheiros!"
 
 #: editor/filesystem_dock.cpp
-msgid "View items as a grid of thumbnails."
-msgstr "Visualizar itens como grelha de miniaturas."
-
-#: editor/filesystem_dock.cpp
-msgid "View items as a list."
-msgstr "Visualizar itens como lista."
-
-#: editor/filesystem_dock.cpp
 msgid "Status: Import of file failed. Please fix file and reimport manually."
 msgstr ""
 "Estado: A importação do Ficheiro falhou. Corrija o Ficheiro e importe "
@@ -3110,10 +3250,6 @@ msgstr "Alternar modo de divisão"
 #: editor/filesystem_dock.cpp
 msgid "Search files"
 msgstr "Procurar ficheiros"
-
-#: editor/filesystem_dock.cpp
-msgid "Instance the selected scene(s) as child of the selected node."
-msgstr "Instancie a(s) Cena(s) selecionada(s) como filha(s) do Nó selecionado."
 
 #: editor/filesystem_dock.cpp
 msgid ""
@@ -3327,17 +3463,18 @@ msgstr "Reimportar"
 
 #: editor/import_dock.cpp
 msgid "Save scenes, re-import and restart"
-msgstr ""
+msgstr "Guardar cenas, reimportar e reiniciar"
 
 #: editor/import_dock.cpp
-#, fuzzy
 msgid "Changing the type of an imported file requires editor restart."
-msgstr "Alterar o driver de vídeo requer reiniciar o editor."
+msgstr "Alterar o tipo de um ficheiro importado requer reiniciar o editor."
 
 #: editor/import_dock.cpp
 msgid ""
 "WARNING: Assets exist that use this resource, they may stop loading properly."
 msgstr ""
+"AVISO: Existem Ativos que usam este recurso, podendo não ser carregados "
+"corretamente."
 
 #: editor/inspector_dock.cpp
 msgid "Failed to load resource."
@@ -3462,22 +3599,6 @@ msgid "Create Polygon"
 msgstr "Criar Polígono"
 
 #: editor/plugins/abstract_polygon_2d_editor.cpp
-msgid "Edit Polygon"
-msgstr "Editar Polígono"
-
-#: editor/plugins/abstract_polygon_2d_editor.cpp
-msgid "Insert Point"
-msgstr "Inserir Ponto"
-
-#: editor/plugins/abstract_polygon_2d_editor.cpp
-msgid "Edit Polygon (Remove Point)"
-msgstr "Editar Polígono (Remover Ponto)"
-
-#: editor/plugins/abstract_polygon_2d_editor.cpp
-msgid "Remove Polygon And Point"
-msgstr "Remover Polígono e Ponto"
-
-#: editor/plugins/abstract_polygon_2d_editor.cpp
 #: editor/plugins/animation_blend_space_1d_editor.cpp
 #: editor/plugins/animation_blend_space_2d_editor.cpp
 msgid "Create points."
@@ -3498,6 +3619,22 @@ msgstr ""
 msgid "Erase points."
 msgstr "Apagar pontos."
 
+#: editor/plugins/abstract_polygon_2d_editor.cpp
+msgid "Edit Polygon"
+msgstr "Editar Polígono"
+
+#: editor/plugins/abstract_polygon_2d_editor.cpp
+msgid "Insert Point"
+msgstr "Inserir Ponto"
+
+#: editor/plugins/abstract_polygon_2d_editor.cpp
+msgid "Edit Polygon (Remove Point)"
+msgstr "Editar Polígono (Remover Ponto)"
+
+#: editor/plugins/abstract_polygon_2d_editor.cpp
+msgid "Remove Polygon And Point"
+msgstr "Remover Polígono e Ponto"
+
 #: editor/plugins/animation_blend_space_1d_editor.cpp
 #: editor/plugins/animation_blend_space_2d_editor.cpp
 #: editor/plugins/animation_player_editor_plugin.cpp
@@ -3515,9 +3652,40 @@ msgstr "Carregar..."
 
 #: editor/plugins/animation_blend_space_1d_editor.cpp
 #: editor/plugins/animation_blend_space_2d_editor.cpp
+msgid "Move Node Point"
+msgstr "Mover Ponto Nó"
+
+#: editor/plugins/animation_blend_space_1d_editor.cpp
+msgid "Change BlendSpace1D Limits"
+msgstr "Mudar Limites do BlendSpace1D"
+
+#: editor/plugins/animation_blend_space_1d_editor.cpp
+msgid "Change BlendSpace1D Labels"
+msgstr "Mudar Legendas do BlendSpace1D"
+
+#: editor/plugins/animation_blend_space_1d_editor.cpp
+#: editor/plugins/animation_blend_space_2d_editor.cpp
 #: editor/plugins/animation_state_machine_editor.cpp
 msgid "This type of node can't be used. Only root nodes are allowed."
 msgstr "Este tipo de nó não pode ser usado. Apenas nós raiz são permitidos."
+
+#: editor/plugins/animation_blend_space_1d_editor.cpp
+#: editor/plugins/animation_blend_space_2d_editor.cpp
+msgid "Add Node Point"
+msgstr "Adicionar Ponto Nó"
+
+#: editor/plugins/animation_blend_space_1d_editor.cpp
+#: editor/plugins/animation_blend_space_2d_editor.cpp
+msgid "Add Animation Point"
+msgstr "Adicionar Ponto Animação"
+
+#: editor/plugins/animation_blend_space_1d_editor.cpp
+msgid "Remove BlendSpace1D Point"
+msgstr "Remover Ponto de BlendSpace1D"
+
+#: editor/plugins/animation_blend_space_1d_editor.cpp
+msgid "Move BlendSpace1D Node Point"
+msgstr "Mover Ponto Nó em BlendSpace1D"
 
 #: editor/plugins/animation_blend_space_1d_editor.cpp
 #: editor/plugins/animation_blend_space_2d_editor.cpp
@@ -3563,12 +3731,36 @@ msgid "Triangle already exists"
 msgstr "Já existe triângulo"
 
 #: editor/plugins/animation_blend_space_2d_editor.cpp
+msgid "Add Triangle"
+msgstr "Adicionar Triângulo"
+
+#: editor/plugins/animation_blend_space_2d_editor.cpp
+msgid "Change BlendSpace2D Limits"
+msgstr "Mudar Limites do BlendSpace2D"
+
+#: editor/plugins/animation_blend_space_2d_editor.cpp
+msgid "Change BlendSpace2D Labels"
+msgstr "Mudar Legendas do BlendSpace2D"
+
+#: editor/plugins/animation_blend_space_2d_editor.cpp
+msgid "Remove BlendSpace2D Point"
+msgstr "Remover Ponto do BlendSpace2D"
+
+#: editor/plugins/animation_blend_space_2d_editor.cpp
+msgid "Remove BlendSpace2D Triangle"
+msgstr "Remover Triângulo do BlendSpace2D"
+
+#: editor/plugins/animation_blend_space_2d_editor.cpp
 msgid "BlendSpace2D does not belong to an AnimationTree node."
 msgstr "BlendSpace2D não pertence a um nó AnimationTree."
 
 #: editor/plugins/animation_blend_space_2d_editor.cpp
 msgid "No triangles exist, so no blending can take place."
 msgstr "Não existem triângulos, nenhuma mistura pode ocorrer."
+
+#: editor/plugins/animation_blend_space_2d_editor.cpp
+msgid "Toggle Auto Triangles"
+msgstr "Alternar Triângulos Auto"
 
 #: editor/plugins/animation_blend_space_2d_editor.cpp
 msgid "Create triangles by connecting points."
@@ -3588,6 +3780,10 @@ msgid "Blend:"
 msgstr "Mistura:"
 
 #: editor/plugins/animation_blend_tree_editor_plugin.cpp
+msgid "Parameter Changed"
+msgstr "Mudança de Parâmetro"
+
+#: editor/plugins/animation_blend_tree_editor_plugin.cpp
 #: editor/plugins/animation_tree_player_editor_plugin.cpp
 msgid "Edit Filters"
 msgstr "Editar filtros"
@@ -3597,10 +3793,51 @@ msgid "Output node can't be added to the blend tree."
 msgstr "Saída do nó não pode ser adicionada à árvore de mistura."
 
 #: editor/plugins/animation_blend_tree_editor_plugin.cpp
+msgid "Add Node to BlendTree"
+msgstr "Adicionar Nó a BlendTree"
+
+#: editor/plugins/animation_blend_tree_editor_plugin.cpp
+#: editor/plugins/visual_shader_editor_plugin.cpp
+msgid "Node Moved"
+msgstr "Nó Movido"
+
+#: editor/plugins/animation_blend_tree_editor_plugin.cpp
 #: editor/plugins/visual_shader_editor_plugin.cpp
 msgid "Unable to connect, port may be in use or connection may be invalid."
 msgstr ""
 "Incapaz de conectar, porta pode estar em uso ou conexão pode ser inválida."
+
+#: editor/plugins/animation_blend_tree_editor_plugin.cpp
+#: editor/plugins/visual_shader_editor_plugin.cpp
+msgid "Nodes Connected"
+msgstr "Nós Conectados"
+
+#: editor/plugins/animation_blend_tree_editor_plugin.cpp
+#: editor/plugins/visual_shader_editor_plugin.cpp
+msgid "Nodes Disconnected"
+msgstr "Nós Desconectados"
+
+#: editor/plugins/animation_blend_tree_editor_plugin.cpp
+msgid "Set Animation"
+msgstr "Definir Animação"
+
+#: editor/plugins/animation_blend_tree_editor_plugin.cpp
+#: editor/plugins/visual_shader_editor_plugin.cpp
+msgid "Delete Node"
+msgstr "Apagar Nó"
+
+#: editor/plugins/animation_blend_tree_editor_plugin.cpp
+#: editor/scene_tree_dock.cpp
+msgid "Delete Node(s)"
+msgstr "Apagar Nó(s)"
+
+#: editor/plugins/animation_blend_tree_editor_plugin.cpp
+msgid "Toggle Filter On/Off"
+msgstr "Alternar Filtro On/Off"
+
+#: editor/plugins/animation_blend_tree_editor_plugin.cpp
+msgid "Change Filter"
+msgstr "Alterar Filtro"
 
 #: editor/plugins/animation_blend_tree_editor_plugin.cpp
 msgid "No animation player set, so unable to retrieve track names."
@@ -3621,6 +3858,11 @@ msgid ""
 msgstr ""
 "Reprodutor de animação não tem um caminha de nó raiz válido, sendo incapaz "
 "de recolher nome das faixas."
+
+#: editor/plugins/animation_blend_tree_editor_plugin.cpp
+#: editor/plugins/animation_state_machine_editor.cpp
+msgid "Node Renamed"
+msgstr "Nó Renomeado"
 
 #: editor/plugins/animation_blend_tree_editor_plugin.cpp
 #: editor/plugins/visual_shader_editor_plugin.cpp
@@ -3849,6 +4091,19 @@ msgid "Cross-Animation Blend Times"
 msgstr "Tempos de Mistura de Animação cruzada"
 
 #: editor/plugins/animation_state_machine_editor.cpp
+msgid "Move Node"
+msgstr "Mover Nó"
+
+#: editor/plugins/animation_state_machine_editor.cpp
+msgid "Add Transition"
+msgstr "Adicionar Transição"
+
+#: editor/plugins/animation_state_machine_editor.cpp
+#: modules/visual_script/visual_script_editor.cpp
+msgid "Add Node"
+msgstr "Adicionar Nó"
+
+#: editor/plugins/animation_state_machine_editor.cpp
 msgid "End"
 msgstr "Fim"
 
@@ -3875,6 +4130,18 @@ msgstr "Nodos de início e fim são necessários para uma sub-transição."
 #: editor/plugins/animation_state_machine_editor.cpp
 msgid "No playback resource set at path: %s."
 msgstr "Nenhum recurso de playback definido no caminho: %s."
+
+#: editor/plugins/animation_state_machine_editor.cpp
+msgid "Node Removed"
+msgstr "Nó Removido"
+
+#: editor/plugins/animation_state_machine_editor.cpp
+msgid "Transition Removed"
+msgstr "Transição Removida"
+
+#: editor/plugins/animation_state_machine_editor.cpp
+msgid "Set Start Node (Autoplay)"
+msgstr "Definir Nó de Início (Reprodução Automática)"
 
 #: editor/plugins/animation_state_machine_editor.cpp
 msgid ""
@@ -4297,6 +4564,18 @@ msgid "Move CanvasItem"
 msgstr "Mover CanvasItem"
 
 #: editor/plugins/canvas_item_editor_plugin.cpp
+msgid "Presets for the anchors and margins values of a Control node."
+msgstr "Pré-definições para âncoras e margens de um Nó Control."
+
+#: editor/plugins/canvas_item_editor_plugin.cpp
+msgid ""
+"Children of containers have their anchors and margins values overridden by "
+"their parent."
+msgstr ""
+"As âncoras e margens de filhos de um contentores são  sobrescritas pelo seu "
+"pai."
+
+#: editor/plugins/canvas_item_editor_plugin.cpp
 msgid "Anchors only"
 msgstr "Só âncoras"
 
@@ -4526,8 +4805,37 @@ msgid "Layout"
 msgstr "Esquema"
 
 #: editor/plugins/canvas_item_editor_plugin.cpp
-msgid "Insert keys."
-msgstr "Inserir chaves."
+msgid "Translation mask for inserting keys."
+msgstr "Máscara de translação para inserir chaves."
+
+#: editor/plugins/canvas_item_editor_plugin.cpp
+msgid "Rotation mask for inserting keys."
+msgstr "Máscara de rotação para inserir chaves."
+
+#: editor/plugins/canvas_item_editor_plugin.cpp
+msgid "Scale mask for inserting keys."
+msgstr "Máscara de escala para inserir chaves."
+
+#: editor/plugins/canvas_item_editor_plugin.cpp
+msgid "Insert keys (based on mask)."
+msgstr "Inserir chaves (baseado na máscara)."
+
+#: editor/plugins/canvas_item_editor_plugin.cpp
+msgid ""
+"Auto insert keys when objects are translated, rotated on scaled (based on "
+"mask).\n"
+"Keys are only added to existing tracks, no new tracks will be created.\n"
+"Keys must be inserted manually for the first time."
+msgstr ""
+"Insere chaves automaticamente quando objetos são movidos, rodados ou "
+"redimensionados (baseado na máscara).\n"
+"Chaves apenas são adicionadas a pistas existentes, não sendo criadas novas "
+"pistas.\n"
+"Chaves têm de ser inseridas manualmente na primeira vez."
+
+#: editor/plugins/canvas_item_editor_plugin.cpp
+msgid "Auto Insert Key"
+msgstr "Inserir Chave automaticamente"
 
 #: editor/plugins/canvas_item_editor_plugin.cpp
 msgid "Insert Key (Existing Tracks)"
@@ -4599,9 +4907,55 @@ msgstr "Editar Poly (Remover Ponto)"
 msgid "Set Handle"
 msgstr "Definir Manipulador"
 
+#: editor/plugins/cpu_particles_2d_editor_plugin.cpp
+#: editor/plugins/particles_2d_editor_plugin.cpp
+msgid "Error loading image:"
+msgstr "Erro ao carregar imagem:"
+
+#: editor/plugins/cpu_particles_2d_editor_plugin.cpp
+#: editor/plugins/particles_2d_editor_plugin.cpp
+msgid "No pixels with transparency > 128 in image..."
+msgstr "Sem pixeis com transparência > 128 na imagem..."
+
+#: editor/plugins/cpu_particles_2d_editor_plugin.cpp
+#: editor/plugins/particles_2d_editor_plugin.cpp
+msgid "Load Emission Mask"
+msgstr "Carregar máscara de emissão"
+
+#: editor/plugins/cpu_particles_2d_editor_plugin.cpp
+#: editor/plugins/particles_2d_editor_plugin.cpp
+msgid "Clear Emission Mask"
+msgstr "Limpar máscara de emissão"
+
+#: editor/plugins/cpu_particles_2d_editor_plugin.cpp
+#: editor/plugins/particles_2d_editor_plugin.cpp
+#: editor/plugins/particles_editor_plugin.cpp
+msgid "Particles"
+msgstr "Partículas"
+
+#: editor/plugins/cpu_particles_2d_editor_plugin.cpp
+#: editor/plugins/particles_2d_editor_plugin.cpp
+msgid "Generated Point Count:"
+msgstr "Contagem de Pontos gerados:"
+
+#: editor/plugins/cpu_particles_2d_editor_plugin.cpp
+#: editor/plugins/particles_2d_editor_plugin.cpp
+msgid "Emission Mask"
+msgstr "Máscara de emissão"
+
+#: editor/plugins/cpu_particles_2d_editor_plugin.cpp
+#: editor/plugins/particles_2d_editor_plugin.cpp
+msgid "Capture from Pixel"
+msgstr "Capturar a partir do pixel"
+
+#: editor/plugins/cpu_particles_2d_editor_plugin.cpp
+#: editor/plugins/particles_2d_editor_plugin.cpp
+msgid "Emission Colors"
+msgstr "Cores de emissão"
+
 #: editor/plugins/cpu_particles_editor_plugin.cpp
 msgid "CPUParticles"
-msgstr "CPUPartículas"
+msgstr "CPUParticles"
 
 #: editor/plugins/cpu_particles_editor_plugin.cpp
 #: editor/plugins/particles_editor_plugin.cpp
@@ -4680,6 +5034,10 @@ msgstr "Pressione Shift para editar tangentes individualmente"
 #: editor/plugins/gi_probe_editor_plugin.cpp
 msgid "Bake GI Probe"
 msgstr "Consolidar Sonda GI"
+
+#: editor/plugins/gradient_editor_plugin.cpp
+msgid "Gradient Edited"
+msgstr "Gradiente Editado"
 
 #: editor/plugins/item_list_editor_plugin.cpp
 msgid "Item %d"
@@ -4937,59 +5295,22 @@ msgid "Generating Visibility Rect"
 msgstr "A Gerar Visibilidade Rect"
 
 #: editor/plugins/particles_2d_editor_plugin.cpp
-msgid "Can only set point into a ParticlesMaterial process material"
-msgstr "Só pode definir um Ponto num Material ParticlesMaterial"
-
-#: editor/plugins/particles_2d_editor_plugin.cpp
-msgid "Error loading image:"
-msgstr "Erro ao carregar imagem:"
-
-#: editor/plugins/particles_2d_editor_plugin.cpp
-msgid "No pixels with transparency > 128 in image..."
-msgstr "Sem pixeis com transparência > 128 na imagem..."
-
-#: editor/plugins/particles_2d_editor_plugin.cpp
 msgid "Generate Visibility Rect"
 msgstr "Gerar Visibilidade do Rect"
 
 #: editor/plugins/particles_2d_editor_plugin.cpp
-msgid "Load Emission Mask"
-msgstr "Carregar máscara de emissão"
-
-#: editor/plugins/particles_2d_editor_plugin.cpp
-msgid "Clear Emission Mask"
-msgstr "Limpar máscara de emissão"
+msgid "Can only set point into a ParticlesMaterial process material"
+msgstr "Só pode definir um Ponto num Material ParticlesMaterial"
 
 #: editor/plugins/particles_2d_editor_plugin.cpp
 #: editor/plugins/particles_editor_plugin.cpp
 msgid "Convert to CPUParticles"
-msgstr "Converter em CPUPartículas"
-
-#: editor/plugins/particles_2d_editor_plugin.cpp
-#: editor/plugins/particles_editor_plugin.cpp
-msgid "Particles"
-msgstr "Partículas"
-
-#: editor/plugins/particles_2d_editor_plugin.cpp
-msgid "Generated Point Count:"
-msgstr "Contagem de Pontos gerados:"
+msgstr "Converter em CPUParticles"
 
 #: editor/plugins/particles_2d_editor_plugin.cpp
 #: editor/plugins/particles_editor_plugin.cpp
 msgid "Generation Time (sec):"
 msgstr "Tempo de geração (s):"
-
-#: editor/plugins/particles_2d_editor_plugin.cpp
-msgid "Emission Mask"
-msgstr "Máscara de emissão"
-
-#: editor/plugins/particles_2d_editor_plugin.cpp
-msgid "Capture from Pixel"
-msgstr "Capturar a partir do pixel"
-
-#: editor/plugins/particles_2d_editor_plugin.cpp
-msgid "Emission Colors"
-msgstr "Cores de emissão"
 
 #: editor/plugins/particles_editor_plugin.cpp
 msgid "Faces contain no area!"
@@ -5040,12 +5361,12 @@ msgid "Generating AABB"
 msgstr "A gerar AABB"
 
 #: editor/plugins/particles_editor_plugin.cpp
-msgid "Generate AABB"
-msgstr "Gerar AABB"
-
-#: editor/plugins/particles_editor_plugin.cpp
 msgid "Generate Visibility AABB"
 msgstr "Gerar visibilidade AABB"
+
+#: editor/plugins/particles_editor_plugin.cpp
+msgid "Generate AABB"
+msgstr "Gerar AABB"
 
 #: editor/plugins/path_2d_editor_plugin.cpp
 msgid "Remove Point from Curve"
@@ -5199,6 +5520,12 @@ msgstr ""
 #: editor/plugins/polygon_2d_editor_plugin.cpp
 msgid "Create UV Map"
 msgstr "Criar mapa UV"
+
+#: editor/plugins/polygon_2d_editor_plugin.cpp
+msgid ""
+"Polygon 2D has internal vertices, so it can no longer be edited in the "
+"viewport."
+msgstr "Polygon 2D tem vértices internos, não podendo ser editado no viewport."
 
 #: editor/plugins/polygon_2d_editor_plugin.cpp
 msgid "Create Polygon & UV"
@@ -5494,8 +5821,8 @@ msgid "Save Theme As..."
 msgstr "Guardar tema como..."
 
 #: editor/plugins/script_editor_plugin.cpp
-msgid " Class Reference"
-msgstr " Referência de classe"
+msgid "%s Class Reference"
+msgstr "Referência de classe %s"
 
 #: editor/plugins/script_editor_plugin.cpp
 msgid "Toggle alphabetical sorting of the method list."
@@ -5623,6 +5950,14 @@ msgstr "Depurar com Editor Externo"
 #: editor/plugins/script_editor_plugin.cpp
 msgid "Open Godot online documentation"
 msgstr "Abrir documentação online do Godot"
+
+#: editor/plugins/script_editor_plugin.cpp
+msgid "Request Docs"
+msgstr "Requisitar Docs"
+
+#: editor/plugins/script_editor_plugin.cpp
+msgid "Help improve the Godot documentation by giving feedback"
+msgstr "Dê a sua opinião para ajudar a melhorar a documentação Godot"
 
 #: editor/plugins/script_editor_plugin.cpp
 msgid "Search the reference documentation."
@@ -5820,6 +6155,14 @@ msgid "This skeleton has no bones, create some children Bone2D nodes."
 msgstr "Este esqueleto não tem ossos, crie alguns nós Bone2D filhos."
 
 #: editor/plugins/skeleton_2d_editor_plugin.cpp
+msgid "Create Rest Pose from Bones"
+msgstr "Criar Pose de Descanso a partir de Ossos"
+
+#: editor/plugins/skeleton_2d_editor_plugin.cpp
+msgid "Set Rest Pose to Bones"
+msgstr "Definir Pose de Descanso para Ossos"
+
+#: editor/plugins/skeleton_2d_editor_plugin.cpp
 msgid "Skeleton2D"
 msgstr "Esqueleto2D"
 
@@ -5889,7 +6232,7 @@ msgstr "A rodar %s graus."
 
 #: editor/plugins/spatial_editor_plugin.cpp
 msgid "Keying is disabled (no key inserted)."
-msgstr "Edição desativada (nenhuma Chave inserida)."
+msgstr "Edição desativada (nenhuma chave inserida)."
 
 #: editor/plugins/spatial_editor_plugin.cpp
 msgid "Animation Key Inserted."
@@ -5926,10 +6269,6 @@ msgstr "Chamadas de desenho"
 #: editor/plugins/spatial_editor_plugin.cpp
 msgid "Vertices"
 msgstr "Vértices"
-
-#: editor/plugins/spatial_editor_plugin.cpp
-msgid "FPS"
-msgstr "FPS"
 
 #: editor/plugins/spatial_editor_plugin.cpp
 msgid "Top View."
@@ -5976,8 +6315,8 @@ msgid "Rear"
 msgstr "Trás"
 
 #: editor/plugins/spatial_editor_plugin.cpp
-msgid "Align with view"
-msgstr "Alinhar com a vista"
+msgid "Align with View"
+msgstr "Alinhar com a Vista"
 
 #: editor/plugins/spatial_editor_plugin.cpp editor/scene_tree_dock.cpp
 msgid "No parent to instance a child at."
@@ -6068,12 +6407,24 @@ msgid "Freelook Speed Modifier"
 msgstr "Modificador de velocidade Freelook"
 
 #: editor/plugins/spatial_editor_plugin.cpp
+msgid ""
+"Note: The FPS value displayed is the editor's framerate.\n"
+"It cannot be used as a reliable indication of in-game performance."
+msgstr ""
+"Nota: O FPS mostrado é a taxa de frames do editor.\n"
+"Não é uma indicação fiável do desempenho do jogo."
+
+#: editor/plugins/spatial_editor_plugin.cpp
 msgid "View Rotation Locked"
 msgstr "Rotação da Vista Bloqueada"
 
 #: editor/plugins/spatial_editor_plugin.cpp
 msgid "XForm Dialog"
 msgstr "Diálogo XForm"
+
+#: editor/plugins/spatial_editor_plugin.cpp
+msgid "Snap Nodes To Floor"
+msgstr "Ajustar Nós ao Fundo"
 
 #: editor/plugins/spatial_editor_plugin.cpp
 msgid "Select Mode (Q)"
@@ -6291,8 +6642,24 @@ msgid "Post"
 msgstr "Pós"
 
 #: editor/plugins/spatial_editor_plugin.cpp
-msgid "Name-less gizmo"
-msgstr "Bugiganga sem nome"
+msgid "Nameless gizmo"
+msgstr "Bugiganga sem Nome"
+
+#: editor/plugins/sprite_editor_plugin.cpp
+msgid "Create Mesh2D"
+msgstr "Criar Mesh2D"
+
+#: editor/plugins/sprite_editor_plugin.cpp
+msgid "Create Polygon2D"
+msgstr "Criar Polygon2D"
+
+#: editor/plugins/sprite_editor_plugin.cpp
+msgid "Create CollisionPolygon2D"
+msgstr "Criar CollisionPolygon2D"
+
+#: editor/plugins/sprite_editor_plugin.cpp
+msgid "Create LightOccluder2D"
+msgstr "Criar LightOccluder2D"
 
 #: editor/plugins/sprite_editor_plugin.cpp
 msgid "Sprite is empty!"
@@ -6307,16 +6674,36 @@ msgid "Invalid geometry, can't replace by mesh."
 msgstr "Geometria inválida, não substituível por malha."
 
 #: editor/plugins/sprite_editor_plugin.cpp
+msgid "Invalid geometry, can't create polygon."
+msgstr "Geometria inválida, impossível criar polígono."
+
+#: editor/plugins/sprite_editor_plugin.cpp
+msgid "Invalid geometry, can't create collision polygon."
+msgstr "Geometria inválida, impossível criar polígono de colisão."
+
+#: editor/plugins/sprite_editor_plugin.cpp
+msgid "Invalid geometry, can't create light occluder."
+msgstr "Geometria inválida, impossível criar oclusor de luz."
+
+#: editor/plugins/sprite_editor_plugin.cpp
 msgid "Sprite"
 msgstr "Sprite"
 
 #: editor/plugins/sprite_editor_plugin.cpp
-msgid "Convert to 2D Mesh"
-msgstr "Converter para Malha 2D"
+msgid "Convert to Mesh2D"
+msgstr "Converter para Mesh2D"
 
 #: editor/plugins/sprite_editor_plugin.cpp
-msgid "Create 2D Mesh"
-msgstr "Criar Malha 2D"
+msgid "Convert to Polygon2D"
+msgstr "Converter para Polygon2D"
+
+#: editor/plugins/sprite_editor_plugin.cpp
+msgid "Create CollisionPolygon2D Sibling"
+msgstr "Criar irmão de CollisionPolygon2D"
+
+#: editor/plugins/sprite_editor_plugin.cpp
+msgid "Create LightOccluder2D Sibling"
+msgstr "Criar irmão de LightOccluder2D"
 
 #: editor/plugins/sprite_editor_plugin.cpp
 msgid "Simplification: "
@@ -6355,10 +6742,6 @@ msgid "Add Empty"
 msgstr "Adicionar vazio"
 
 #: editor/plugins/sprite_frames_editor_plugin.cpp
-msgid "Change Animation Loop"
-msgstr "Mudar Ciclo da Animação"
-
-#: editor/plugins/sprite_frames_editor_plugin.cpp
 msgid "Change Animation FPS"
 msgstr "Mudar FPS da Animação"
 
@@ -6367,8 +6750,12 @@ msgid "(empty)"
 msgstr "(vazio)"
 
 #: editor/plugins/sprite_frames_editor_plugin.cpp
-msgid "Animations"
-msgstr "Animações"
+msgid "Animations:"
+msgstr "Animações:"
+
+#: editor/plugins/sprite_frames_editor_plugin.cpp
+msgid "New Animation"
+msgstr "Nova Animação"
 
 #: editor/plugins/sprite_frames_editor_plugin.cpp
 msgid "Speed (FPS):"
@@ -6379,8 +6766,8 @@ msgid "Loop"
 msgstr "Ciclo"
 
 #: editor/plugins/sprite_frames_editor_plugin.cpp
-msgid "Animation Frames"
-msgstr "Frames da Animação"
+msgid "Animation Frames:"
+msgstr "Frames da Animação:"
 
 #: editor/plugins/sprite_frames_editor_plugin.cpp
 msgid "Insert Empty (Before)"
@@ -6668,6 +7055,22 @@ msgid "Merge from Scene"
 msgstr "Fundir a partir da Cena"
 
 #: editor/plugins/tile_set_editor_plugin.cpp
+msgid "Next Coordinate"
+msgstr "Próxima Coordenada"
+
+#: editor/plugins/tile_set_editor_plugin.cpp
+msgid "Select the next shape, subtile, or Tile."
+msgstr "Selecione a próxima forma, subtile ou Tile."
+
+#: editor/plugins/tile_set_editor_plugin.cpp
+msgid "Previous Coordinate"
+msgstr "Coordenada Anterior"
+
+#: editor/plugins/tile_set_editor_plugin.cpp
+msgid "Select the previous shape, subtile, or Tile."
+msgstr "Selecione a forma, subtile ou Tile anterior."
+
+#: editor/plugins/tile_set_editor_plugin.cpp
 msgid "Copy bitmask."
 msgstr "Copiar bitmask."
 
@@ -6678,6 +7081,10 @@ msgstr "Colar bitmask."
 #: editor/plugins/tile_set_editor_plugin.cpp
 msgid "Erase bitmask."
 msgstr "Apagar bitmask."
+
+#: editor/plugins/tile_set_editor_plugin.cpp
+msgid "Create a new rectangle."
+msgstr "Criar novo retângulo."
 
 #: editor/plugins/tile_set_editor_plugin.cpp
 msgid "Create a new polygon."
@@ -6817,6 +7224,14 @@ msgid "Clear Tile Bitmask"
 msgstr "Limpar Bitmask de Tile"
 
 #: editor/plugins/tile_set_editor_plugin.cpp
+msgid "Make Polygon Concave"
+msgstr "Fazer Polígono Côncavo"
+
+#: editor/plugins/tile_set_editor_plugin.cpp
+msgid "Make Polygon Convex"
+msgstr "Fazer Polígono Convexo"
+
+#: editor/plugins/tile_set_editor_plugin.cpp
 msgid "Remove Tile"
 msgstr "Remover Tile"
 
@@ -6857,6 +7272,30 @@ msgid "TileSet"
 msgstr "TileSet"
 
 #: editor/plugins/visual_shader_editor_plugin.cpp
+msgid "Set Uniform Name"
+msgstr "Definir Nome do Uniform"
+
+#: editor/plugins/visual_shader_editor_plugin.cpp
+msgid "Set Input Default Port"
+msgstr "Definir Porta de Entrada por Defeito"
+
+#: editor/plugins/visual_shader_editor_plugin.cpp
+msgid "Add Node to Visual Shader"
+msgstr "Adicionar Nó ao Visual Shader"
+
+#: editor/plugins/visual_shader_editor_plugin.cpp
+msgid "Duplicate Nodes"
+msgstr "Duplicar Nós"
+
+#: editor/plugins/visual_shader_editor_plugin.cpp
+msgid "Delete Nodes"
+msgstr "Apagar Nós"
+
+#: editor/plugins/visual_shader_editor_plugin.cpp
+msgid "Visual Shader Input Type Changed"
+msgstr "Alterado Tipo de Entrada do Visual Shader"
+
+#: editor/plugins/visual_shader_editor_plugin.cpp
 msgid "Vertex"
 msgstr "Vértice"
 
@@ -6872,6 +7311,14 @@ msgstr "Luz"
 msgid "VisualShader"
 msgstr "VIsualShader"
 
+#: editor/plugins/visual_shader_editor_plugin.cpp
+msgid "Edit Visual Property"
+msgstr "Editar Propriedade Visual"
+
+#: editor/plugins/visual_shader_editor_plugin.cpp
+msgid "Visual Shader Mode Changed"
+msgstr "Modo do Visual Shader Alterado"
+
 #: editor/project_export.cpp
 msgid "Runnable"
 msgstr "Executável"
@@ -6885,9 +7332,22 @@ msgid "Delete preset '%s'?"
 msgstr "Apagar predefinição '%s'?"
 
 #: editor/project_export.cpp
-msgid "Export templates for this platform are missing/corrupted:"
+msgid ""
+"Failed to export the project for platform '%s'.\n"
+"Export templates seem to be missing or invalid."
 msgstr ""
-"Modelos de exportação para esta plataforma estão ausentes/corrompidos :"
+"Falhou a exportação do projeto para a plataforma '%s'.\n"
+"O Modelo de exportação está ausente ou é inválido."
+
+#: editor/project_export.cpp
+msgid ""
+"Failed to export the project for platform '%s'.\n"
+"This might be due to a configuration issue in the export preset or your "
+"export settings."
+msgstr ""
+"Falhou a exportação do projeto para a plataforma '%s'.\n"
+"Pode ser provocado por um problema na predefinição ou configuração da "
+"exportação."
 
 #: editor/project_export.cpp
 msgid "Release"
@@ -6896,6 +7356,15 @@ msgstr "Libertar"
 #: editor/project_export.cpp
 msgid "Exporting All"
 msgstr "A Exportar Tudo"
+
+#: editor/project_export.cpp
+msgid "The given export path doesn't exist:"
+msgstr "O caminho de exportação não existe:"
+
+#: editor/project_export.cpp
+msgid "Export templates for this platform are missing/corrupted:"
+msgstr ""
+"Modelos de exportação para esta plataforma estão ausentes/corrompidos :"
 
 #: editor/project_export.cpp
 msgid "Presets"
@@ -7134,11 +7603,11 @@ msgstr "Navegar"
 
 #: editor/project_manager.cpp
 msgid "Renderer:"
-msgstr ""
+msgstr "Renderizador:"
 
 #: editor/project_manager.cpp
 msgid "OpenGL ES 3.0"
-msgstr ""
+msgstr "OpenGL ES 3.0"
 
 #: editor/project_manager.cpp
 msgid ""
@@ -7147,10 +7616,14 @@ msgid ""
 "Incompatible with older hardware\n"
 "Not recommended for web games"
 msgstr ""
+"Qualidade visual superior\n"
+"Todas as características disponíveis\n"
+"Incompatível com hardware antigo\n"
+"Não recomendado para jogos Web"
 
 #: editor/project_manager.cpp
 msgid "OpenGL ES 2.0"
-msgstr ""
+msgstr "OpenGL ES 2.0"
 
 #: editor/project_manager.cpp
 msgid ""
@@ -7159,10 +7632,16 @@ msgid ""
 "Works on most hardware\n"
 "Recommended for web games"
 msgstr ""
+"Qualidade visual inferior\n"
+"Algumas características indisponíveis\n"
+"Funciona na maioria do hardware\n"
+"Recomendado para jogos Web"
 
 #: editor/project_manager.cpp
 msgid "Renderer can be changed later, but scenes may need to be adjusted."
 msgstr ""
+"O Renderizador pode ser alterado mais tarde, mas as cenas poderão ter de ser "
+"ajustadas."
 
 #: editor/project_manager.cpp
 msgid "Unnamed Project"
@@ -7175,6 +7654,28 @@ msgstr "Impossível abrir Projeto em '%s'."
 #: editor/project_manager.cpp
 msgid "Are you sure to open more than one project?"
 msgstr "Está seguro que quer abrir mais do que um Projeto?"
+
+#: editor/project_manager.cpp
+msgid ""
+"The following project settings file does not specify the version of Godot "
+"through which it was created.\n"
+"\n"
+"%s\n"
+"\n"
+"If you proceed with opening it, it will be converted to Godot's current "
+"configuration file format.\n"
+"Warning: You will not be able to open the project with previous versions of "
+"the engine anymore."
+msgstr ""
+"A seguinte configuração do projeto não especifica a versão do Godot em que "
+"foi criada.\n"
+"\n"
+"%s\n"
+"\n"
+"Se continuar com a abertura, será convertida para o formato da versão "
+"atual.\n"
+"Aviso: Não conseguirá mais abrir o projeto em versões anteriores à deste "
+"motor."
 
 #: editor/project_manager.cpp
 msgid ""
@@ -7888,7 +8389,7 @@ msgstr "Duplicar Nó(s)"
 
 #: editor/scene_tree_dock.cpp
 msgid "Can't reparent nodes in inherited scenes, order of nodes can't change."
-msgstr ""
+msgstr "Impossível mudar nó em cenas herdadas, a ordem dos nós não pode mudar."
 
 #: editor/scene_tree_dock.cpp
 msgid "Node must belong to the edited scene to become root."
@@ -7897,6 +8398,10 @@ msgstr "O nó deve pertencer à cena editada para se tornar root."
 #: editor/scene_tree_dock.cpp
 msgid "Instantiated scenes can't become root"
 msgstr "Cenas instantâneas não se podem tornar root"
+
+#: editor/scene_tree_dock.cpp
+msgid "Make node as Root"
+msgstr "Tornar Nó Raiz"
 
 #: editor/scene_tree_dock.cpp
 msgid "Delete Node(s)?"
@@ -7933,6 +8438,10 @@ msgstr "Carregar como marcador de posição"
 #: editor/scene_tree_dock.cpp
 msgid "Make Local"
 msgstr "Tornar Local"
+
+#: editor/scene_tree_dock.cpp
+msgid "New Scene Root"
+msgstr "Nova Raiz de Cena"
 
 #: editor/scene_tree_dock.cpp
 msgid "Create Root Node:"
@@ -7997,10 +8506,6 @@ msgstr "Limpar herança"
 #: editor/scene_tree_dock.cpp
 msgid "Open documentation"
 msgstr "Abrir documentação"
-
-#: editor/scene_tree_dock.cpp
-msgid "Delete Node(s)"
-msgstr "Apagar Nó(s)"
 
 #: editor/scene_tree_dock.cpp
 msgid "Add Child Node"
@@ -8363,6 +8868,18 @@ msgid "Set From Tree"
 msgstr "Definir a partir da árvore"
 
 #: editor/settings_config_dialog.cpp
+msgid "Erase Shortcut"
+msgstr "Apagar Atalho"
+
+#: editor/settings_config_dialog.cpp
+msgid "Restore Shortcut"
+msgstr "Restaurar Atalho"
+
+#: editor/settings_config_dialog.cpp
+msgid "Change Shortcut"
+msgstr "Alterar Atalho"
+
+#: editor/settings_config_dialog.cpp
 msgid "Shortcuts"
 msgstr "Atalhos"
 
@@ -8396,7 +8913,7 @@ msgstr "Mudar partículas AABB"
 
 #: editor/spatial_editor_gizmos.cpp
 msgid "Change Probe Extents"
-msgstr "Mudar extensões de sonda"
+msgstr "Mudar Extensões de Sonda"
 
 #: editor/spatial_editor_gizmos.cpp modules/csg/csg_gizmos.cpp
 msgid "Change Sphere Shape Radius"
@@ -8569,6 +9086,10 @@ msgid "GridMap Duplicate Selection"
 msgstr "Seleção duplicada de GridMap"
 
 #: modules/gridmap/grid_map_editor_plugin.cpp
+msgid "GridMap Paint"
+msgstr "Pintura do GridMap"
+
+#: modules/gridmap/grid_map_editor_plugin.cpp
 msgid "Grid Map"
 msgstr "Mapa de grelha"
 
@@ -8703,10 +9224,6 @@ msgstr "Builds"
 #: modules/mono/editor/mono_bottom_panel.cpp
 msgid "Build Project"
 msgstr "Construir Projeto"
-
-#: modules/mono/editor/mono_bottom_panel.cpp
-msgid "Warnings"
-msgstr "Avisos"
 
 #: modules/mono/editor/mono_bottom_panel.cpp
 msgid "View log"
@@ -8873,10 +9390,6 @@ msgid "Change Expression"
 msgstr "Mudar Expressão"
 
 #: modules/visual_script/visual_script_editor.cpp
-msgid "Add Node"
-msgstr "Adicionar Nó"
-
-#: modules/visual_script/visual_script_editor.cpp
 msgid "Remove VisualScript Nodes"
 msgstr "Remover Nós VisualScript"
 
@@ -8959,6 +9472,10 @@ msgstr "Script já tem uma Função '%s'"
 #: modules/visual_script/visual_script_editor.cpp
 msgid "Change Input Value"
 msgstr "Mudar valor de entrada"
+
+#: modules/visual_script/visual_script_editor.cpp
+msgid "Resize Comment"
+msgstr "Redimensionar Comentário"
 
 #: modules/visual_script/visual_script_editor.cpp
 msgid "Can't copy the function node."
@@ -9119,16 +9636,15 @@ msgstr "Os segmentos de pacote devem ser de comprimento diferente de zero."
 #: platform/android/export/export.cpp
 msgid "The character '%s' is not allowed in Android application package names."
 msgstr ""
-"O caractere '%s' não é permitido em nomes de pacotes de aplicativos Android."
+"O caráter '%s' não é permitido em nomes de pacotes de aplicações Android."
 
 #: platform/android/export/export.cpp
 msgid "A digit cannot be the first character in a package segment."
-msgstr "Um dígito não pode ser o primeiro caractere num segmento de pacote."
+msgstr "Um dígito não pode ser o primeiro caráter num segmento de pacote."
 
 #: platform/android/export/export.cpp
 msgid "The character '%s' cannot be the first character in a package segment."
-msgstr ""
-"O caractere '%s' não pode ser o primeiro caractere num segmento de pacote."
+msgstr "O caráter '%s' não pode ser o primeiro caráter num segmento de pacote."
 
 #: platform/android/export/export.cpp
 msgid "The package must have at least one '.' separator."
@@ -9166,18 +9682,18 @@ msgstr "Identificador de segmentos devem ser de comprimento diferente de zero."
 
 #: platform/iphone/export/export.cpp
 msgid "The character '%s' is not allowed in Identifier."
-msgstr "O caractere \"%s\" não é permitido no Identificador."
+msgstr "O caráter \"%s\" não é permitido no Identificador."
 
 #: platform/iphone/export/export.cpp
 msgid "A digit cannot be the first character in a Identifier segment."
 msgstr ""
-"Um dígito não pode ser o primeiro caractere em um segmento de Identificador."
+"Um dígito não pode ser o primeiro caráter num segmento de Identificador."
 
 #: platform/iphone/export/export.cpp
 msgid ""
 "The character '%s' cannot be the first character in a Identifier segment."
 msgstr ""
-"O caractere \"%s\" não pode ser o primeiro caractere num segmento de "
+"O caráter \"%s\" não pode ser o primeiro caráter num segmento de "
 "Identificador."
 
 #: platform/iphone/export/export.cpp
@@ -9390,6 +9906,16 @@ msgstr ""
 "O Nó ParallaxLayer só funciona quando definido como filho de um Nó "
 "ParallaxBackground."
 
+#: scene/2d/particles_2d.cpp
+msgid ""
+"GPU-based particles are not supported by the GLES2 video driver.\n"
+"Use the CPUParticles2D node instead. You can use the \"Convert to "
+"CPUParticles\" option for this purpose."
+msgstr ""
+"Partículas baseadas em GPU não são suportadas pelo driver de vídeo GLES2.\n"
+"Use o Nó CPUParticles2D. Pode usar a opção \"Converter em CPUParticles\" "
+"para este efeito."
+
 #: scene/2d/particles_2d.cpp scene/3d/particles.cpp
 msgid ""
 "A material to process the particles is not assigned, so no behavior is "
@@ -9547,6 +10073,14 @@ msgstr ""
 "Uma forma tem de ser fornecida para CollisionShape funcionar. Crie um "
 "recurso forma!"
 
+#: scene/3d/collision_shape.cpp
+msgid ""
+"Plane shapes don't work well and will be removed in future versions. Please "
+"don't use them."
+msgstr ""
+"Formas planas não funcionam bem e serão removidas em futuras versões. Não as "
+"use por favor."
+
 #: scene/3d/cpu_particles.cpp
 msgid "Nothing is visible because no mesh has been assigned."
 msgstr "Nada é visível porque nenhuma Malha foi atribuída."
@@ -9563,6 +10097,14 @@ msgstr ""
 msgid "Plotting Meshes"
 msgstr "A desenhar Meshes"
 
+#: scene/3d/gi_probe.cpp
+msgid ""
+"GIProbes are not supported by the GLES2 video driver.\n"
+"Use a BakedLightmap instead."
+msgstr ""
+"Sondas GI não são suportadas pelo driver vídeo GLES2.\n"
+"Em vez disso, use um BakedLightmap."
+
 #: scene/3d/navigation_mesh.cpp
 msgid "A NavigationMesh resource must be set or created for this node to work."
 msgstr ""
@@ -9576,6 +10118,16 @@ msgid ""
 msgstr ""
 "NavigationMeshInstance tem de ser filho ou neto de um Nó Navigation. Apenas "
 "fornece dados de navegação."
+
+#: scene/3d/particles.cpp
+msgid ""
+"GPU-based particles are not supported by the GLES2 video driver.\n"
+"Use the CPUParticles node instead. You can use the \"Convert to CPUParticles"
+"\" option for this purpose."
+msgstr ""
+"Partículas baseadas em GPU não são suportadas pelo driver de vídeo GLES2.\n"
+"Use o Nó CPUParticles. Pode usar a opção \"Converter em CPUParticles\" para "
+"este efeito."
 
 #: scene/3d/particles.cpp
 msgid ""
@@ -9600,8 +10152,8 @@ msgid ""
 "PathFollow ROTATION_ORIENTED requires \"Up Vector\" enabled in its parent "
 "Path's Curve resource."
 msgstr ""
-"PathFollow ROTATION_ORIENTED requer \"Up Vector\" habilitado em seu recurso "
-"de Curva do caminho pai."
+"PathFollow ROTATION_ORIENTED requer \"Up Vector\" habilitado no recurso de "
+"Curva do Caminho do seu pai."
 
 #: scene/3d/physics_body.cpp
 msgid ""
@@ -9618,25 +10170,6 @@ msgid "Path property must point to a valid Spatial node to work."
 msgstr ""
 "Para funcionar, a Propriedade Caminho tem de apontar para um Nó Spatial "
 "válido."
-
-#: scene/3d/scenario_fx.cpp
-msgid "WorldEnvironment needs an Environment resource."
-msgstr "WorldEnvironment precisa de um recurso Environment."
-
-#: scene/3d/scenario_fx.cpp
-msgid ""
-"Only one WorldEnvironment is allowed per scene (or set of instanced scenes)."
-msgstr ""
-"Apenas um WorldEnvironment é permitido por Cena (ou grupo de cenas "
-"instanciadas)."
-
-#: scene/3d/scenario_fx.cpp
-msgid ""
-"This WorldEnvironment is ignored. Either add a Camera (for 3D scenes) or set "
-"this environment's Background Mode to Canvas (for 2D scenes)."
-msgstr ""
-"Este WorldEnvironment ė ignorado. Pode adicionar uma Camera (para cenas 3D) "
-"ou definir o Modo Background  deste ambiente como Canvas (para cenas 2D)."
 
 #: scene/3d/soft_body.cpp
 msgid "This body will be ignored until you set a mesh"
@@ -9667,6 +10200,25 @@ msgid ""
 msgstr ""
 "VehicleWheel fornece um sistema de rodas a um VehicleBody. Use-o como um "
 "filho de VehicleBody."
+
+#: scene/3d/world_environment.cpp
+msgid "WorldEnvironment needs an Environment resource."
+msgstr "WorldEnvironment precisa de um recurso Environment."
+
+#: scene/3d/world_environment.cpp
+msgid ""
+"Only one WorldEnvironment is allowed per scene (or set of instanced scenes)."
+msgstr ""
+"Apenas um WorldEnvironment é permitido por Cena (ou grupo de cenas "
+"instanciadas)."
+
+#: scene/3d/world_environment.cpp
+msgid ""
+"This WorldEnvironment is ignored. Either add a Camera (for 3D scenes) or set "
+"this environment's Background Mode to Canvas (for 2D scenes)."
+msgstr ""
+"Este WorldEnvironment ė ignorado. Pode adicionar uma Camera (para cenas 3D) "
+"ou definir o Modo Background  deste ambiente como Canvas (para cenas 2D)."
 
 #: scene/animation/animation_blend_tree.cpp
 msgid "On BlendTree node '%s', animation not found: '%s'"
@@ -9711,12 +10263,33 @@ msgid "This node has been deprecated. Use AnimationTree instead."
 msgstr "Este nó foi depreciado. Use AnimationTree em vez disso."
 
 #: scene/gui/color_picker.cpp
+msgid "Pick a color from the screen."
+msgstr "Escolha uma cor do ecrã."
+
+#: scene/gui/color_picker.cpp
 msgid "Raw Mode"
 msgstr "Modo Raw"
 
 #: scene/gui/color_picker.cpp
-msgid "Add current color as a preset"
-msgstr "Adicionar cor atual como predefinição"
+msgid "Switch between hexadecimal and code values."
+msgstr "Alternar valores entre hexadecimal e código."
+
+#: scene/gui/color_picker.cpp
+msgid "Add current color as a preset."
+msgstr "Adicionar cor atual como predefinição."
+
+#: scene/gui/container.cpp
+#, fuzzy
+msgid ""
+"Container by itself serves no purpose unless a script configures it's "
+"children placement behavior.\n"
+"If you don't intend to add a script, then please use a plain 'Control' node "
+"instead."
+msgstr ""
+"Por si só um Contentor não tem utilidade, a não ser que um script configure "
+"o comportamento dos seu filhos.\n"
+"Se não pretende adicionar um script, será preferível usar um simples nó "
+"'Control'."
 
 #: scene/gui/dialogs.cpp
 msgid "Alert!"
@@ -9725,6 +10298,10 @@ msgstr "Alerta!"
 #: scene/gui/dialogs.cpp
 msgid "Please Confirm..."
 msgstr "Confirme por favor..."
+
+#: scene/gui/file_dialog.cpp
+msgid "Go to parent folder."
+msgstr "Ir para a pasta acima."
 
 #: scene/gui/popup.cpp
 msgid ""
@@ -9809,6 +10386,28 @@ msgstr "Atribuição a uniforme."
 #: servers/visual/shader_language.cpp
 msgid "Varyings can only be assigned in vertex function."
 msgstr "Variações só podem ser atribuídas na função vértice."
+
+#~ msgid "Snap (s): "
+#~ msgstr "Ajuste (s): "
+
+#~ msgid "Insert keys."
+#~ msgstr "Inserir chaves."
+
+#~ msgid "Instance the selected scene(s) as child of the selected node."
+#~ msgstr ""
+#~ "Instancie a(s) Cena(s) selecionada(s) como filha(s) do Nó selecionado."
+
+#~ msgid "Warnings:"
+#~ msgstr "Avisos:"
+
+#~ msgid "Font Size:"
+#~ msgstr "Tamanho do tipo de letra:"
+
+#~ msgid "Line:"
+#~ msgstr "Linha:"
+
+#~ msgid "Col:"
+#~ msgstr "Coluna:"
 
 #~ msgid "OrientedPathFollow only works when set as a child of a Path node."
 #~ msgstr ""
@@ -9964,9 +10563,6 @@ msgstr "Variações só podem ser atribuídas na função vértice."
 
 #~ msgid "Convert To Lowercase"
 #~ msgstr "Converter em minúsculas"
-
-#~ msgid "Snap To Floor"
-#~ msgstr "Ajustar ao Fundo"
 
 #~ msgid "Rotate 0 degrees"
 #~ msgstr "Rodar 0 graus"

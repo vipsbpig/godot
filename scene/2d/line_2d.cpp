@@ -105,11 +105,20 @@ void Line2D::set_point_position(int i, Vector2 pos) {
 }
 
 Vector2 Line2D::get_point_position(int i) const {
+	ERR_FAIL_INDEX_V(i, _points.size(), Vector2())
 	return _points.get(i);
 }
 
 int Line2D::get_point_count() const {
 	return _points.size();
+}
+
+void Line2D::clear_points() {
+	int count = _points.size();
+	if (count > 0) {
+		_points.resize(0);
+		update();
+	}
 }
 
 void Line2D::add_point(Vector2 pos) {
@@ -312,6 +321,8 @@ void Line2D::_bind_methods() {
 
 	ClassDB::bind_method(D_METHOD("add_point", "position"), &Line2D::add_point);
 	ClassDB::bind_method(D_METHOD("remove_point", "i"), &Line2D::remove_point);
+
+	ClassDB::bind_method(D_METHOD("clear_points"), &Line2D::clear_points);
 
 	ClassDB::bind_method(D_METHOD("set_width", "width"), &Line2D::set_width);
 	ClassDB::bind_method(D_METHOD("get_width"), &Line2D::get_width);

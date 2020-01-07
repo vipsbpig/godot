@@ -29,15 +29,13 @@
 /*************************************************************************/
 
 #include "visual_server_canvas.h"
-#include "visual_server_global.h"
+#include "visual_server_globals.h"
 #include "visual_server_raster.h"
 #include "visual_server_viewport.h"
 
-void VisualServerCanvas::_render_canvas_item_tree(Item *p_canvas_item, const Transform2D &p_transform, const Rect2 &p_clip_rect, const Color &p_modulate, RasterizerCanvas::Light *p_lights) {
+static const int z_range = VS::CANVAS_ITEM_Z_MAX - VS::CANVAS_ITEM_Z_MIN + 1;
 
-	static const int z_range = VS::CANVAS_ITEM_Z_MAX - VS::CANVAS_ITEM_Z_MIN + 1;
-	RasterizerCanvas::Item *z_list[z_range];
-	RasterizerCanvas::Item *z_last_list[z_range];
+void VisualServerCanvas::_render_canvas_item_tree(Item *p_canvas_item, const Transform2D &p_transform, const Rect2 &p_clip_rect, const Color &p_modulate, RasterizerCanvas::Light *p_lights) {
 
 	memset(z_list, 0, z_range * sizeof(RasterizerCanvas::Item *));
 	memset(z_last_list, 0, z_range * sizeof(RasterizerCanvas::Item *));
@@ -267,24 +265,24 @@ void VisualServerCanvas::render_canvas(Canvas *p_canvas, const Transform2D &p_tr
 
 		for (int i = 0; i < l; i++) {
 
-			const Canvas::ChildItem &ci = p_canvas->child_items[i];
-			_render_canvas_item_tree(ci.item, p_transform, p_clip_rect, p_canvas->modulate, p_lights);
+			const Canvas::ChildItem &ci2 = p_canvas->child_items[i];
+			_render_canvas_item_tree(ci2.item, p_transform, p_clip_rect, p_canvas->modulate, p_lights);
 
 			//mirroring (useful for scrolling backgrounds)
-			if (ci.mirror.x != 0) {
+			if (ci2.mirror.x != 0) {
 
-				Transform2D xform2 = p_transform * Transform2D(0, Vector2(ci.mirror.x, 0));
-				_render_canvas_item_tree(ci.item, xform2, p_clip_rect, p_canvas->modulate, p_lights);
+				Transform2D xform2 = p_transform * Transform2D(0, Vector2(ci2.mirror.x, 0));
+				_render_canvas_item_tree(ci2.item, xform2, p_clip_rect, p_canvas->modulate, p_lights);
 			}
-			if (ci.mirror.y != 0) {
+			if (ci2.mirror.y != 0) {
 
-				Transform2D xform2 = p_transform * Transform2D(0, Vector2(0, ci.mirror.y));
-				_render_canvas_item_tree(ci.item, xform2, p_clip_rect, p_canvas->modulate, p_lights);
+				Transform2D xform2 = p_transform * Transform2D(0, Vector2(0, ci2.mirror.y));
+				_render_canvas_item_tree(ci2.item, xform2, p_clip_rect, p_canvas->modulate, p_lights);
 			}
-			if (ci.mirror.y != 0 && ci.mirror.x != 0) {
+			if (ci2.mirror.y != 0 && ci2.mirror.x != 0) {
 
-				Transform2D xform2 = p_transform * Transform2D(0, ci.mirror);
-				_render_canvas_item_tree(ci.item, xform2, p_clip_rect, p_canvas->modulate, p_lights);
+				Transform2D xform2 = p_transform * Transform2D(0, ci2.mirror);
+				_render_canvas_item_tree(ci2.item, xform2, p_clip_rect, p_canvas->modulate, p_lights);
 			}
 		}
 	}
@@ -758,11 +756,12 @@ void VisualServerCanvas::canvas_item_add_triangle_array(RID p_item, const Vector
 	Item *canvas_item = canvas_item_owner.getornull(p_item);
 	ERR_FAIL_COND(!canvas_item);
 
-	int ps = p_points.size();
-	ERR_FAIL_COND(!p_colors.empty() && p_colors.size() != ps && p_colors.size() != 1);
-	ERR_FAIL_COND(!p_uvs.empty() && p_uvs.size() != ps);
-	ERR_FAIL_COND(!p_bones.empty() && p_bones.size() != ps * 4);
-	ERR_FAIL_COND(!p_weights.empty() && p_weights.size() != ps * 4);
+	int vertex_count = p_points.size();
+	ERR_FAIL_COND(vertex_count == 0);
+	ERR_FAIL_COND(!p_colors.empty() && p_colors.size() != vertex_count && p_colors.size() != 1);
+	ERR_FAIL_COND(!p_uvs.empty() && p_uvs.size() != vertex_count);
+	ERR_FAIL_COND(!p_bones.empty() && p_bones.size() != vertex_count * 4);
+	ERR_FAIL_COND(!p_weights.empty() && p_weights.size() != vertex_count * 4);
 
 	Vector<int> indices = p_indices;
 
@@ -770,9 +769,9 @@ void VisualServerCanvas::canvas_item_add_triangle_array(RID p_item, const Vector
 
 	if (indices.empty()) {
 
-		ERR_FAIL_COND(ps % 3 != 0);
+		ERR_FAIL_COND(vertex_count % 3 != 0);
 		if (p_count == -1)
-			count = ps;
+			count = vertex_count;
 	} else {
 
 		ERR_FAIL_COND(indices.size() % 3 != 0);
@@ -1433,4 +1432,13 @@ bool VisualServerCanvas::free(RID p_rid) {
 }
 
 VisualServerCanvas::VisualServerCanvas() {
+
+	z_list = (RasterizerCanvas::Item **)memalloc(z_range * sizeof(RasterizerCanvas::Item *));
+	z_last_list = (RasterizerCanvas::Item **)memalloc(z_range * sizeof(RasterizerCanvas::Item *));
+}
+
+VisualServerCanvas::~VisualServerCanvas() {
+
+	memfree(z_list);
+	memfree(z_last_list);
 }

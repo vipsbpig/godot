@@ -670,6 +670,7 @@ Dictionary AnimationPlayerEditor::get_state() const {
 	if (EditorNode::get_singleton()->get_edited_scene() && is_visible_in_tree() && player) {
 		d["player"] = EditorNode::get_singleton()->get_edited_scene()->get_path_to(player);
 		d["animation"] = player->get_assigned_animation();
+		d["track_editor_state"] = track_editor->get_state();
 	}
 
 	return d;
@@ -695,6 +696,10 @@ void AnimationPlayerEditor::set_state(const Dictionary &p_state) {
 				_select_anim_by_name(anim);
 				_animation_edit();
 			}
+		}
+
+		if (p_state.has("track_editor_state")) {
+			track_editor->set_state(p_state["track_editor_state"]);
 		}
 	}
 }
@@ -1160,22 +1165,22 @@ void AnimationPlayerEditor::_animation_tool_menu(int p_option) {
 				return;
 			}
 
-			String current = animation->get_item_text(animation->get_selected());
-			Ref<Animation> anim = player->get_animation(current);
-			//editor->edit_resource(anim);
-			EditorSettings::get_singleton()->set_resource_clipboard(anim);
+			String current2 = animation->get_item_text(animation->get_selected());
+			Ref<Animation> anim2 = player->get_animation(current2);
+			//editor->edit_resource(anim2);
+			EditorSettings::get_singleton()->set_resource_clipboard(anim2);
 
 		} break;
 		case TOOL_PASTE_ANIM: {
 
-			Ref<Animation> anim = EditorSettings::get_singleton()->get_resource_clipboard();
-			if (!anim.is_valid()) {
+			Ref<Animation> anim2 = EditorSettings::get_singleton()->get_resource_clipboard();
+			if (!anim2.is_valid()) {
 				error_dialog->set_text(TTR("No animation resource on clipboard!"));
 				error_dialog->popup_centered_minsize();
 				return;
 			}
 
-			String name = anim->get_name();
+			String name = anim2->get_name();
 			if (name == "") {
 				name = TTR("Pasted Animation");
 			}
@@ -1189,7 +1194,7 @@ void AnimationPlayerEditor::_animation_tool_menu(int p_option) {
 			}
 
 			undo_redo->create_action(TTR("Paste Animation"));
-			undo_redo->add_do_method(player, "add_animation", name, anim);
+			undo_redo->add_do_method(player, "add_animation", name, anim2);
 			undo_redo->add_undo_method(player, "remove_animation", name);
 			undo_redo->add_do_method(this, "_animation_player_changed", player);
 			undo_redo->add_undo_method(this, "_animation_player_changed", player);
@@ -1206,9 +1211,9 @@ void AnimationPlayerEditor::_animation_tool_menu(int p_option) {
 				return;
 			}
 
-			String current = animation->get_item_text(animation->get_selected());
-			Ref<Animation> anim = player->get_animation(current);
-			editor->edit_resource(anim);
+			String current2 = animation->get_item_text(animation->get_selected());
+			Ref<Animation> anim2 = player->get_animation(current2);
+			editor->edit_resource(anim2);
 
 		} break;
 	}
@@ -1425,6 +1430,7 @@ void AnimationPlayerEditor::_prepare_onion_layers_2() {
 		new_state["show_rulers"] = false;
 		new_state["show_guides"] = false;
 		new_state["show_helpers"] = false;
+		new_state["show_zoom_control"] = false;
 		// TODO: Save/restore only affected entries
 		CanvasItemEditor::get_singleton()->set_state(new_state);
 	}
@@ -1477,7 +1483,7 @@ void AnimationPlayerEditor::_prepare_onion_layers_2() {
 		if (valid) {
 			player->seek(pos, true);
 			get_tree()->flush_transform_notifications(); // Needed for transforms of Spatials
-			values_backup.update_skeletons(); // Needed for Skeletons
+			values_backup.update_skeletons(); // Needed for Skeletons (2D & 3D)
 
 			VS::get_singleton()->viewport_set_active(onion.captures[cidx], true);
 			VS::get_singleton()->viewport_set_parent_viewport(root_vp, onion.captures[cidx]);

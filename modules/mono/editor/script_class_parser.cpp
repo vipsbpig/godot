@@ -266,6 +266,20 @@ Error ScriptClassParser::_skip_generic_type_params() {
 
 		if (tk == TK_IDENTIFIER) {
 			tk = get_token();
+			// Type specifications can end with "?" to denote nullable types, such as IList<int?>
+			if (tk == TK_SYMBOL) {
+				tk = get_token();
+				if (value.operator String() != "?") {
+					error_str = "Expected " + get_token_name(TK_IDENTIFIER) + ", found unexpected symbol '" + value + "'";
+					error = true;
+					return ERR_PARSE_ERROR;
+				}
+				if (tk != TK_OP_GREATER && tk != TK_COMMA) {
+					error_str = "Nullable type symbol '?' is only allowed after an identifier, but found " + get_token_name(tk) + " next.";
+					error = true;
+					return ERR_PARSE_ERROR;
+				}
+			}
 
 			if (tk == TK_PERIOD) {
 				while (true) {
@@ -322,6 +336,15 @@ Error ScriptClassParser::_parse_type_full_name(String &r_full_name) {
 
 	r_full_name += String(value);
 
+	if (code[idx] == '<') {
+		idx++;
+
+		// We don't mind if the base is generic, but we skip it any ways since this information is not needed
+		Error err = _skip_generic_type_params();
+		if (err)
+			return err;
+	}
+
 	if (code[idx] != '.') // We only want to take the next token if it's a period
 		return OK;
 
@@ -344,22 +367,12 @@ Error ScriptClassParser::_parse_class_base(Vector<String> &r_base) {
 
 	Token tk = get_token();
 
-	bool generic = false;
-	if (tk == TK_OP_LESS) {
-		Error err = _skip_generic_type_params();
-		if (err)
-			return err;
-		// We don't add it to the base list if it's generic
-		generic = true;
-		tk = get_token();
-	}
-
 	if (tk == TK_COMMA) {
-		Error err = _parse_class_base(r_base);
+		err = _parse_class_base(r_base);
 		if (err)
 			return err;
 	} else if (tk == TK_IDENTIFIER && String(value) == "where") {
-		Error err = _parse_type_constraints();
+		err = _parse_type_constraints();
 		if (err) {
 			return err;
 		}
@@ -373,9 +386,7 @@ Error ScriptClassParser::_parse_class_base(Vector<String> &r_base) {
 		return ERR_PARSE_ERROR;
 	}
 
-	if (!generic) {
-		r_base.push_back(name);
-	}
+	r_base.push_back(name);
 
 	return OK;
 }
@@ -567,7 +578,7 @@ Error ScriptClassParser::parse(const String &p_code) {
 					if (full_name.length())
 						full_name += ".";
 					full_name += class_decl.name;
-					OS::get_singleton()->print(String("Ignoring generic class declaration: " + class_decl.name).utf8());
+					OS::get_singleton()->print("Ignoring generic class declaration: %s\n", class_decl.name.utf8().get_data());
 				}
 			}
 		} else if (tk == TK_IDENTIFIER && String(value) == "struct") {

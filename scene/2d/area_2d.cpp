@@ -261,8 +261,9 @@ void Area2D::_area_inout(int p_status, const RID &p_area, int p_instance, int p_
 
 	Map<ObjectID, AreaState>::Element *E = area_map.find(objid);
 
-	ERR_FAIL_COND(!area_in && !E);
-
+	if (!area_in && !E) {
+		return; //likely removed from the tree
+	}
 	locked = true;
 
 	if (area_in) {
@@ -426,10 +427,10 @@ bool Area2D::is_monitoring() const {
 
 void Area2D::set_monitorable(bool p_enable) {
 
-	if (locked || Physics2DServer::get_singleton()->is_flushing_queries()) {
+	if (locked || (is_inside_tree() && Physics2DServer::get_singleton()->is_flushing_queries())) {
 		ERR_EXPLAIN("Function blocked during in/out signal. Use set_deferred(\"monitorable\",true/false)");
+		ERR_FAIL();
 	}
-	ERR_FAIL_COND(locked || Physics2DServer::get_singleton()->is_flushing_queries());
 
 	if (p_enable == monitorable)
 		return;

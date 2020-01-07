@@ -64,6 +64,7 @@ private:
 	ColorFormat color_format;
 	CustomDataFormat custom_data_format;
 	int instance_count;
+	int visible_instance_count;
 
 protected:
 	static void _bind_methods();
@@ -93,8 +94,13 @@ public:
 	void set_instance_count(int p_count);
 	int get_instance_count() const;
 
+	void set_visible_instance_count(int p_count);
+	int get_visible_instance_count() const;
+
 	void set_instance_transform(int p_instance, const Transform &p_transform);
+	void set_instance_transform_2d(int p_instance, const Transform2D &p_transform);
 	Transform get_instance_transform(int p_instance) const;
+	Transform2D get_instance_transform_2d(int p_instance) const;
 
 	void set_instance_color(int p_instance, const Color &p_color);
 	Color get_instance_color(int p_instance) const;

@@ -30,7 +30,7 @@
 
 #include "quat.h"
 
-#include "core/math/matrix3.h"
+#include "core/math/basis.h"
 #include "core/print_string.h"
 
 // set_euler_xyz expects a vector containing the Euler angles in the format
@@ -135,7 +135,7 @@ Quat Quat::normalized() const {
 }
 
 bool Quat::is_normalized() const {
-	return Math::is_equal_approx(length_squared(), 1.0);
+	return Math::is_equal_approx(length_squared(), 1.0, UNIT_EPSILON); //use less epsilon
 }
 
 Quat Quat::inverse() const {

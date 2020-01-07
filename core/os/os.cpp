@@ -157,6 +157,11 @@ int OS::get_process_id() const {
 	return -1;
 };
 
+void OS::vibrate_handheld(int p_duration_ms) {
+
+	WARN_PRINTS("vibrate_handheld() only works with Android and iOS");
+}
+
 bool OS::is_stdout_verbose() const {
 
 	return _verbose_stdout;
@@ -218,6 +223,16 @@ void OS::hide_virtual_keyboard() {
 
 int OS::get_virtual_keyboard_height() const {
 	return 0;
+}
+
+void OS::set_cursor_shape(CursorShape p_shape) {
+}
+
+OS::CursorShape OS::get_cursor_shape() const {
+	return CURSOR_ARROW;
+}
+
+void OS::set_custom_mouse_cursor(const RES &p_cursor, CursorShape p_shape, const Vector2 &p_hotspot) {
 }
 
 void OS::print_all_resources(String p_to_file) {
@@ -393,16 +408,16 @@ Error OS::dialog_input_text(String p_title, String p_description, String p_parti
 	return OK;
 };
 
-int OS::get_static_memory_usage() const {
+uint64_t OS::get_static_memory_usage() const {
 
 	return Memory::get_mem_usage();
 }
-int OS::get_dynamic_memory_usage() const {
+uint64_t OS::get_dynamic_memory_usage() const {
 
 	return MemoryPool::total_memory;
 }
 
-int OS::get_static_memory_peak_usage() const {
+uint64_t OS::get_static_memory_peak_usage() const {
 
 	return Memory::get_mem_max_usage();
 }
@@ -418,7 +433,7 @@ bool OS::has_touchscreen_ui_hint() const {
 	return Input::get_singleton() && Input::get_singleton()->is_emulating_touch_from_mouse();
 }
 
-int OS::get_free_static_memory() const {
+uint64_t OS::get_free_static_memory() const {
 
 	return Memory::get_mem_available();
 }
@@ -569,6 +584,11 @@ int OS::get_power_percent_left() {
 	return -1;
 }
 
+void OS::set_has_server_feature_callback(HasServerFeatureCallback p_callback) {
+
+	has_server_feature_callback = p_callback;
+}
+
 bool OS::has_feature(const String &p_feature) {
 
 	if (p_feature == get_name())
@@ -624,6 +644,10 @@ bool OS::has_feature(const String &p_feature) {
 
 	if (_check_internal_feature_support(p_feature))
 		return true;
+
+	if (has_server_feature_callback && has_server_feature_callback(p_feature)) {
+		return true;
+	}
 
 	if (ProjectSettings::get_singleton()->has_custom_feature(p_feature))
 		return true;
@@ -728,6 +752,8 @@ OS::OS() {
 	_stack_bottom = (void *)(&stack_bottom);
 
 	_logger = NULL;
+
+	has_server_feature_callback = NULL;
 
 	Vector<Logger *> loggers;
 	loggers.push_back(memnew(StdLogger));

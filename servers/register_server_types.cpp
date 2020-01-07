@@ -50,7 +50,9 @@
 #include "audio/effects/audio_effect_pitch_shift.h"
 #include "audio/effects/audio_effect_record.h"
 #include "audio/effects/audio_effect_reverb.h"
+#include "audio/effects/audio_effect_spectrum_analyzer.h"
 #include "audio/effects/audio_effect_stereo_enhance.h"
+#include "audio/effects/audio_stream_generator.h"
 #include "audio_server.h"
 #include "core/script_debugger_remote.h"
 #include "physics/physics_server_sw.h"
@@ -73,7 +75,11 @@ static void _debugger_get_resource_usage(List<ScriptDebuggerRemote::ResourceUsag
 		usage.vram = E->get().bytes;
 		usage.id = E->get().texture;
 		usage.type = "Texture";
-		usage.format = itos(E->get().width) + "x" + itos(E->get().height) + " " + Image::get_format_name(E->get().format);
+		if (E->get().depth == 0) {
+			usage.format = itos(E->get().width) + "x" + itos(E->get().height) + " " + Image::get_format_name(E->get().format);
+		} else {
+			usage.format = itos(E->get().width) + "x" + itos(E->get().height) + "x" + itos(E->get().depth) + " " + Image::get_format_name(E->get().format);
+		}
 		r_usage->push_back(usage);
 	}
 }
@@ -88,7 +94,20 @@ Physics2DServer *_createGodotPhysics2DCallback() {
 	return Physics2DServerWrapMT::init_server<Physics2DServerSW>();
 }
 
+static bool has_server_feature_callback(const String &p_feature) {
+
+	if (VisualServer::get_singleton()) {
+		if (VisualServer::get_singleton()->has_os_feature(p_feature)) {
+			return true;
+		}
+	}
+
+	return false;
+}
+
 void register_server_types() {
+
+	OS::get_singleton()->set_has_server_feature_callback(has_server_feature_callback);
 
 	ClassDB::register_virtual_class<VisualServer>();
 	ClassDB::register_class<AudioServer>();
@@ -103,12 +122,17 @@ void register_server_types() {
 
 	ClassDB::register_virtual_class<AudioStream>();
 	ClassDB::register_virtual_class<AudioStreamPlayback>();
+	ClassDB::register_virtual_class<AudioStreamPlaybackResampled>();
 	ClassDB::register_class<AudioStreamMicrophone>();
 	ClassDB::register_class<AudioStreamRandomPitch>();
 	ClassDB::register_virtual_class<AudioEffect>();
+	ClassDB::register_virtual_class<AudioEffectInstance>();
 	ClassDB::register_class<AudioEffectEQ>();
 	ClassDB::register_class<AudioEffectFilter>();
 	ClassDB::register_class<AudioBusLayout>();
+
+	ClassDB::register_class<AudioStreamGenerator>();
+	ClassDB::register_virtual_class<AudioStreamGeneratorPlayback>();
 
 	{
 		//audio effects
@@ -139,7 +163,10 @@ void register_server_types() {
 		ClassDB::register_class<AudioEffectLimiter>();
 		ClassDB::register_class<AudioEffectPitchShift>();
 		ClassDB::register_class<AudioEffectPhaser>();
+
 		ClassDB::register_class<AudioEffectRecord>();
+		ClassDB::register_class<AudioEffectSpectrumAnalyzer>();
+		ClassDB::register_virtual_class<AudioEffectSpectrumAnalyzerInstance>();
 	}
 
 	ClassDB::register_virtual_class<Physics2DDirectBodyState>();

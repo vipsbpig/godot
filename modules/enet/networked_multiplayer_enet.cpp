@@ -80,6 +80,7 @@ Error NetworkedMultiplayerENet::create_server(int p_port, int p_max_clients, int
 	ERR_FAIL_COND_V(p_out_bandwidth < 0, ERR_INVALID_PARAMETER);
 
 	ENetAddress address;
+	memset(&address, 0, sizeof(address));
 
 #ifdef GODOT_ENET
 	if (bind_ip.is_wildcard()) {
@@ -229,6 +230,13 @@ void NetworkedMultiplayerENet::poll() {
 				if (server && refuse_connections) {
 					enet_peer_reset(event.peer);
 					break;
+				}
+
+				// A client joined with an invalid ID (neagtive values, 0, and 1 are reserved).
+				// Probably trying to exploit us.
+				if (server && ((int)event.data < 2 || peer_map.has((int)event.data))) {
+					enet_peer_reset(event.peer);
+					ERR_CONTINUE(true);
 				}
 
 				int *new_id = memnew(int);
@@ -426,7 +434,6 @@ bool NetworkedMultiplayerENet::is_server() const {
 void NetworkedMultiplayerENet::close_connection(uint32_t wait_usec) {
 
 	ERR_FAIL_COND(!active);
-	ERR_FAIL_COND(wait_usec < 0);
 
 	_pop_current_packet();
 

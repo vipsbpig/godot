@@ -1,5 +1,4 @@
 import os
-import string
 import sys
 from methods import detect_darwin_sdk_path
 
@@ -115,10 +114,12 @@ def configure(env):
         env.Append(CPPFLAGS=['-DNEED_LONG_INT'])
         env.Append(CPPFLAGS=['-DLIBYUV_DISABLE_NEON'])
 
-    if env['ios_exceptions']:
-        env.Append(CPPFLAGS=['-fexceptions'])
-    else:
-        env.Append(CPPFLAGS=['-fno-exceptions'])
+    # Disable exceptions on non-tools (template) builds
+    if not env['tools']:
+        if env['ios_exceptions']:
+            env.Append(CCFLAGS=['-fexceptions'])
+        else:
+            env.Append(CCFLAGS=['-fno-exceptions'])
 
     ## Link flags
 
@@ -174,11 +175,3 @@ def configure(env):
 
     env.Append(CPPPATH=['#platform/iphone'])
     env.Append(CPPFLAGS=['-DIPHONE_ENABLED', '-DUNIX_ENABLED', '-DGLES_ENABLED', '-DCOREAUDIO_ENABLED'])
-
-    # TODO: Move that to opus module's config
-    if 'module_opus_enabled' in env and env['module_opus_enabled']:
-        env.opus_fixed_point = "yes"
-        if (env["arch"] == "arm"):
-            env.Append(CFLAGS=["-DOPUS_ARM_OPT"])
-        elif (env["arch"] == "arm64"):
-            env.Append(CFLAGS=["-DOPUS_ARM64_OPT"])

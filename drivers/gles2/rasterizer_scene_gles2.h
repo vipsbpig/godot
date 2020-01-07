@@ -103,6 +103,7 @@ public:
 		GLuint sky_verts;
 
 		GLuint immediate_buffer;
+		Color default_ambient;
 
 		// ResolveShaderGLES3 resolve_shader;
 		// ScreenSpaceReflectionShaderGLES3 ssr_shader;
@@ -255,6 +256,7 @@ public:
 
 		GLuint fbo;
 		GLuint depth;
+		GLuint color;
 
 		Map<RID, uint32_t> shadow_owners;
 	};
@@ -278,6 +280,7 @@ public:
 	struct DirectionalShadow {
 		GLuint fbo;
 		GLuint depth;
+		GLuint color;
 
 		int light_count;
 		int size;
@@ -310,10 +313,9 @@ public:
 		int reflection_index;
 
 		GLuint fbo[6];
-		GLuint cubemap;
+		GLuint color[6];
 		GLuint depth;
-
-		GLuint fbo_blur;
+		GLuint cubemap;
 
 		int current_resolution;
 		mutable bool dirty;
@@ -473,7 +475,7 @@ public:
 	virtual void light_instance_set_transform(RID p_light_instance, const Transform &p_transform);
 	virtual void light_instance_set_shadow_transform(RID p_light_instance, const CameraMatrix &p_projection, const Transform &p_transform, float p_far, float p_split, int p_pass, float p_bias_scale = 1.0);
 	virtual void light_instance_mark_visible(RID p_light_instance);
-	virtual bool light_instances_can_render_shadow_cube() const { return storage->config.support_write_depth; }
+	virtual bool light_instances_can_render_shadow_cube() const { return storage->config.support_shadow_cubemaps; }
 
 	LightInstance **render_light_instances;
 	int render_directional_lights;
@@ -500,7 +502,8 @@ public:
 		enum {
 			MAX_LIGHTS = 255,
 			MAX_REFLECTION_PROBES = 255,
-			DEFAULT_MAX_ELEMENTS = 65536
+			DEFAULT_MAX_ELEMENTS = 65536,
+			SORT_KEY_PRIORITY_SHIFT = 56
 		};
 
 		int max_elements;
@@ -596,6 +599,27 @@ public:
 			}
 		}
 
+		struct SortByReverseDepthAndPriority {
+
+			_FORCE_INLINE_ bool operator()(const Element *A, const Element *B) const {
+				if (A->priority == B->priority) {
+					return A->instance->depth > B->instance->depth;
+				} else {
+					return A->priority < B->priority;
+				}
+			}
+		};
+
+		void sort_by_reverse_depth_and_priority(bool p_alpha) { //used for alpha
+
+			SortArray<Element *, SortByReverseDepthAndPriority> sorter;
+			if (p_alpha) {
+				sorter.sort(&elements[max_elements - alpha_element_count], alpha_element_count);
+			} else {
+				sorter.sort(elements, element_count);
+			}
+		}
+
 		// element adding and stuff
 
 		_FORCE_INLINE_ Element *add_element() {
@@ -662,7 +686,7 @@ public:
 	_FORCE_INLINE_ bool _setup_material(RasterizerStorageGLES2::Material *p_material, bool p_reverse_cull, bool p_alpha_pass, Size2i p_skeleton_tex_size = Size2i(0, 0));
 	_FORCE_INLINE_ void _setup_geometry(RenderList::Element *p_element, RasterizerStorageGLES2::Skeleton *p_skeleton);
 	_FORCE_INLINE_ void _setup_light_type(LightInstance *p_light, ShadowAtlas *shadow_atlas);
-	_FORCE_INLINE_ void _setup_light(LightInstance *p_light, ShadowAtlas *shadow_atlas, const Transform &p_view_transform);
+	_FORCE_INLINE_ void _setup_light(LightInstance *p_light, ShadowAtlas *shadow_atlas, const Transform &p_view_transform, bool accum_pass);
 	_FORCE_INLINE_ void _setup_refprobes(ReflectionProbeInstance *p_refprobe1, ReflectionProbeInstance *p_refprobe2, const Transform &p_view_transform, Environment *p_env);
 	_FORCE_INLINE_ void _render_geometry(RenderList::Element *p_element);
 

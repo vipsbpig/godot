@@ -475,7 +475,6 @@ void DependencyRemoveDialog::show(const Vector<String> &p_folders, const Vector<
 	Vector<RemovedDependency> removed_deps;
 	_find_all_removed_dependencies(EditorFileSystem::get_singleton()->get_filesystem(), removed_deps);
 	removed_deps.sort();
-
 	if (removed_deps.empty()) {
 		owners->hide();
 		text->set_text(TTR("Remove selected files from the project? (no undo)"));
@@ -486,6 +485,7 @@ void DependencyRemoveDialog::show(const Vector<String> &p_folders, const Vector<
 		text->set_text(TTR("The files being removed are required by other resources in order for them to work.\nRemove them anyway? (no undo)"));
 		popup_centered_minsize(Size2(500, 350));
 	}
+	EditorFileSystem::get_singleton()->scan_changes();
 }
 
 void DependencyRemoveDialog::ok_pressed() {
@@ -496,9 +496,27 @@ void DependencyRemoveDialog::ok_pressed() {
 			res->set_path("");
 		}
 
-		// If the file we are deleting is the main scene, clear its definition.
+		// If the file we are deleting for e.g. the main scene or default environment, we must clear its definition in Project Settings.
+		if (files_to_delete[i] == ProjectSettings::get_singleton()->get("application/config/icon")) {
+			ProjectSettings::get_singleton()->set("application/config/icon", "");
+		}
 		if (files_to_delete[i] == ProjectSettings::get_singleton()->get("application/run/main_scene")) {
 			ProjectSettings::get_singleton()->set("application/run/main_scene", "");
+		}
+		if (files_to_delete[i] == ProjectSettings::get_singleton()->get("application/boot_splash/image")) {
+			ProjectSettings::get_singleton()->set("application/boot_splash/image", "");
+		}
+		if (files_to_delete[i] == ProjectSettings::get_singleton()->get("rendering/environment/default_environment")) {
+			ProjectSettings::get_singleton()->set("rendering/environment/default_environment", "");
+		}
+		if (files_to_delete[i] == ProjectSettings::get_singleton()->get("display/mouse_cursor/custom_image")) {
+			ProjectSettings::get_singleton()->set("display/mouse_cursor/custom_image", "");
+		}
+		if (files_to_delete[i] == ProjectSettings::get_singleton()->get("gui/theme/custom")) {
+			ProjectSettings::get_singleton()->set("gui/theme/custom", "");
+		}
+		if (files_to_delete[i] == ProjectSettings::get_singleton()->get("gui/theme/custom_font")) {
+			ProjectSettings::get_singleton()->set("gui/theme/custom_font", "");
 		}
 
 		String path = OS::get_singleton()->get_resource_dir() + files_to_delete[i].replace_first("res://", "/");

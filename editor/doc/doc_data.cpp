@@ -54,7 +54,6 @@ void DocData::merge_from(const DocData &p_data) {
 		c.description = cf.description;
 		c.brief_description = cf.brief_description;
 		c.tutorials = cf.tutorials;
-		c.demos = cf.demos;
 
 		for (int i = 0; i < c.methods.size(); i++) {
 
@@ -137,9 +136,6 @@ void DocData::merge_from(const DocData &p_data) {
 				const PropertyDoc &pf = cf.properties[j];
 
 				p.description = pf.description;
-				p.setter = pf.setter;
-				p.getter = pf.getter;
-
 				break;
 			}
 		}
@@ -497,9 +493,9 @@ void DocData::generate(bool p_basic_types) {
 
 			method.name = mi.name;
 
-			for (int i = 0; i < mi.arguments.size(); i++) {
+			for (int j = 0; j < mi.arguments.size(); j++) {
 
-				PropertyInfo arginfo = mi.arguments[i];
+				PropertyInfo arginfo = mi.arguments[j];
 
 				ArgumentDoc ad;
 				ad.name = arginfo.name;
@@ -509,7 +505,7 @@ void DocData::generate(bool p_basic_types) {
 				else
 					ad.type = Variant::get_type_name(arginfo.type);
 
-				int defarg = mi.default_arguments.size() - mi.arguments.size() + i;
+				int defarg = mi.default_arguments.size() - mi.arguments.size() + j;
 				if (defarg >= 0)
 					ad.default_value = mi.default_arguments[defarg];
 
@@ -620,12 +616,12 @@ void DocData::generate(bool p_basic_types) {
 
 				return_doc_from_retinfo(md, mi.return_val);
 
-				for (int i = 0; i < mi.arguments.size(); i++) {
+				for (int j = 0; j < mi.arguments.size(); j++) {
 
 					ArgumentDoc ad;
-					argument_doc_from_arginfo(ad, mi.arguments[i]);
+					argument_doc_from_arginfo(ad, mi.arguments[j]);
 
-					int darg_idx = i - (mi.arguments.size() - mi.default_arguments.size());
+					int darg_idx = j - (mi.arguments.size() - mi.default_arguments.size());
 
 					if (darg_idx >= 0) {
 						Variant default_arg = E->get().default_arguments[darg_idx];
@@ -734,9 +730,9 @@ Error DocData::load_classes(const String &p_dir) {
 	while (path != String()) {
 		if (!isdir && path.ends_with("xml")) {
 			Ref<XMLParser> parser = memnew(XMLParser);
-			Error err = parser->open(p_dir.plus_file(path));
-			if (err)
-				return err;
+			Error err2 = parser->open(p_dir.plus_file(path));
+			if (err2)
+				return err2;
 
 			_load(parser);
 		}
@@ -806,78 +802,74 @@ Error DocData::_load(Ref<XMLParser> parser) {
 
 			if (parser->get_node_type() == XMLParser::NODE_ELEMENT) {
 
-				String name = parser->get_node_name();
+				String name2 = parser->get_node_name();
 
-				if (name == "brief_description") {
+				if (name2 == "brief_description") {
 
 					parser->read();
 					if (parser->get_node_type() == XMLParser::NODE_TEXT)
 						c.brief_description = parser->get_node_data();
 
-				} else if (name == "description") {
+				} else if (name2 == "description") {
 					parser->read();
 					if (parser->get_node_type() == XMLParser::NODE_TEXT)
 						c.description = parser->get_node_data();
-				} else if (name == "tutorials") {
+				} else if (name2 == "tutorials") {
 					while (parser->read() == OK) {
 
 						if (parser->get_node_type() == XMLParser::NODE_ELEMENT) {
 
-							String name = parser->get_node_name();
+							String name3 = parser->get_node_name();
 
-							if (name == "link") {
+							if (name3 == "link") {
 
 								parser->read();
 								if (parser->get_node_type() == XMLParser::NODE_TEXT)
 									c.tutorials.push_back(parser->get_node_data().strip_edges());
 							} else {
-								ERR_EXPLAIN("Invalid tag in doc file: " + name);
+								ERR_EXPLAIN("Invalid tag in doc file: " + name3);
 								ERR_FAIL_V(ERR_FILE_CORRUPT);
 							}
 						} else if (parser->get_node_type() == XMLParser::NODE_ELEMENT_END && parser->get_node_name() == "tutorials")
 							break; //end of <tutorials>
 					}
-				} else if (name == "demos") {
-					parser->read();
-					if (parser->get_node_type() == XMLParser::NODE_TEXT)
-						c.demos = parser->get_node_data();
-				} else if (name == "methods") {
+				} else if (name2 == "methods") {
 
-					Error err = _parse_methods(parser, c.methods);
-					ERR_FAIL_COND_V(err, err);
+					Error err2 = _parse_methods(parser, c.methods);
+					ERR_FAIL_COND_V(err2, err2);
 
-				} else if (name == "signals") {
+				} else if (name2 == "signals") {
 
-					Error err = _parse_methods(parser, c.signals);
-					ERR_FAIL_COND_V(err, err);
-				} else if (name == "members") {
+					Error err2 = _parse_methods(parser, c.signals);
+					ERR_FAIL_COND_V(err2, err2);
+				} else if (name2 == "members") {
 
 					while (parser->read() == OK) {
 
 						if (parser->get_node_type() == XMLParser::NODE_ELEMENT) {
 
-							String name = parser->get_node_name();
+							String name3 = parser->get_node_name();
 
-							if (name == "member") {
+							if (name3 == "member") {
 
-								PropertyDoc prop;
+								PropertyDoc prop2;
 
 								ERR_FAIL_COND_V(!parser->has_attribute("name"), ERR_FILE_CORRUPT);
-								prop.name = parser->get_attribute_value("name");
+								prop2.name = parser->get_attribute_value("name");
 								ERR_FAIL_COND_V(!parser->has_attribute("type"), ERR_FILE_CORRUPT);
-								prop.type = parser->get_attribute_value("type");
+								prop2.type = parser->get_attribute_value("type");
 								if (parser->has_attribute("setter"))
-									prop.setter = parser->get_attribute_value("setter");
+									prop2.setter = parser->get_attribute_value("setter");
 								if (parser->has_attribute("getter"))
-									prop.getter = parser->get_attribute_value("getter");
+									prop2.getter = parser->get_attribute_value("getter");
 								if (parser->has_attribute("enum"))
-									prop.enumeration = parser->get_attribute_value("enum");
+									prop2.enumeration = parser->get_attribute_value("enum");
 								parser->read();
 								if (parser->get_node_type() == XMLParser::NODE_TEXT)
-									prop.description = parser->get_node_data();
-								c.properties.push_back(prop);
+									prop2.description = parser->get_node_data();
+								c.properties.push_back(prop2);
 							} else {
-								ERR_EXPLAIN("Invalid tag in doc file: " + name);
+								ERR_EXPLAIN("Invalid tag in doc file: " + name3);
 								ERR_FAIL_V(ERR_FILE_CORRUPT);
 							}
 
@@ -885,28 +877,28 @@ Error DocData::_load(Ref<XMLParser> parser) {
 							break; //end of <constants>
 					}
 
-				} else if (name == "theme_items") {
+				} else if (name2 == "theme_items") {
 
 					while (parser->read() == OK) {
 
 						if (parser->get_node_type() == XMLParser::NODE_ELEMENT) {
 
-							String name = parser->get_node_name();
+							String name3 = parser->get_node_name();
 
-							if (name == "theme_item") {
+							if (name3 == "theme_item") {
 
-								PropertyDoc prop;
+								PropertyDoc prop2;
 
 								ERR_FAIL_COND_V(!parser->has_attribute("name"), ERR_FILE_CORRUPT);
-								prop.name = parser->get_attribute_value("name");
+								prop2.name = parser->get_attribute_value("name");
 								ERR_FAIL_COND_V(!parser->has_attribute("type"), ERR_FILE_CORRUPT);
-								prop.type = parser->get_attribute_value("type");
+								prop2.type = parser->get_attribute_value("type");
 								parser->read();
 								if (parser->get_node_type() == XMLParser::NODE_TEXT)
-									prop.description = parser->get_node_data();
-								c.theme_properties.push_back(prop);
+									prop2.description = parser->get_node_data();
+								c.theme_properties.push_back(prop2);
 							} else {
-								ERR_EXPLAIN("Invalid tag in doc file: " + name);
+								ERR_EXPLAIN("Invalid tag in doc file: " + name3);
 								ERR_FAIL_V(ERR_FILE_CORRUPT);
 							}
 
@@ -914,30 +906,30 @@ Error DocData::_load(Ref<XMLParser> parser) {
 							break; //end of <constants>
 					}
 
-				} else if (name == "constants") {
+				} else if (name2 == "constants") {
 
 					while (parser->read() == OK) {
 
 						if (parser->get_node_type() == XMLParser::NODE_ELEMENT) {
 
-							String name = parser->get_node_name();
+							String name3 = parser->get_node_name();
 
-							if (name == "constant") {
+							if (name3 == "constant") {
 
-								ConstantDoc constant;
+								ConstantDoc constant2;
 								ERR_FAIL_COND_V(!parser->has_attribute("name"), ERR_FILE_CORRUPT);
-								constant.name = parser->get_attribute_value("name");
+								constant2.name = parser->get_attribute_value("name");
 								ERR_FAIL_COND_V(!parser->has_attribute("value"), ERR_FILE_CORRUPT);
-								constant.value = parser->get_attribute_value("value");
+								constant2.value = parser->get_attribute_value("value");
 								if (parser->has_attribute("enum")) {
-									constant.enumeration = parser->get_attribute_value("enum");
+									constant2.enumeration = parser->get_attribute_value("enum");
 								}
 								parser->read();
 								if (parser->get_node_type() == XMLParser::NODE_TEXT)
-									constant.description = parser->get_node_data();
-								c.constants.push_back(constant);
+									constant2.description = parser->get_node_data();
+								c.constants.push_back(constant2);
 							} else {
-								ERR_EXPLAIN("Invalid tag in doc file: " + name);
+								ERR_EXPLAIN("Invalid tag in doc file: " + name3);
 								ERR_FAIL_V(ERR_FILE_CORRUPT);
 							}
 
@@ -947,7 +939,7 @@ Error DocData::_load(Ref<XMLParser> parser) {
 
 				} else {
 
-					ERR_EXPLAIN("Invalid tag in doc file: " + name);
+					ERR_EXPLAIN("Invalid tag in doc file: " + name2);
 					ERR_FAIL_V(ERR_FILE_CORRUPT);
 				}
 
@@ -1015,9 +1007,6 @@ Error DocData::save_classes(const String &p_default_path, const Map<String, Stri
 			_write_string(f, 2, "<link>" + c.tutorials.get(i).xml_escape() + "</link>");
 		}
 		_write_string(f, 1, "</tutorials>");
-		_write_string(f, 1, "<demos>");
-		_write_string(f, 2, c.demos.strip_edges().xml_escape());
-		_write_string(f, 1, "</demos>");
 		_write_string(f, 1, "<methods>");
 
 		c.methods.sort();
@@ -1138,6 +1127,7 @@ Error DocData::save_classes(const String &p_default_path, const Map<String, Stri
 
 				const PropertyDoc &p = c.theme_properties[i];
 				_write_string(f, 2, "<theme_item name=\"" + p.name + "\" type=\"" + p.type + "\">");
+				_write_string(f, 3, p.description.strip_edges().xml_escape());
 				_write_string(f, 2, "</theme_item>");
 			}
 			_write_string(f, 1, "</theme_items>");

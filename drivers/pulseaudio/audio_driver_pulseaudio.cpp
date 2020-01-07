@@ -191,6 +191,14 @@ Error AudioDriverPulseAudio::init_device() {
 	spec.format = PA_SAMPLE_S16LE;
 	spec.channels = pa_map.channels;
 	spec.rate = mix_rate;
+	pa_map.map[0] = PA_CHANNEL_POSITION_FRONT_LEFT;
+	pa_map.map[1] = PA_CHANNEL_POSITION_FRONT_RIGHT;
+	pa_map.map[2] = PA_CHANNEL_POSITION_FRONT_CENTER;
+	pa_map.map[3] = PA_CHANNEL_POSITION_LFE;
+	pa_map.map[4] = PA_CHANNEL_POSITION_REAR_LEFT;
+	pa_map.map[5] = PA_CHANNEL_POSITION_REAR_RIGHT;
+	pa_map.map[6] = PA_CHANNEL_POSITION_SIDE_LEFT;
+	pa_map.map[7] = PA_CHANNEL_POSITION_SIDE_RIGHT;
 
 	pa_str = pa_stream_new(pa_ctx, "Sound", &spec, &pa_map);
 	if (pa_str == NULL) {
@@ -420,7 +428,7 @@ void AudioDriverPulseAudio::thread_func(void *p_udata) {
 				pa_operation *pa_op = pa_context_get_server_info(ad->pa_ctx, &AudioDriverPulseAudio::pa_server_info_cb, (void *)ad);
 				if (pa_op) {
 					while (ad->pa_status == 0) {
-						int ret = pa_mainloop_iterate(ad->pa_ml, 1, NULL);
+						ret = pa_mainloop_iterate(ad->pa_ml, 1, NULL);
 						if (ret < 0) {
 							ERR_PRINT("pa_mainloop_iterate error");
 						}

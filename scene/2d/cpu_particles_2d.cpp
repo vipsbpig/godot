@@ -37,20 +37,7 @@
 void CPUParticles2D::set_emitting(bool p_emitting) {
 
 	emitting = p_emitting;
-	if (!is_processing_internal()) {
-		set_process_internal(true);
-		if (is_inside_tree()) {
-#ifndef NO_THREADS
-			update_mutex->lock();
-#endif
-			VS::get_singleton()->connect("frame_pre_draw", this, "_update_render_thread");
-			VS::get_singleton()->canvas_item_set_update_when_visible(get_canvas_item(), true);
-
-#ifndef NO_THREADS
-			update_mutex->unlock();
-#endif
-		}
-	}
+	set_process_internal(true);
 }
 
 void CPUParticles2D::set_amount(int p_amount) {
@@ -97,7 +84,9 @@ void CPUParticles2D::set_randomness_ratio(float p_ratio) {
 void CPUParticles2D::set_use_local_coordinates(bool p_enable) {
 
 	local_coords = p_enable;
+	set_notify_transform(!p_enable);
 }
+
 void CPUParticles2D::set_speed_scale(float p_scale) {
 
 	speed_scale = p_scale;
@@ -365,7 +354,8 @@ void CPUParticles2D::set_param_curve(Parameter p_param, const Ref<Curve> &p_curv
 		} break;
 		case PARAM_ANIM_OFFSET: {
 		} break;
-		default: {}
+		default: {
+		}
 	}
 }
 Ref<Curve> CPUParticles2D::get_param_curve(Parameter p_param) const {
@@ -586,7 +576,7 @@ void CPUParticles2D::_particles_process(float p_delta) {
 			if (restart_time >= prev_time && restart_time < time) {
 				restart = true;
 				if (fractional_delta) {
-					local_delta = (time - restart_time) * lifetime;
+					local_delta = time - restart_time;
 				}
 			}
 
@@ -594,13 +584,13 @@ void CPUParticles2D::_particles_process(float p_delta) {
 			if (restart_time >= prev_time) {
 				restart = true;
 				if (fractional_delta) {
-					local_delta = (1.0 - restart_time + time) * lifetime;
+					local_delta = lifetime - restart_time + time;
 				}
 
 			} else if (restart_time < time) {
 				restart = true;
 				if (fractional_delta) {
-					local_delta = (time - restart_time) * lifetime;
+					local_delta = time - restart_time;
 				}
 			}
 		}
@@ -876,11 +866,6 @@ void CPUParticles2D::_update_particle_data_buffer() {
 		PoolVector<Particle>::Read r = particles.read();
 		float *ptr = w.ptr();
 
-		Transform2D un_transform;
-		if (!local_coords) {
-			un_transform = get_global_transform().affine_inverse();
-		}
-
 		if (draw_order != DRAW_ORDER_INDEX) {
 			ow = particle_order.write();
 			order = ow.ptr();
@@ -902,7 +887,7 @@ void CPUParticles2D::_update_particle_data_buffer() {
 			Transform2D t = r[idx].transform;
 
 			if (!local_coords) {
-				t = un_transform * t;
+				t = inv_emission_transform * t;
 			}
 
 			if (r[idx].active) {
@@ -941,6 +926,30 @@ void CPUParticles2D::_update_particle_data_buffer() {
 #endif
 }
 
+void CPUParticles2D::_set_redraw(bool p_redraw) {
+	if (redraw == p_redraw)
+		return;
+	redraw = p_redraw;
+#ifndef NO_THREADS
+	update_mutex->lock();
+#endif
+	if (redraw) {
+		VS::get_singleton()->connect("frame_pre_draw", this, "_update_render_thread");
+		VS::get_singleton()->canvas_item_set_update_when_visible(get_canvas_item(), true);
+
+		VS::get_singleton()->multimesh_set_visible_instances(multimesh, -1);
+	} else {
+		VS::get_singleton()->disconnect("frame_pre_draw", this, "_update_render_thread");
+		VS::get_singleton()->canvas_item_set_update_when_visible(get_canvas_item(), false);
+
+		VS::get_singleton()->multimesh_set_visible_instances(multimesh, 0);
+	}
+#ifndef NO_THREADS
+	update_mutex->unlock();
+#endif
+	update(); // redraw to update render list
+}
+
 void CPUParticles2D::_update_render_thread() {
 
 #ifndef NO_THREADS
@@ -957,38 +966,19 @@ void CPUParticles2D::_update_render_thread() {
 void CPUParticles2D::_notification(int p_what) {
 
 	if (p_what == NOTIFICATION_ENTER_TREE) {
-		if (is_processing_internal()) {
-
-#ifndef NO_THREADS
-			update_mutex->lock();
-#endif
-			VS::get_singleton()->connect("frame_pre_draw", this, "_update_render_thread");
-			VS::get_singleton()->canvas_item_set_update_when_visible(get_canvas_item(), true);
-
-#ifndef NO_THREADS
-			update_mutex->unlock();
-#endif
-		}
+		_set_redraw(true);
 	}
 
 	if (p_what == NOTIFICATION_EXIT_TREE) {
-		if (is_processing_internal()) {
-
-#ifndef NO_THREADS
-			update_mutex->lock();
-#endif
-			VS::get_singleton()->disconnect("frame_pre_draw", this, "_update_render_thread");
-			VS::get_singleton()->canvas_item_set_update_when_visible(get_canvas_item(), false);
-#ifndef NO_THREADS
-			update_mutex->unlock();
-#endif
-		}
+		_set_redraw(false);
 	}
 
 	if (p_what == NOTIFICATION_PAUSED || p_what == NOTIFICATION_UNPAUSED) {
 	}
 
 	if (p_what == NOTIFICATION_DRAW) {
+		if (!redraw)
+			return; // dont add to render list
 
 		RID texrid;
 		if (texture.is_valid()) {
@@ -1005,26 +995,21 @@ void CPUParticles2D::_notification(int p_what) {
 
 	if (p_what == NOTIFICATION_INTERNAL_PROCESS) {
 
-		if (particles.size() == 0 || !is_visible_in_tree())
+		if (particles.size() == 0 || !is_visible_in_tree()) {
+			_set_redraw(false);
 			return;
+		}
 
 		float delta = get_process_delta_time();
 		if (emitting) {
-
+			_set_redraw(true);
 			inactive_time = 0;
 		} else {
 			inactive_time += delta;
 			if (inactive_time > lifetime * 1.2) {
 				set_process_internal(false);
-#ifndef NO_THREADS
-				update_mutex->lock();
-#endif
-				VS::get_singleton()->disconnect("frame_pre_draw", this, "_update_render_thread");
-				VS::get_singleton()->canvas_item_set_update_when_visible(get_canvas_item(), false);
+				_set_redraw(false);
 
-#ifndef NO_THREADS
-				update_mutex->unlock();
-#endif
 				//reset variables
 				time = 0;
 				inactive_time = 0;
@@ -1074,6 +1059,42 @@ void CPUParticles2D::_notification(int p_what) {
 		}
 
 		_update_particle_data_buffer();
+	}
+
+	if (p_what == NOTIFICATION_TRANSFORM_CHANGED) {
+
+		inv_emission_transform = get_global_transform().affine_inverse();
+
+		if (!local_coords) {
+
+			int pc = particles.size();
+
+			PoolVector<float>::Write w = particle_data.write();
+			PoolVector<Particle>::Read r = particles.read();
+			float *ptr = w.ptr();
+
+			for (int i = 0; i < pc; i++) {
+
+				Transform2D t = inv_emission_transform * r[i].transform;
+
+				if (r[i].active) {
+
+					ptr[0] = t.elements[0][0];
+					ptr[1] = t.elements[1][0];
+					ptr[2] = 0;
+					ptr[3] = t.elements[2][0];
+					ptr[4] = t.elements[0][1];
+					ptr[5] = t.elements[1][1];
+					ptr[6] = 0;
+					ptr[7] = t.elements[2][1];
+
+				} else {
+					zeromem(ptr, sizeof(float) * 8);
+				}
+
+				ptr += 13;
+			}
+		}
 	}
 }
 
@@ -1189,7 +1210,7 @@ void CPUParticles2D::_bind_methods() {
 	ADD_PROPERTY(PropertyInfo(Variant::BOOL, "emitting"), "set_emitting", "is_emitting");
 	ADD_PROPERTY(PropertyInfo(Variant::INT, "amount", PROPERTY_HINT_EXP_RANGE, "1,1000000,1"), "set_amount", "get_amount");
 	ADD_GROUP("Time", "");
-	ADD_PROPERTY(PropertyInfo(Variant::REAL, "lifetime", PROPERTY_HINT_EXP_RANGE, "0.01,600.0,0.01"), "set_lifetime", "get_lifetime");
+	ADD_PROPERTY(PropertyInfo(Variant::REAL, "lifetime", PROPERTY_HINT_EXP_RANGE, "0.01,600.0,0.01,or_greater"), "set_lifetime", "get_lifetime");
 	ADD_PROPERTY(PropertyInfo(Variant::BOOL, "one_shot"), "set_one_shot", "get_one_shot");
 	ADD_PROPERTY(PropertyInfo(Variant::REAL, "preprocess", PROPERTY_HINT_EXP_RANGE, "0.00,600.0,0.01"), "set_pre_process_time", "get_pre_process_time");
 	ADD_PROPERTY(PropertyInfo(Variant::REAL, "speed_scale", PROPERTY_HINT_RANGE, "0,64,0.01"), "set_speed_scale", "get_speed_scale");
@@ -1354,6 +1375,7 @@ CPUParticles2D::CPUParticles2D() {
 	inactive_time = 0;
 	frame_remainder = 0;
 	cycle = 0;
+	redraw = false;
 
 	mesh = VisualServer::get_singleton()->mesh_create();
 	multimesh = VisualServer::get_singleton()->multimesh_create();

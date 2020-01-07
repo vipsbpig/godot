@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="UTF-8" ?>
-<class name="AudioServer" inherits="Object" category="Core" version="3.1">
+<class name="AudioServer" inherits="Object" category="Core" version="3.1.2">
 	<brief_description>
 		Server interface for low level audio access.
 	</brief_description>
@@ -7,10 +7,8 @@
 		AudioServer is a low level server interface for audio access. It is in charge of creating sample data (playable audio) as well as its playback via a voice interface.
 	</description>
 	<tutorials>
-		<link>https://docs.godotengine.org/en/latest/tutorials/audio/audio_buses.html</link>
+		<link>https://docs.godotengine.org/en/3.1/tutorials/audio/audio_buses.html</link>
 	</tutorials>
-	<demos>
-	</demos>
 	<methods>
 		<method name="add_bus">
 			<return type="void">
@@ -58,7 +56,7 @@
 			<return type="AudioBusLayout">
 			</return>
 			<description>
-				Generates an [AudioBusLayout] using the available busses and effects.
+				Generates an [AudioBusLayout] using the available buses and effects.
 			</description>
 		</method>
 		<method name="get_bus_channels" qualifiers="const">
@@ -74,7 +72,7 @@
 			<return type="int">
 			</return>
 			<description>
-				Returns the number of available busses.
+				Returns the number of available buses.
 			</description>
 		</method>
 		<method name="get_bus_effect">
@@ -95,6 +93,18 @@
 			</argument>
 			<description>
 				Returns the number of effects on the bus at [code]bus_idx[/code].
+			</description>
+		</method>
+		<method name="get_bus_effect_instance">
+			<return type="AudioEffectInstance">
+			</return>
+			<argument index="0" name="bus_idx" type="int">
+			</argument>
+			<argument index="1" name="effect_idx" type="int">
+			</argument>
+			<argument index="2" name="channel" type="int" default="0">
+			</argument>
+			<description>
 			</description>
 		</method>
 		<method name="get_bus_index" qualifiers="const">
@@ -274,7 +284,7 @@
 			<argument index="0" name="amount" type="int">
 			</argument>
 			<description>
-				Adds and removes busses to make the number of busses match [code]amount[/code].
+				Adds and removes buses to make the number of buses match [code]amount[/code].
 			</description>
 		</method>
 		<method name="set_bus_effect_enabled">

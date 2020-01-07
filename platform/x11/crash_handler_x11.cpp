@@ -28,14 +28,15 @@
 /* SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.                */
 /*************************************************************************/
 
-#ifdef DEBUG_ENABLED
-#define CRASH_HANDLER_ENABLED 1
-#endif
-
 #include "crash_handler_x11.h"
+
 #include "core/os/os.h"
 #include "core/project_settings.h"
 #include "main/main.h"
+
+#ifdef DEBUG_ENABLED
+#define CRASH_HANDLER_ENABLED 1
+#endif
 
 #ifdef CRASH_HANDLER_ENABLED
 #include <cxxabi.h>
@@ -52,7 +53,12 @@ static void handle_crash(int sig) {
 	void *bt_buffer[256];
 	size_t size = backtrace(bt_buffer, 256);
 	String _execpath = OS::get_singleton()->get_executable_path();
-	String msg = GLOBAL_GET("debug/settings/crash_handler/message");
+
+	String msg;
+	const ProjectSettings *proj_settings = ProjectSettings::get_singleton();
+	if (proj_settings) {
+		msg = proj_settings->get("debug/settings/crash_handler/message");
+	}
 
 	// Dump the backtrace to stderr with a message to the user
 	fprintf(stderr, "%s: Program crashed with signal %d\n", __FUNCTION__, sig);
