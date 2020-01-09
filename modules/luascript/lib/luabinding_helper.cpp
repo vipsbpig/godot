@@ -138,47 +138,47 @@ int LuaBindingHelper::l_methodbind_wrapper(lua_State *L) {
 
 void LuaBindingHelper::l_push_variant(lua_State *L, const Variant &var) {
 	switch (var.get_type()) {
-		case Variant::Type::NIL:
+		case Variant::NIL:
 			lua_pushnil(L);
 			break;
-		case Variant::Type::BOOL:
+		case Variant::BOOL:
 			lua_pushboolean(L, ((bool)var) ? 1 : 0);
 			break;
-		case Variant::Type::INT:
+		case Variant::INT:
 			lua_pushinteger(L, (int)var);
 			break;
-		case Variant::Type::REAL:
+		case Variant::REAL:
 			lua_pushnumber(L, (double)var);
 			break;
-		case Variant::Type::STRING:
+		case Variant::STRING:
 			lua_pushstring(L, ((String)var).utf8().get_data());
 			break;
-		case Variant::Type::OBJECT: {
+		case Variant::OBJECT: {
 			//TODO::
 			lua_pushstring(L, "TODO Object TYPE");
 		} break;
-		case Variant::Type::VECTOR2:
-		case Variant::Type::RECT2:
-		case Variant::Type::VECTOR3:
-		case Variant::Type::TRANSFORM2D:
-		case Variant::Type::PLANE:
-		case Variant::Type::QUAT:
-		case Variant::Type::AABB:
-		case Variant::Type::BASIS:
-		case Variant::Type::TRANSFORM:
-		case Variant::Type::COLOR:
-		case Variant::Type::NODE_PATH:
-		case Variant::Type::_RID:
-		case Variant::Type::DICTIONARY:
-		case Variant::Type::ARRAY:
+		case Variant::VECTOR2:
+		case Variant::RECT2:
+		case Variant::VECTOR3:
+		case Variant::TRANSFORM2D:
+		case Variant::PLANE:
+		case Variant::QUAT:
+		case Variant::AABB:
+		case Variant::BASIS:
+		case Variant::TRANSFORM:
+		case Variant::COLOR:
+		case Variant::NODE_PATH:
+		case Variant::_RID:
+		case Variant::DICTIONARY:
+		case Variant::ARRAY:
 
-		case Variant::Type::POOL_BYTE_ARRAY:
-		case Variant::Type::POOL_INT_ARRAY:
-		case Variant::Type::POOL_REAL_ARRAY:
-		case Variant::Type::POOL_STRING_ARRAY:
-		case Variant::Type::POOL_VECTOR2_ARRAY:
-		case Variant::Type::POOL_VECTOR3_ARRAY:
-		case Variant::Type::POOL_COLOR_ARRAY: {
+		case Variant::POOL_BYTE_ARRAY:
+		case Variant::POOL_INT_ARRAY:
+		case Variant::POOL_REAL_ARRAY:
+		case Variant::POOL_STRING_ARRAY:
+		case Variant::POOL_VECTOR2_ARRAY:
+		case Variant::POOL_VECTOR3_ARRAY:
+		case Variant::POOL_COLOR_ARRAY: {
 			l_push_bulltins_type(L, var);
 		} break;
 		default:
