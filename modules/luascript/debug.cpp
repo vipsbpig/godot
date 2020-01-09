@@ -28,7 +28,7 @@ void print_debug(const String fmt, ...) {
 
 	wcstombs(fmtbuf, fmt.c_str(), fmt.size());
 
-    sprintf(tmpbuf, "%llu %2llu %2llu ",
+	sprintf(tmpbuf, "%llu %2llu %2llu ",
 			OS::get_singleton()->get_unix_time(),
 			Thread::get_main_id(),
 			Thread::get_caller_id());
@@ -45,25 +45,21 @@ void print_debug(const String fmt, ...) {
 	print_line(finalbuf);
 }
 
-void print_luadebug(const char *str)
-{
-    print_line(str);
+void print_luadebug(const char *str) {
+	print_line(str);
 }
 
 #endif
 
+void print_format(const char *fmt, ...) {
+	char buf[100]; // this should really be sized appropriately
+			// possibly in response to a call to vsnprintf()
+	va_list vl;
+	va_start(vl, fmt);
 
+	vsnprintf(buf, sizeof(buf), fmt, vl);
 
-void print_format(const char *fmt ,...)
-{
-    char buf[100];     // this should really be sized appropriately
-                       // possibly in response to a call to vsnprintf()
-    va_list vl;
-    va_start(vl, fmt);
+	va_end(vl);
 
-    vsnprintf( buf, sizeof( buf), fmt, vl);
-
-    va_end( vl);
-
-    print_line(buf);
+	print_line(buf);
 }
