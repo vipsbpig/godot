@@ -35,7 +35,6 @@ int LuaBindingHelper::create_user_data(lua_State *L) {
 		lua_pushvalue(L, -1);
 		lua_pushvalue(L, -1);
 		lua_rawset(L, -4);
-		lua_remove(L, 1);
 	}
 	//    while (key) {
 	//        print_format("-- methods:%s", String(*key).ascii().get_data() );
@@ -253,6 +252,7 @@ void LuaBindingHelper::openLibs(lua_State *L) {
 		luaL_register(L, lib->name, lib);
 	}
 }
+
 
 void LuaBindingHelper::globalbind() {
 	lua_pushcfunction(L, l_print);
