@@ -368,6 +368,48 @@ int LuaBindingHelper::meta_bultins__pairs(lua_State *L) {
 
 int LuaBindingHelper::l_bultins_caller_wrapper(lua_State *L) {
 	print_format("l_bultins_caller_wrapper");
+	const char *key = luaL_checkstring(L, lua_upvalueindex(1));
+	int top = lua_gettop(L);
+
+	Variant *var = luaL_checkvariant(L, 1);
+	Variant::CallError err;
+	Variant ret;
+
+	if (top == 1) {
+
+		ret = var->call(key, NULL, 0, err);
+	} else {
+
+		Variant *vars = memnew_arr(Variant, top - 1);
+		Variant *args[128];
+		for (int idx = 2; idx <= top; idx++) {
+			Variant &var = vars[idx - 2];
+			args[idx - 2] = &var;
+			l_get_variant(L, idx, var);
+		}
+		ret = var->call(key, (const Variant **)(args), top - 1, err);
+		memdelete_arr(vars);
+	}
+	switch (err.error) {
+		case Variant::CallError::CALL_OK:
+			l_push_variant(L, ret);
+			return 1;
+		case Variant::CallError::CALL_ERROR_INVALID_METHOD:
+			luaL_error(L, "Invalid method '%s'", key);
+			break;
+		case Variant::CallError::CALL_ERROR_INVALID_ARGUMENT:
+			luaL_error(L, "Invalid argument to call '%s'", key);
+			break;
+		case Variant::CallError::CALL_ERROR_TOO_MANY_ARGUMENTS:
+			luaL_error(L, "Too many arguments to call '%s'", key);
+			break;
+		case Variant::CallError::CALL_ERROR_TOO_FEW_ARGUMENTS:
+			luaL_error(L, "Too few arguments to call '%s'", key);
+			break;
+		case Variant::CallError::CALL_ERROR_INSTANCE_IS_NULL:
+			luaL_error(L, "Instance is null");
+			break;
+	}
 	return 0;
 }
 
@@ -518,13 +560,6 @@ void LuaBindingHelper::initialize() {
 		}
 	}
 
-	//===================
-	//    LuaTestParent* parent = new LuaTestParent();
-	//    auto* child = new LuaTestChild();
-	//    child->funcC(parent);
-
-	//    LuaTestParent p;
-	//    child->funcD(p);
 }
 
 void LuaBindingHelper::uninitialize() {
