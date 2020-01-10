@@ -108,6 +108,18 @@ int LuaBindingHelper::meta__index(lua_State *L) {
 
 int LuaBindingHelper::meta__newindex(lua_State *L) {
 	print_format("call %s", "meta__newindex");
+	//TODO:: scriptinstance
+	Object **ud = (Object **)lua_touserdata(L, 1);
+	Object *obj = *ud;
+
+	Variant key, value;
+	l_get_variant(L, 2, key);
+	l_get_variant(L, 3, value);
+
+	bool valid = false;
+	obj->set(key, value, &valid);
+	if (!valid)
+		luaL_error(L, "Unable to set field: '%s'", ((String)key).utf8().get_data());
 	return 0;
 }
 
@@ -359,10 +371,41 @@ int LuaBindingHelper::meta_bultins__index(lua_State *L) {
 }
 int LuaBindingHelper::meta_bultins__newindex(lua_State *L) {
 	print_format("call meta_bultins__newindex");
+	Variant *var = luaL_checkvariant(L, 1);
+
+	Variant key, value;
+	l_get_variant(L, 2, key);
+	l_get_variant(L, 3, value);
+
+	bool valid = false;
+	var->set(key, value, &valid);
+	if (!valid)
+		luaL_error(L, "Unable to set field: '%s'", ((String)key).utf8().get_data());
+
 	return 0;
 }
 int LuaBindingHelper::meta_bultins__pairs(lua_State *L) {
 	print_format("call meta_bultins__pairs");
+	Variant &var = *luaL_checkvariant(L, 1);
+	Variant::Type vt = var.get_type();
+	switch (vt) {
+		case Variant::DICTIONARY:
+		case Variant::ARRAY:
+		case Variant::POOL_BYTE_ARRAY:
+		case Variant::POOL_INT_ARRAY:
+		case Variant::POOL_REAL_ARRAY:
+		case Variant::POOL_STRING_ARRAY:
+		case Variant::POOL_VECTOR2_ARRAY:
+		case Variant::POOL_VECTOR3_ARRAY:
+		case Variant::POOL_COLOR_ARRAY:
+			lua_pushcclosure(L, l_builtins_iterator, 0);
+			l_push_bulltins_type(L, var);
+			lua_pushnil(L);
+			return 3;
+		default:
+			luaL_error(L, "Cannot pairs an %s value", var.get_type_name(var.get_type()));
+			break;
+	}
 	return 0;
 }
 
@@ -409,6 +452,41 @@ int LuaBindingHelper::l_bultins_caller_wrapper(lua_State *L) {
 		case Variant::CallError::CALL_ERROR_INSTANCE_IS_NULL:
 			luaL_error(L, "Instance is null");
 			break;
+	}
+	return 0;
+}
+
+//TO BE CONFIRM
+int LuaBindingHelper::l_builtins_iterator(lua_State *L) {
+	Variant &var = *luaL_checkvariant(L, 1);
+	if (var.get_type() == Variant::DICTIONARY) {
+
+		Variant k;
+		const Variant *key = NULL;
+		Dictionary &dict = var.operator Dictionary();
+		if (!lua_isnil(L, 2)) {
+			l_get_variant(L, 2, k);
+			key = &k;
+		}
+		key = dict.next(key);
+		if (key != NULL) {
+			l_push_variant(L, *key);
+			l_push_variant(L, dict[*key]);
+			return 2;
+		}
+	} else {
+
+		int idx = 0;
+		if (!lua_isnil(L, 2))
+			idx = luaL_optinteger(L, 2, 0) + 1;
+
+		bool r_valid = false;
+		Variant value = var.get(idx, &r_valid);
+		if (r_valid) {
+			lua_pushinteger(L, idx);
+			l_push_variant(L, value);
+			return 2;
+		}
 	}
 	return 0;
 }
@@ -510,6 +588,7 @@ void LuaBindingHelper::initialize() {
 			{ "__mod", Variant::OP_MODULE },
 			{ "__lt", Variant::OP_LESS },
 			{ "__le", Variant::OP_LESS_EQUAL },
+			{ "__unm", Variant::OP_NEGATE }
 		};
 		//二元运算
 		for (int idx = 0; idx < sizeof(evaluates) / sizeof(evaluates[0]); idx++) {
@@ -559,7 +638,6 @@ void LuaBindingHelper::initialize() {
 			key = ClassDB::classes.next(key);
 		}
 	}
-
 }
 
 void LuaBindingHelper::uninitialize() {

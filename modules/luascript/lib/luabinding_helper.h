@@ -72,6 +72,9 @@ private:
 	static int meta_bultins__newindex(lua_State *L);
 	static int meta_bultins__pairs(lua_State *L);
 	static int l_bultins_caller_wrapper(lua_State *L);
+	//TO BE CONFIRM
+	static int l_builtins_iterator(lua_State *L); 
+
 
 	void openLibs(lua_State *L);
 	void globalbind();
