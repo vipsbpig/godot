@@ -30,6 +30,7 @@ static int lua_isinteger(lua_State *L, int index) {
 	}
 	return 0;
 }
+
 #endif
 
 class LuaBindingHelper {
@@ -51,13 +52,26 @@ private:
 	static int meta__index(lua_State *L);
 	static int meta__newindex(lua_State *L);
 	static int l_methodbind_wrapper(lua_State *L);
-
 	//===lua variant convert helper
 
 	//push a Variant into lua stack
 	static void l_push_variant(lua_State *L, const Variant &var);
 	static void l_push_bulltins_type(lua_State *L, const Variant &var);
 	static void l_get_variant(lua_State *L, int idx, Variant &var);
+
+	static Variant *luaL_checkvariant(lua_State *L, int idx) {
+		void *ptr = luaL_checkudata(L, idx, "LuaVariant");
+		return *((Variant **)ptr);
+	}
+
+	//===LuaVariant lua meta methods
+	static int meta_bultins__evaluate(lua_State *L);
+	static int meta_bultins__gc(lua_State *L);
+	static int meta_bultins__tostring(lua_State *L);
+	static int meta_bultins__index(lua_State *L);
+	static int meta_bultins__newindex(lua_State *L);
+	static int meta_bultins__pairs(lua_State *L);
+	static int l_bultins_caller_wrapper(lua_State *L);
 
 	void openLibs(lua_State *L);
 	void globalbind();
@@ -70,6 +84,29 @@ public:
 	void uninitialize();
 
 	Error script(const String &p_source);
+
+private:
+	static void stackDump(lua_State *L) {
+		int i = lua_gettop(L);
+		printf(" ----------------  Stack Dump ----------------\n");
+		while (i) {
+			int t = lua_type(L, i);
+			switch (t) {
+				case LUA_TSTRING:
+					printf("%d:`%s'\n", i, lua_tostring(L, i));
+					break;
+				case LUA_TBOOLEAN:
+					printf("%d: %s\n", i, lua_toboolean(L, i) ? "true" : "false");
+					break;
+				case LUA_TNUMBER:
+					printf("%d: %g\n", i, lua_tonumber(L, i));
+					break;
+				default: printf("%d: %s\n", i, lua_typename(L, t)); break;
+			}
+			i--;
+		}
+		printf("--------------- Stack Dump Finished ---------------\n");
+	}
 };
 
 #endif // LUABINDINGHELPER_H

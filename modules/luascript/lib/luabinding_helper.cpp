@@ -1,5 +1,6 @@
 #include "luabinding_helper.h"
 #include "../debug.h"
+#include "scene/main/node.h"
 
 LuaBindingHelper::LuaBindingHelper() :
 		L(NULL) {
@@ -46,18 +47,39 @@ int LuaBindingHelper::create_user_data(lua_State *L) {
 int LuaBindingHelper::meta__gc(lua_State *L) {
 	Object **ud = (Object **)lua_touserdata(L, 1);
 	Object *obj = *ud;
-	String toString = "[" + obj->get_class() + ":" + itos(obj->get_instance_id()) + "]";
-	print_format("%s memdeted by lua gc.", toString.ascii().get_data());
+	print_format("meta__gc");
+
+	if (obj->is_class_ptr(Reference::get_class_ptr_static())) {
+		Reference *ref = Object::cast_to<Reference>(obj);
+		String toString = "[" + obj->get_class() + ":" + itos(obj->get_instance_id()) + "]";
+		print_format("%s unreferenct by lua gc.", toString.ascii().get_data());
+		if (ref->unreference())
+			memdelete(ref);
+		return 0;
+	}
+
+	if (obj->is_class("Node")) {
+		Node *node = Object::cast_to<Node>(obj);
+		if (!node->is_inside_tree()) {
+			print_format("DELETED!node not in tree");
+			memdelete(obj);
+			//SceneTree::get_singleton()->queue_delete(obj);
+			return 0;
+		}
+		return 0;
+	}
+	// lua_pushnil(L);
+	// lua_setmetatable(L, 1);
+	print_format("Is Object just delete");
 	memdelete(obj);
 	return 0;
 }
 
 int LuaBindingHelper::meta__tostring(lua_State *L) {
-	print_format("meta__tostring");
 	Object **ud = (Object **)lua_touserdata(L, 1);
 	Object *obj = *ud;
 	String toString = "[" + obj->get_class() + ":" + itos(obj->get_instance_id()) + "]";
-	lua_pushstring(L, toString.ascii().get_data());
+	lua_pushstring(L, String(Variant(obj)).utf8().get_data());
 	return 1;
 }
 
@@ -78,8 +100,7 @@ int LuaBindingHelper::meta__index(lua_State *L) {
 	MethodBind *mb = ClassDB::get_method(obj->get_class_name(), index_name);
 	if (mb != NULL) {
 		lua_pushlightuserdata(L, mb);
-		lua_pushlightuserdata(L, obj);
-		lua_pushcclosure(L, l_methodbind_wrapper, 2);
+		lua_pushcclosure(L, l_methodbind_wrapper, 1);
 		return 1;
 	}
 	return 0;
@@ -92,23 +113,24 @@ int LuaBindingHelper::meta__newindex(lua_State *L) {
 
 int LuaBindingHelper::l_methodbind_wrapper(lua_State *L) {
 	MethodBind *mb = (MethodBind *)lua_touserdata(L, lua_upvalueindex(1));
-	Object *obj = (Object *)lua_touserdata(L, lua_upvalueindex(2));
+	Object **ud = (Object **)lua_touserdata(L, 1);
+	Object *obj = *ud;
 
 	Variant ret;
 	Variant::CallError err;
 
 	int top = lua_gettop(L);
-	if (top >= 1) {
+	if (top >= 2) {
 
-		Variant *vars = memnew_arr(Variant, top);
+		Variant *vars = memnew_arr(Variant, top - 1);
 		Variant *args[128];
-		for (int idx = 1; idx <= top; idx++) {
+		for (int idx = 2; idx <= top; idx++) {
 
-			Variant &var = vars[idx - 1];
-			args[idx - 1] = &var;
+			Variant &var = vars[idx - 2];
+			args[idx - 2] = &var;
 			l_get_variant(L, idx, var);
 		}
-		ret = mb->call(obj, (const Variant **)args, top, err);
+		ret = mb->call(obj, (const Variant **)args, top - 1, err);
 		memdelete_arr(vars);
 	} else {
 		ret = mb->call(obj, NULL, 0, err);
@@ -155,7 +177,27 @@ void LuaBindingHelper::l_push_variant(lua_State *L, const Variant &var) {
 			break;
 		case Variant::OBJECT: {
 			//TODO::
-			lua_pushstring(L, "TODO Object TYPE");
+			Object *obj = var;
+			if (obj == NULL) {
+				lua_pushnil(L);
+				break;
+			}
+
+			lua_pushstring(L, "gdlua_ubox");
+			lua_rawget(L, LUA_REGISTRYINDEX);
+			{
+				//TODO::LuaInstance(?)
+				//TODO::ScritpInstance
+				Object **ud = NULL;
+				ud = (Object **)lua_newuserdata(L, sizeof(Object *));
+				*ud = obj;
+				luaL_getmetatable(L, "LuaObject");
+				lua_setmetatable(L, -2);
+				lua_pushvalue(L, -1);
+				lua_pushvalue(L, -1);
+				lua_rawset(L, -4);
+				lua_remove(L, 1);
+			}
 		} break;
 		case Variant::VECTOR2:
 		case Variant::RECT2:
@@ -182,15 +224,18 @@ void LuaBindingHelper::l_push_variant(lua_State *L, const Variant &var) {
 			l_push_bulltins_type(L, var);
 		} break;
 		default:
-			print_format("unknow Type:", Variant::get_type_name(var.get_type()).ascii().get_data());
+			print_format("unknow Type:%s", Variant::get_type_name(var.get_type()).ascii().get_data());
 			break;
 	}
 }
 
 void LuaBindingHelper::l_push_bulltins_type(lua_State *L, const Variant &var) {
-	//TODO::
-	print_format("builtIn Type:", Variant::get_type_name(var.get_type()).ascii().get_data());
-	lua_pushstring(L, "TODO BUILTIN TYPE");
+	print_format("builtIn Type:%s", Variant::get_type_name(var.get_type()).ascii().get_data());
+	Variant **ptr = (Variant **)lua_newuserdata(L, sizeof(Variant *));
+	*ptr = memnew(Variant);
+	**ptr = var;
+	luaL_getmetatable(L, "LuaVariant");
+	lua_setmetatable(L, -2);
 }
 
 void LuaBindingHelper::l_get_variant(lua_State *L, int idx, Variant &var) {
@@ -224,13 +269,106 @@ void LuaBindingHelper::l_get_variant(lua_State *L, int idx, Variant &var) {
 		} break;
 
 		case LUA_TUSERDATA: {
+			void *ud = lua_touserdata(L, idx);
+			if (ud != NULL) {
+				if (lua_getmetatable(L, idx)) {
+					lua_getfield(L, LUA_REGISTRYINDEX, "LuaObject");
+					if (lua_rawequal(L, -1, -2)) {
 
-			void *p = lua_touserdata(L, idx);
-			if (p != NULL) {
-				// 决定是不是Object 或者 Variant ，再进行转换
+						lua_pop(L, 2);
+						Object *obj = *((Object **)ud);
+						if (obj->is_class_ptr(Reference::get_class_ptr_static())) {
+							Reference *ref = Object::cast_to<Reference>(obj);
+							var = Ref<Reference>(ref);
+						} else {
+							var = obj;
+						}
+						return;
+					}
+					lua_pop(L, 1);
+
+					lua_getfield(L, LUA_REGISTRYINDEX, "LuaVariant");
+					if (lua_rawequal(L, -1, -2)) {
+
+						lua_pop(L, 2);
+						var = **((Variant **)ud);
+						return;
+					}
+					lua_pop(L, 1);
+				}
+				lua_pop(L, 1);
 			}
 		} break;
 	}
+}
+
+int LuaBindingHelper::meta_bultins__evaluate(lua_State *L) {
+	print_format("call meta_bultins__evaluate");
+	Variant::Operator op = (Variant::Operator)lua_tointeger(L, lua_upvalueindex(1));
+
+	Variant *var1 = luaL_checkvariant(L, 1);
+
+	Variant var2;
+	l_get_variant(L, 2, var2);
+
+	Variant ret;
+	bool valid = false;
+	Variant::evaluate(op, *var1, var2, ret, valid);
+	if (valid) {
+
+		l_push_variant(L, ret);
+		return 1;
+	}
+	return 0;
+}
+
+int LuaBindingHelper::meta_bultins__gc(lua_State *L) {
+	print_format("call meta_bultins__gc");
+	Variant *var = luaL_checkvariant(L, 1);
+	memdelete(var);
+
+	// lua_pushnil(L);
+	// lua_setmetatable(L, 1);
+	return 0;
+}
+int LuaBindingHelper::meta_bultins__tostring(lua_State *L) {
+	Variant *var = luaL_checkvariant(L, 1);
+	lua_pushstring(L, (var->operator String()).utf8().get_data());
+	return 1;
+}
+int LuaBindingHelper::meta_bultins__index(lua_State *L) {
+	print_format("call meta_bultins__index");
+	Variant *var = luaL_checkvariant(L, 1);
+
+	Variant key;
+	l_get_variant(L, 2, key);
+
+	bool valid = false;
+	Variant value = var->get(key, &valid);
+	if (valid) {
+		l_push_variant(L, value);
+		return 1;
+	}
+
+	if (lua_type(L, 2) == LUA_TSTRING) {
+		lua_pushvalue(L, 2);
+		lua_pushcclosure(L, l_bultins_caller_wrapper, 1);
+		return 1;
+	}
+	return 0;
+}
+int LuaBindingHelper::meta_bultins__newindex(lua_State *L) {
+	print_format("call meta_bultins__newindex");
+	return 0;
+}
+int LuaBindingHelper::meta_bultins__pairs(lua_State *L) {
+	print_format("call meta_bultins__pairs");
+	return 0;
+}
+
+int LuaBindingHelper::l_bultins_caller_wrapper(lua_State *L) {
+	print_format("l_bultins_caller_wrapper");
+	return 0;
 }
 
 void LuaBindingHelper::openLibs(lua_State *L) {
@@ -253,14 +391,13 @@ void LuaBindingHelper::openLibs(lua_State *L) {
 	}
 }
 
-
 void LuaBindingHelper::globalbind() {
 	lua_pushcfunction(L, l_print);
 	lua_setglobal(L, "println");
 }
 
 void LuaBindingHelper::register_class(lua_State *L, const ClassDB::ClassInfo *cls) {
-	if (!(String(cls->name) == "Object" || String(cls->name) == "Node" || String(cls->name) == "_OS"))
+	if (!(String(cls->name) == "Object" || String(cls->name) == "Node" || String(cls->name) == "_OS" || String(cls->name) == "Node2D"))
 
 		return;
 
@@ -316,6 +453,47 @@ void LuaBindingHelper::initialize() {
 	}
 	lua_pop(L, 1);
 
+	luaL_newmetatable(L, "LuaVariant");
+	{
+		typedef struct {
+			const char *meta;
+			Variant::Operator op;
+		} eval;
+		static eval evaluates[] = {
+			{ "__eq", Variant::OP_EQUAL },
+			{ "__add", Variant::OP_ADD },
+			{ "__sub", Variant::OP_SUBTRACT },
+			{ "__mul", Variant::OP_MULTIPLY },
+			{ "__div", Variant::OP_DIVIDE },
+			{ "__mod", Variant::OP_MODULE },
+			{ "__lt", Variant::OP_LESS },
+			{ "__le", Variant::OP_LESS_EQUAL },
+		};
+		//二元运算
+		for (int idx = 0; idx < sizeof(evaluates) / sizeof(evaluates[0]); idx++) {
+
+			eval &ev = evaluates[idx];
+			lua_pushstring(L, ev.meta);
+			lua_pushinteger(L, ev.op);
+			lua_pushcclosure(L, meta_bultins__evaluate, 1);
+			lua_rawset(L, -3);
+		}
+		//一元运算
+		//{ "__unm", Variant::OP_NEGATE }
+
+		static luaL_Reg meta_methods[] = {
+			{ "__gc", meta_bultins__gc },
+			{ "__index", meta_bultins__index },
+			{ "__newindex", meta_bultins__newindex },
+			{ "__tostring", meta_bultins__tostring },
+			{ "__pairs", meta_bultins__pairs },
+			{ NULL, NULL },
+		};
+		luaL_setfuncs(L, meta_methods, 0);
+	}
+	stackDump(L);
+	lua_pop(L, 1);
+
 	//print_format("stack size = %d", lua_gettop(L));
 
 	/* create object ptr -> udata mapping table */
@@ -339,8 +517,6 @@ void LuaBindingHelper::initialize() {
 			key = ClassDB::classes.next(key);
 		}
 	}
-
-	print_format("stack size = %d", lua_gettop(L));
 
 	//===================
 	//    LuaTestParent* parent = new LuaTestParent();

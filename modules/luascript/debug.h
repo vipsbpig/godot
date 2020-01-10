@@ -31,6 +31,7 @@ void print_debug(const String fmt, ...);
 void print_luadebug(const char *str);
 
 void print_format(const char *fmt, ...);
+
 #else
 
 #define print_debug(fmt, ...)
