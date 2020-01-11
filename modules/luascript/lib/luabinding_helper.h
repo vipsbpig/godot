@@ -65,6 +65,7 @@ private:
 	}
 
 	//===LuaVariant lua meta methods
+	
 	static int meta_bultins__evaluate(lua_State *L);
 	static int meta_bultins__gc(lua_State *L);
 	static int meta_bultins__tostring(lua_State *L);

@@ -28,7 +28,7 @@ int LuaBindingHelper::create_user_data(lua_State *L) {
 		Object **ud = NULL;
 		ud = (Object **)lua_newuserdata(L, sizeof(Object *));
 		Object *object = cls->creation_func();
-		print_format("Name %s call new object_ptr:%d ", object->get_class().ascii().get_data(), object);
+		print_format("Name %s call new object_ptr:%d ", object->get_class().utf8().get_data(), object);
 
 		*ud = object;
 		luaL_getmetatable(L, "LuaObject");
@@ -38,7 +38,7 @@ int LuaBindingHelper::create_user_data(lua_State *L) {
 		lua_rawset(L, -4);
 	}
 	//    while (key) {
-	//        print_format("-- methods:%s", String(*key).ascii().get_data() );
+	//        print_format("-- methods:%s", String(*key).utf8().get_data() );
 	//        key = cls->method_map.next(key);
 	//    }
 	return 1;
@@ -52,7 +52,7 @@ int LuaBindingHelper::meta__gc(lua_State *L) {
 	if (obj->is_class_ptr(Reference::get_class_ptr_static())) {
 		Reference *ref = Object::cast_to<Reference>(obj);
 		String toString = "[" + obj->get_class() + ":" + itos(obj->get_instance_id()) + "]";
-		print_format("%s unreferenct by lua gc.", toString.ascii().get_data());
+		print_format("%s unreferenct by lua gc.", toString.utf8().get_data());
 		if (ref->unreference())
 			memdelete(ref);
 		return 0;
@@ -87,7 +87,7 @@ int LuaBindingHelper::meta__index(lua_State *L) {
 	Object **ud = (Object **)lua_touserdata(L, 1);
 	Object *obj = *ud;
 	StringName index_name = lua_tostring(L, 2);
-	print_format("meta__index: %s call %s", obj->get_class().ascii().get_data(), String(index_name).ascii().get_data());
+	print_format("meta__index: %s call %s", obj->get_class().utf8().get_data(), String(index_name).utf8().get_data());
 
 	//1.如果是变量，压入
 	bool success = false;
@@ -236,13 +236,13 @@ void LuaBindingHelper::l_push_variant(lua_State *L, const Variant &var) {
 			l_push_bulltins_type(L, var);
 		} break;
 		default:
-			print_format("unknow Type:%s", Variant::get_type_name(var.get_type()).ascii().get_data());
+			print_format("unknow Type:%s", Variant::get_type_name(var.get_type()).utf8().get_data());
 			break;
 	}
 }
 
 void LuaBindingHelper::l_push_bulltins_type(lua_State *L, const Variant &var) {
-	print_format("builtIn Type:%s", Variant::get_type_name(var.get_type()).ascii().get_data());
+	print_format("builtIn Type:%s", Variant::get_type_name(var.get_type()).utf8().get_data());
 	Variant **ptr = (Variant **)lua_newuserdata(L, sizeof(Variant *));
 	*ptr = memnew(Variant);
 	**ptr = var;
@@ -522,9 +522,9 @@ void LuaBindingHelper::register_class(lua_State *L, const ClassDB::ClassInfo *cl
 		return;
 
 	//print_format("stack size = %d", lua_gettop(L));
-	print_format("regist:[%s:%s]", String(cls->name).ascii().get_data(), String(cls->inherits).ascii().get_data());
+	print_format("regist:[%s:%s]", String(cls->name).utf8().get_data(), String(cls->inherits).utf8().get_data());
 
-	CharString s = String(cls->name).ascii();
+	CharString s = String(cls->name).utf8();
 	const char *typeName = s.get_data();
 	//print_format("0-stack size = %d", lua_gettop(L));
 
@@ -590,17 +590,14 @@ void LuaBindingHelper::initialize() {
 			{ "__le", Variant::OP_LESS_EQUAL },
 			{ "__unm", Variant::OP_NEGATE }
 		};
-		//二元运算
-		for (int idx = 0; idx < sizeof(evaluates) / sizeof(evaluates[0]); idx++) {
 
+		for (int idx = 0; idx < sizeof(evaluates) / sizeof(evaluates[0]); idx++) {
 			eval &ev = evaluates[idx];
 			lua_pushstring(L, ev.meta);
 			lua_pushinteger(L, ev.op);
 			lua_pushcclosure(L, meta_bultins__evaluate, 1);
 			lua_rawset(L, -3);
 		}
-		//一元运算
-		//{ "__unm", Variant::OP_NEGATE }
 
 		static luaL_Reg meta_methods[] = {
 			{ "__gc", meta_bultins__gc },
@@ -608,11 +605,11 @@ void LuaBindingHelper::initialize() {
 			{ "__newindex", meta_bultins__newindex },
 			{ "__tostring", meta_bultins__tostring },
 			{ "__pairs", meta_bultins__pairs },
+			//{ "__call"},
 			{ NULL, NULL },
 		};
 		luaL_setfuncs(L, meta_methods, 0);
 	}
-	stackDump(L);
 	lua_pop(L, 1);
 
 	//print_format("stack size = %d", lua_gettop(L));
