@@ -27,7 +27,12 @@ class LuaScript : public Script {
 	GDCLASS(LuaScript, Script)
 	bool tool;
 	bool valid;
-
+	LuaScript *_base;
+	Ref<LuaScriptNativeClass> native;
+	Set<Object *> instances;
+	String path;
+	String source;
+	
 	friend class LuaScriptInstance;
 	friend class LuaScriptLanguage;
 
@@ -35,13 +40,16 @@ public:
 	LuaScript();
 	~LuaScript();
 
+private:
+	ScriptInstance *_create_instance(const Variant **p_args, int p_argcount, Object *p_owner, bool p_isref);
+
 	// Script interface
 public:
 	virtual bool can_instance() const;
 	/*TODO*/ virtual Ref<Script> get_base_script() const { return NULL; }
 	/*TODO*/ virtual StringName get_instance_base_type() const { return StringName(); }
 	/*TODO*/ virtual PlaceHolderScriptInstance *placeholder_instance_create(Object *p_this) { return NULL; }
-	/*TODO*/ virtual ScriptInstance *instance_create(Object *p_this) { return NULL; }
+	virtual ScriptInstance *instance_create(Object *p_this);
 	/*TODO*/ virtual bool instance_has(const Object *p_this) const { return false; }
 	/*TODO*/ virtual bool has_source_code() const { return false; }
 	/*TODO*/ virtual String get_source_code() const { return ""; }
@@ -58,7 +66,7 @@ public:
 	/*TODO*/ virtual void get_script_method_list(List<MethodInfo> *p_list) const {}
 	/*TODO*/ virtual void get_script_property_list(List<PropertyInfo> *p_list) const {}
 
-	/*TODO*/ Error load_source_code(const String &p_path) { return ERR_UNAVAILABLE; }
+	Error load_source_code(const String &p_path);
 };
 
 class LuaScriptResourceFormatLoader : public ResourceFormatLoader {

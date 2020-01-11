@@ -18,7 +18,7 @@ String LuaScriptLanguage::get_name() const {
 /* LANGUAGE FUNCTIONS */
 void LuaScriptLanguage::init() {
 	binding->initialize();
-	execute_file("luadebug.lua");
+	//execute_file("luadebug.lua");
 }
 
 String LuaScriptLanguage::get_extension() const {
@@ -26,7 +26,6 @@ String LuaScriptLanguage::get_extension() const {
 }
 
 Error LuaScriptLanguage::execute_file(const String &p_path) {
-	ERR_FAIL_NULL_V(binding, ERR_BUG);
 	ERR_FAIL_NULL_V(binding, ERR_BUG);
 	FileAccessRef f = FileAccess::open(p_path, FileAccess::READ);
 	ERR_FAIL_COND_V(!f, ERR_INVALID_PARAMETER);

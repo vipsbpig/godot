@@ -1,17 +1,103 @@
 #include "luascript.h"
+#include "luascript_instance.h"
 #include "luascript_language.h"
+
 LuaScript::LuaScript() {
 }
 
 LuaScript::~LuaScript() {
 }
 
+ScriptInstance *LuaScript::_create_instance(const Variant **p_args, int p_argcount, Object *p_owner, bool p_isref) {
+
+	/* STEP 1, CREATE */
+	LuaScriptInstance *instance = memnew(LuaScriptInstance);
+	instance->base_ref = p_isref;
+	//	instance->gc_delete=true;
+	//	instance->members.resize(member_indices.size());
+	instance->script = Ref<LuaScript>(this);
+	instance->owner = p_owner;
+	instance->owner->set_script_instance(instance);
+
+	/* STEP 2, INITIALIZE AND CONSRTUCT */
+	instances.insert(instance->owner);
+
+	if (instance->init(true) != OK) {
+		instance->script = Ref<LuaScript>();
+		instance->owner->set_script_instance(NULL);
+
+		memdelete(instance);
+		instances.erase(p_owner);
+
+		ERR_FAIL_V(NULL); //error consrtucting
+	}
+
+	//@TODO make thread safe
+	return instance;
+}
+
 bool LuaScript::can_instance() const {
 	return valid;
 }
 
+ScriptInstance *LuaScript::instance_create(Object *p_this) {
+
+	LuaScript *top = this;
+	while (top->_base)
+		top = top->_base;
+
+	if (top->native.is_valid()) {
+		if (!ClassDB::is_parent_class(p_this->get_class_name(), top->native->get_name())) {
+
+			// if (ScriptDebugger::get_singleton()) {
+			// 	LuaScriptLanguage::get_singleton()->debug_break_parse(get_path(), 0, "Script inherits from native type '" + String(top->native->get_name()) + "', so it can't be instanced in object of type: '" + p_this->get_class() + "'");
+			// }
+			ERR_EXPLAIN("Script inherits from native type '" + String(top->native->get_name()) + "', so it can't be instanced in object of type: '" + p_this->get_class() + "'");
+			ERR_FAIL_V(NULL);
+		}
+	}
+
+	Variant::CallError unchecked_error;
+	return _create_instance(NULL, 0, p_this, Object::cast_to<Reference>(p_this));
+}
+
 ScriptLanguage *LuaScript::get_language() const {
 	return LuaScriptLanguage::get_singleton();
+}
+
+Error LuaScript::load_source_code(const String &p_path) {
+	//TODO::把脚本传进来加载内容
+	PoolVector<uint8_t> sourcef;
+	Error err;
+	FileAccess *f = FileAccess::open(p_path, FileAccess::READ, &err);
+	if (err) {
+
+		ERR_FAIL_COND_V(err, err);
+	}
+
+	int len = f->get_len();
+	sourcef.resize(len + 1);
+	PoolVector<uint8_t>::Write w = sourcef.write();
+	int r = f->get_buffer(w.ptr(), len);
+	f->close();
+	memdelete(f);
+	ERR_FAIL_COND_V(r != len, ERR_CANT_OPEN);
+	w[len] = 0;
+
+	String s;
+	if (s.parse_utf8((const char *)w.ptr())) {
+
+		ERR_EXPLAIN("Script '" + p_path + "' contains invalid unicode (utf-8), so it was not loaded. Please ensure that scripts are saved in valid utf-8 unicode.");
+		ERR_FAIL_V(ERR_INVALID_DATA);
+	}
+
+	source = s;
+	LuaScriptLanguage::get_singleton()->binding->script(source);
+// #ifdef TOOLS_ENABLED
+// 	source_changed_cache = true;
+// #endif
+	path = p_path;
+	return OK;
 }
 
 //========luascript loader=========
