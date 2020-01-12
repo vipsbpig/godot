@@ -112,7 +112,8 @@ Error LuaScript::reload(bool p_keep_state) {
 		basedir = basedir.get_base_dir();
 
 	Error err = LuaScriptLanguage::get_singleton()->binding->script(source);
-	valid = (err == OK);
+	valid = (err == OK);	
+	_base = NULL;
 
 	return err;
 }
