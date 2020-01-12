@@ -27,12 +27,13 @@ class LuaScript : public Script {
 	GDCLASS(LuaScript, Script)
 	bool tool;
 	bool valid;
+	Ref<LuaScript> base;
 	LuaScript *_base;
 	Ref<LuaScriptNativeClass> native;
 	Set<Object *> instances;
 	String path;
 	String source;
-	
+
 	friend class LuaScriptInstance;
 	friend class LuaScriptLanguage;
 
@@ -46,25 +47,61 @@ private:
 	// Script interface
 public:
 	virtual bool can_instance() const;
-	/*TODO*/ virtual Ref<Script> get_base_script() const { return NULL; }
-	/*TODO*/ virtual StringName get_instance_base_type() const { return StringName(); }
-	/*TODO*/ virtual PlaceHolderScriptInstance *placeholder_instance_create(Object *p_this) { return NULL; }
+	/*TODO*/ virtual Ref<Script> get_base_script() const {
+		print_debug("LuaScript::can_instance");
+		return NULL;
+	}
+	virtual StringName get_instance_base_type() const;
+	/*TODO*/ virtual PlaceHolderScriptInstance *placeholder_instance_create(Object *p_this) {
+		print_debug("LuaScript::placeholder_instance_create");
+		return NULL;
+	}
 	virtual ScriptInstance *instance_create(Object *p_this);
-	/*TODO*/ virtual bool instance_has(const Object *p_this) const { return false; }
-	/*TODO*/ virtual bool has_source_code() const { return false; }
-	/*TODO*/ virtual String get_source_code() const { return ""; }
-	/*TODO*/ virtual void set_source_code(const String &p_code) {}
-	/*TODO*/ virtual Error reload(bool p_keep_state = false) { return ERR_UNAVAILABLE; }
-	/*TODO*/ virtual bool has_method(const StringName &p_method) const { return false; }
-	/*TODO*/ virtual MethodInfo get_method_info(const StringName &p_method) const { return MethodInfo(); }
-	/*TODO*/ virtual bool is_tool() const { return tool; }
-	/*TODO*/ virtual bool is_valid() const { return valid; }
+	/*TODO*/ virtual bool instance_has(const Object *p_this) const {
+		print_debug("LuaScript::instance_has");
+		return false;
+	}
+	/*TODO*/ virtual bool has_source_code() const {
+		print_debug("LuaScript::has_source_code");
+		return false;
+	}
+	virtual String get_source_code() const;
+	virtual void set_source_code(const String &p_code);
+	virtual Error reload(bool p_keep_state = false);
+	/*TODO*/ virtual bool has_method(const StringName &p_method) const {
+		print_debug("LuaScript::has_method");
+		return false;
+	}
+	/*TODO*/ virtual MethodInfo get_method_info(const StringName &p_method) const {
+		print_debug("LuaScript::get_method_info");
+		return MethodInfo();
+	}
+	/*TODO*/ virtual bool is_tool() const {
+		print_debug("LuaScript::is_tool");
+		return tool;
+	}
+	/*TODO*/ virtual bool is_valid() const {
+		print_debug("LuaScript::is_valid");
+		return valid;
+	}
 	virtual ScriptLanguage *get_language() const;
-	/*TODO*/ virtual bool has_script_signal(const StringName &p_signal) const { return false; }
-	/*TODO*/ virtual void get_script_signal_list(List<MethodInfo> *r_signals) const {}
-	/*TODO*/ virtual bool get_property_default_value(const StringName &p_property, Variant &r_value) const { return false; }
-	/*TODO*/ virtual void get_script_method_list(List<MethodInfo> *p_list) const {}
-	/*TODO*/ virtual void get_script_property_list(List<PropertyInfo> *p_list) const {}
+	/*TODO*/ virtual bool has_script_signal(const StringName &p_signal) const {
+		print_debug("LuaScript::has_script_signal");
+		return false;
+	}
+	/*TODO*/ virtual void get_script_signal_list(List<MethodInfo> *r_signals) const {
+		print_debug("LuaScript::get_script_signal_list");
+	}
+	/*TODO*/ virtual bool get_property_default_value(const StringName &p_property, Variant &r_value) const {
+		print_debug("LuaScript::get_property_default_value");
+		return false;
+	}
+	/*TODO*/ virtual void get_script_method_list(List<MethodInfo> *p_list) const {
+		print_debug("LuaScript::get_script_method_list");
+	}
+	/*TODO*/ virtual void get_script_property_list(List<PropertyInfo> *p_list) const {
+		print_debug("LuaScript::get_script_property_list");
+	}
 
 	Error load_source_code(const String &p_path);
 };

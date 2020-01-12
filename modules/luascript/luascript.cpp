@@ -37,10 +37,19 @@ ScriptInstance *LuaScript::_create_instance(const Variant **p_args, int p_argcou
 }
 
 bool LuaScript::can_instance() const {
+	print_debug("LuaScript::can_instance");
+
 	return valid;
 }
-
+StringName LuaScript::get_instance_base_type() const {
+	if (native.is_valid())
+		return native->get_name();
+	if (base.is_valid())
+		return _base->get_instance_base_type();
+	return StringName();
+}
 ScriptInstance *LuaScript::instance_create(Object *p_this) {
+	print_debug("LuaScript::instance_create");
 
 	LuaScript *top = this;
 	while (top->_base)
@@ -57,7 +66,7 @@ ScriptInstance *LuaScript::instance_create(Object *p_this) {
 		}
 	}
 
-	Variant::CallError unchecked_error;
+	//Variant::CallError unchecked_error;
 	return _create_instance(NULL, 0, p_this, Object::cast_to<Reference>(p_this));
 }
 
@@ -65,8 +74,52 @@ ScriptLanguage *LuaScript::get_language() const {
 	return LuaScriptLanguage::get_singleton();
 }
 
+String LuaScript::get_source_code() const {
+	print_debug("LuaScript::get_source_code");
+
+	return source;
+}
+
+void LuaScript::set_source_code(const String &p_code) {
+	//TODO::
+	print_debug("LuaScript::set_source_code");
+	if (source == p_code)
+		return;
+	source = p_code;
+	// #ifdef TOOLS_ENABLED
+	// 	source_changed_cache = true;
+	// #endif;
+}
+
+Error LuaScript::reload(bool p_keep_state) {
+	//TODO::
+	print_debug("LuaScript::reload");
+
+	bool has_instances = instances.size();
+	ERR_FAIL_COND_V(!p_keep_state && has_instances, ERR_ALREADY_IN_USE);
+	String basedir = path;
+
+	if (basedir == "")
+		basedir = get_path();
+
+	if (basedir != "")
+		basedir = basedir.get_base_dir();
+
+	if (source.find("%BASE%") != -1) {
+		//loading a template, don't parse
+		return OK;
+	}
+
+	Error err = LuaScriptLanguage::get_singleton()->binding->script(source);
+	valid = (err == OK);
+
+	return err;
+}
+
 Error LuaScript::load_source_code(const String &p_path) {
 	//TODO::把脚本传进来加载内容
+	print_debug("LuaScript::load_source_code");
+
 	PoolVector<uint8_t> sourcef;
 	Error err;
 	FileAccess *f = FileAccess::open(p_path, FileAccess::READ, &err);
@@ -92,10 +145,9 @@ Error LuaScript::load_source_code(const String &p_path) {
 	}
 
 	source = s;
-	LuaScriptLanguage::get_singleton()->binding->script(source);
-// #ifdef TOOLS_ENABLED
-// 	source_changed_cache = true;
-// #endif
+	// #ifdef TOOLS_ENABLED
+	// 	source_changed_cache = true;
+	// #endif
 	path = p_path;
 	return OK;
 }
@@ -132,7 +184,7 @@ Ref<Resource> LuaScriptResourceFormatLoader::load(const String &p_path, const St
 }
 
 void LuaScriptResourceFormatLoader::get_recognized_extensions(List<String> *p_extensions) const {
-	print_debug("LuaScriptResourceFormatLoader::get_recognized_extensions");
+	//print_debug("LuaScriptResourceFormatLoader::get_recognized_extensions");
 
 	p_extensions->push_back("lua");
 	//TODO::luajit

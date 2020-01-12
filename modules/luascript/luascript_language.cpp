@@ -1,5 +1,7 @@
 #include "luascript_language.h"
+#include "luascript.h"
 #include "debug.h"
+
 LuaScriptLanguage *LuaScriptLanguage::singleton = NULL;
 
 LuaScriptLanguage::LuaScriptLanguage() {
@@ -105,4 +107,14 @@ void LuaScriptLanguage::get_string_delimiters(List<String> *p_delimiters) const 
 
 void LuaScriptLanguage::get_recognized_extensions(List<String> *p_extensions) const {
 	p_extensions->push_back("lua");
+}
+
+Ref<Script> LuaScriptLanguage::get_template(const String &p_class_name, const String &p_base_class_name) const {
+	String _template = "--lua code\n";
+
+	Ref<LuaScript> script;
+	script.instance();
+	script->set_source_code(_template);
+
+	return script;
 }

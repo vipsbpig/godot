@@ -517,12 +517,10 @@ void LuaBindingHelper::globalbind() {
 }
 
 void LuaBindingHelper::register_class(lua_State *L, const ClassDB::ClassInfo *cls) {
-	if (!(String(cls->name) == "Object" || String(cls->name) == "Node" || String(cls->name) == "_OS" || String(cls->name) == "Node2D"))
-
-		return;
-
+	// if (!(String(cls->name) == "Object" || String(cls->name) == "Node" || String(cls->name) == "_OS" || String(cls->name) == "Node2D"))
+	// 	return;
 	//print_format("stack size = %d", lua_gettop(L));
-	print_format("regist:[%s:%s]", String(cls->name).utf8().get_data(), String(cls->inherits).utf8().get_data());
+	printf("regist:[%s:%s]\n", String(cls->name).utf8().get_data(), String(cls->inherits).utf8().get_data());
 
 	CharString s = String(cls->name).utf8();
 	const char *typeName = s.get_data();

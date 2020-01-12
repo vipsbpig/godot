@@ -31,7 +31,7 @@ public:
 	virtual void get_reserved_words(List<String> *p_words) const;
 	virtual void get_comment_delimiters(List<String> *p_delimiters) const;
 	virtual void get_string_delimiters(List<String> *p_delimiters) const;
-	/*TODO*/ virtual Ref<Script> get_template(const String &p_class_name, const String &p_base_class_name) const { return NULL; }
+	virtual Ref<Script> get_template(const String &p_class_name, const String &p_base_class_name) const;
 	/*TODO*/ virtual void make_template(const String &p_class_name, const String &p_base_class_name, Ref<Script> &p_script) {}
 	/*TODO*/ virtual bool is_using_templates() { return false; }
 	/*TODO*/ virtual bool validate(const String &p_script, int &r_line_error, int &r_col_error, String &r_test_error, const String &p_path, List<String> *r_functions, List<Warning> *r_warnings, Set<int> *r_safe_lines) const { return true; }
@@ -41,7 +41,7 @@ public:
 	/*TODO*/ virtual bool supports_builtin_mode() const { return false; }
 	/*TODO*/ virtual bool can_inherit_from_file() const { return false; }
 
-	/*TODO*/ virtual int find_function(const String &p_function, const String &p_code) const { return -1; }
+	/*TODO*/ virtual int find_function(const String &p_function, const String &p_code) const { return 0; }
 	/*TODO*/ virtual String make_function(const String &p_class, const String &p_name, const PoolStringArray &p_args) const { return ""; }
 
 	/*TODO*/ virtual Error open_in_external_editor(const Ref<Script> &p_script, int p_line, int p_col) { return ERR_UNAVAILABLE; }
