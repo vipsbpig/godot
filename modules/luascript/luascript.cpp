@@ -92,7 +92,13 @@ void LuaScript::set_source_code(const String &p_code) {
 }
 
 Error LuaScript::reload(bool p_keep_state) {
-	//TODO::
+	//TODO::完成绑定等内容和调整
+	//传入调用等内容
+	//extends 的设计 是谁的
+	//只要是绑定到node的可以通过
+	//临时创建extendts来绑定到脚本类上面
+	//只会在reload的时候进行更替，在引擎运行之前都会正确调用
+	//
 	print_debug("LuaScript::reload");
 
 	bool has_instances = instances.size();
@@ -104,11 +110,6 @@ Error LuaScript::reload(bool p_keep_state) {
 
 	if (basedir != "")
 		basedir = basedir.get_base_dir();
-
-	if (source.find("%BASE%") != -1) {
-		//loading a template, don't parse
-		return OK;
-	}
 
 	Error err = LuaScriptLanguage::get_singleton()->binding->script(source);
 	valid = (err == OK);
