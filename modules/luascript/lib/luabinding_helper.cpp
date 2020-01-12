@@ -403,7 +403,7 @@ int LuaBindingHelper::meta_bultins__pairs(lua_State *L) {
 			lua_pushnil(L);
 			return 3;
 		default:
-			luaL_error(L, "Cannot pairs an %s value", var.get_type_name(var.get_type()));
+			luaL_error(L, "Cannot pairs an %s value", var.get_type_name(var.get_type()).utf8().get_data());
 			break;
 	}
 	return 0;
@@ -463,7 +463,7 @@ int LuaBindingHelper::l_builtins_iterator(lua_State *L) {
 
 		Variant k;
 		const Variant *key = NULL;
-		Dictionary &dict = var.operator Dictionary();
+		const Dictionary &dict = var.operator Dictionary();
 		if (!lua_isnil(L, 2)) {
 			l_get_variant(L, 2, k);
 			key = &k;
