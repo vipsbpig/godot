@@ -12,15 +12,8 @@ int LuaBindingHelper::l_print(lua_State *L) {
 	return 0;
 }
 
-int LuaBindingHelper::l_extends(lua_State *L) {
-	print_format("call %s", "l_extends");
-	return 0;
-}
-
 int LuaBindingHelper::create_user_data(lua_State *L) {
 	const ClassDB::ClassInfo *cls = (ClassDB::ClassInfo *)lua_touserdata(L, lua_upvalueindex(1));
-
-	//const StringName *key = cls->method_map.next(NULL);
 
 	lua_pushstring(L, "gdlua_ubox");
 	lua_rawget(L, LUA_REGISTRYINDEX);
@@ -37,6 +30,7 @@ int LuaBindingHelper::create_user_data(lua_State *L) {
 		lua_pushvalue(L, -1);
 		lua_rawset(L, -4);
 	}
+	//const StringName *key = cls->method_map.next(NULL);
 	//    while (key) {
 	//        print_format("-- methods:%s", String(*key).utf8().get_data() );
 	//        key = cls->method_map.next(key);
@@ -409,6 +403,11 @@ int LuaBindingHelper::meta_bultins__pairs(lua_State *L) {
 	return 0;
 }
 
+int LuaBindingHelper::meta_bultins__call(lua_State *L) {
+	//TODO::builtin 类型的构造函数	
+	return 0;
+}
+
 int LuaBindingHelper::l_bultins_caller_wrapper(lua_State *L) {
 	print_format("l_bultins_caller_wrapper");
 	const char *key = luaL_checkstring(L, lua_upvalueindex(1));
@@ -519,25 +518,28 @@ void LuaBindingHelper::globalbind() {
 void LuaBindingHelper::register_class(lua_State *L, const ClassDB::ClassInfo *cls) {
 	// if (!(String(cls->name) == "Object" || String(cls->name) == "Node" || String(cls->name) == "_OS" || String(cls->name) == "Node2D"))
 	// 	return;
-	//print_format("stack size = %d", lua_gettop(L));
 	printf("regist:[%s:%s]\n", String(cls->name).utf8().get_data(), String(cls->inherits).utf8().get_data());
 
 	CharString s = String(cls->name).utf8();
 	const char *typeName = s.get_data();
-	//print_format("0-stack size = %d", lua_gettop(L));
+
+	lua_getfield(L, LUA_GLOBALSINDEX, "GD");
+	if (!lua_istable(L, -1)) {
+		lua_pop(L, 1);
+		lua_newtable(L);
+		lua_pushvalue(L, -1);
+		lua_setfield(L, LUA_GLOBALSINDEX, "GD");
+	}
 
 	lua_newtable(L);
-
 	lua_pushvalue(L, -1);
-	lua_setglobal(L, typeName);
-	//print_format("1-stack size = %d ,push %s in to global", lua_gettop(L),typeName);
+	lua_setfield(L, -3, typeName);
 
-	//lua_pushvalue(L,-1);
 	lua_pushlightuserdata(L, (void *)cls);
 	lua_pushcclosure(L, create_user_data, 1);
 	lua_setfield(L, -2, "new");
 
-	lua_pop(L, 1);
+	lua_pop(L, 2);
 }
 
 void LuaBindingHelper::initialize() {
@@ -560,14 +562,6 @@ void LuaBindingHelper::initialize() {
 			{ NULL, NULL },
 		};
 		luaL_setfuncs(L, meta_methods, 0);
-
-		lua_newtable(L);
-		luaL_Reg methods[] = {
-			{ "extends", l_extends },
-			{ NULL, NULL },
-		};
-		luaL_setfuncs(L, methods, 0);
-		lua_setfield(L, -2, ".methods");
 	}
 	lua_pop(L, 1);
 
@@ -603,7 +597,7 @@ void LuaBindingHelper::initialize() {
 			{ "__newindex", meta_bultins__newindex },
 			{ "__tostring", meta_bultins__tostring },
 			{ "__pairs", meta_bultins__pairs },
-			//{ "__call"},
+			{ "__call", meta_bultins__call },
 			{ NULL, NULL },
 		};
 		luaL_setfuncs(L, meta_methods, 0);

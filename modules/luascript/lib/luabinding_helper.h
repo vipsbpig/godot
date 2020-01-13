@@ -36,13 +36,9 @@ static int lua_isinteger(lua_State *L, int index) {
 class LuaBindingHelper {
 	lua_State *L;
 
-public:
+private:
 	static int l_print(lua_State *L);
 
-	//===lua methods
-	static int l_extends(lua_State *L);
-
-private:
 	//===native binding
 	static int create_user_data(lua_State *L);
 
@@ -73,6 +69,7 @@ private:
 	static int meta_bultins__index(lua_State *L);
 	static int meta_bultins__newindex(lua_State *L);
 	static int meta_bultins__pairs(lua_State *L);
+	static int meta_bultins__call(lua_State *L);
 	static int l_bultins_caller_wrapper(lua_State *L);
 	//TO BE CONFIRM
 	static int l_builtins_iterator(lua_State *L);

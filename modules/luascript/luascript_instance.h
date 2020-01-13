@@ -55,7 +55,7 @@ public:
 	///*TODO*/ virtual void call_multilevel_reversed(const StringName &p_method, const Variant **p_args, int p_argcount) {}
 
 	/*TODO*/ virtual void notification(int p_notification) {
-		print_debug("LuaScriptInstance::notification");
+		//print_debug("LuaScriptInstance::notification");
 	}
 
 	//this is used by script languages that keep a reference counter of their own

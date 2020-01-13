@@ -81,7 +81,6 @@ String LuaScript::get_source_code() const {
 }
 
 void LuaScript::set_source_code(const String &p_code) {
-	//TODO::
 	print_debug("LuaScript::set_source_code");
 	if (source == p_code)
 		return;
