@@ -3,6 +3,10 @@
 #include "luascript_language.h"
 
 LuaScript::LuaScript() {
+	_base = NULL;
+	cls = NULL;
+	valid = false;
+	tool = false;
 }
 
 LuaScript::~LuaScript() {
@@ -110,10 +114,10 @@ Error LuaScript::reload(bool p_keep_state) {
 	if (basedir != "")
 		basedir = basedir.get_base_dir();
 
+	LuaScriptLanguage::get_singleton()->binding->bind_script_function("extends", this, LuaBindingHelper::l_extends);
 	Error err = LuaScriptLanguage::get_singleton()->binding->script(source);
-	valid = (err == OK);	
-	_base = NULL;
-
+	LuaScriptLanguage::get_singleton()->binding->unbind_script_function("extends");
+	valid = (err == OK);
 	return err;
 }
 

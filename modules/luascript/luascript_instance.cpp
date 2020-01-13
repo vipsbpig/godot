@@ -14,7 +14,7 @@ Error LuaScriptInstance::init(bool p_ref) {
 	//script里面获取类名
 
 	Object *obj = owner;
-	print_format("LuaScriptInstance::init obj type:%s", String(Variant(obj)).utf8().get_data());
+	print_format("LuaScriptInstance::init obj type:%s script:%d", String(Variant(obj)).utf8().get_data(), script.ptr());
 
 	//print_format("class [%s]instance init call.",String(get_script()->get_instance_base_type()).utf8().get_data());
 	return OK;

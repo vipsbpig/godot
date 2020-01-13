@@ -33,7 +33,9 @@ class LuaScript : public Script {
 	Set<Object *> instances;
 	String path;
 	String source;
+	const ClassDB::ClassInfo *cls;
 
+	friend class LuaBindingHelper;
 	friend class LuaScriptInstance;
 	friend class LuaScriptLanguage;
 
@@ -43,7 +45,6 @@ public:
 
 private:
 	ScriptInstance *_create_instance(const Variant **p_args, int p_argcount, Object *p_owner, bool p_isref);
-
 	// Script interface
 public:
 	virtual bool can_instance() const;

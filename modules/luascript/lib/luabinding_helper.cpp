@@ -1,6 +1,17 @@
 #include "luabinding_helper.h"
 #include "../debug.h"
+#include "../luascript.h"
 #include "scene/main/node.h"
+
+static Variant *luaL_checkvariant(lua_State *L, int idx) {
+	void *ptr = luaL_checkudata(L, idx, "LuaVariant");
+	return *((Variant **)ptr);
+}
+
+static LuaScript *luaL_checkscript(lua_State *L, int idx) {
+	void *ptr = luaL_checkudata(L, idx, "LuaScript");
+	return *((LuaScript **)ptr);
+}
 
 LuaBindingHelper::LuaBindingHelper() :
 		L(NULL) {
@@ -10,6 +21,53 @@ int LuaBindingHelper::l_print(lua_State *L) {
 	const char *str = luaL_checkstring(L, 1);
 	print_line(str);
 	return 0;
+}
+
+int LuaBindingHelper::l_extends(lua_State *L) {
+	LuaScript *p_script = (LuaScript *)lua_touserdata(L, lua_upvalueindex(1));
+	if (lua_istable(L, -1)) {
+		lua_pushstring(L, ".clsinfo");
+		lua_rawget(L, -2);
+		const ClassDB::ClassInfo *cls = (ClassDB::ClassInfo *)lua_touserdata(L, -1);
+		if (cls == NULL) {
+			luaL_error(L, "Extends Wrong Type");
+			return 0;
+		}
+		const char *base = String(cls->name).utf8().get_data();
+		print_format("l_extends from:%s %d script:%d", base, cls, p_script);
+		p_script->cls = cls;
+		LuaScript **ptr = (LuaScript **)lua_newuserdata(L, sizeof(LuaScript *));
+		*ptr = p_script;
+		luaL_getmetatable(L, "LuaScript");
+		lua_setmetatable(L, -2);
+		return 1;
+	}
+	if (lua_isstring(L, -1)) {
+		//TODO::如果是字符串就从路径加载脚本去继承来写
+		//现在临时用Object来代替
+		print_line("Should extends from a res.Now Only extends from Object");
+		const ClassDB::ClassInfo *cls = &ClassDB::classes["Object"];
+		const char *base = String(cls->name).utf8().get_data();
+		print_format("l_extends from:%s", base);
+		p_script->cls = cls;
+		LuaScript **ptr = (LuaScript **)lua_newuserdata(L, sizeof(LuaScript *));
+		*ptr = p_script;
+		luaL_getmetatable(L, "LuaScript");
+		lua_setmetatable(L, -2);
+		return 1;
+	}
+	return 0;
+}
+
+void LuaBindingHelper::bind_script_function(const char *name, void *p_script, lua_CFunction fn) {
+	lua_pushlightuserdata(L, p_script);
+	lua_pushcclosure(L, fn, 1);
+	lua_setglobal(L, name);
+}
+
+void LuaBindingHelper::unbind_script_function(const char *name) {
+	lua_pushnil(L);
+	lua_setglobal(L, name);
 }
 
 int LuaBindingHelper::create_user_data(lua_State *L) {
@@ -309,7 +367,6 @@ void LuaBindingHelper::l_get_variant(lua_State *L, int idx, Variant &var) {
 }
 
 int LuaBindingHelper::meta_bultins__evaluate(lua_State *L) {
-	print_format("call meta_bultins__evaluate");
 	Variant::Operator op = (Variant::Operator)lua_tointeger(L, lua_upvalueindex(1));
 
 	Variant *var1 = luaL_checkvariant(L, 1);
@@ -329,7 +386,6 @@ int LuaBindingHelper::meta_bultins__evaluate(lua_State *L) {
 }
 
 int LuaBindingHelper::meta_bultins__gc(lua_State *L) {
-	print_format("call meta_bultins__gc");
 	Variant *var = luaL_checkvariant(L, 1);
 	memdelete(var);
 
@@ -343,7 +399,6 @@ int LuaBindingHelper::meta_bultins__tostring(lua_State *L) {
 	return 1;
 }
 int LuaBindingHelper::meta_bultins__index(lua_State *L) {
-	print_format("call meta_bultins__index");
 	Variant *var = luaL_checkvariant(L, 1);
 
 	Variant key;
@@ -364,7 +419,6 @@ int LuaBindingHelper::meta_bultins__index(lua_State *L) {
 	return 0;
 }
 int LuaBindingHelper::meta_bultins__newindex(lua_State *L) {
-	print_format("call meta_bultins__newindex");
 	Variant *var = luaL_checkvariant(L, 1);
 
 	Variant key, value;
@@ -379,7 +433,6 @@ int LuaBindingHelper::meta_bultins__newindex(lua_State *L) {
 	return 0;
 }
 int LuaBindingHelper::meta_bultins__pairs(lua_State *L) {
-	print_format("call meta_bultins__pairs");
 	Variant &var = *luaL_checkvariant(L, 1);
 	Variant::Type vt = var.get_type();
 	switch (vt) {
@@ -404,7 +457,7 @@ int LuaBindingHelper::meta_bultins__pairs(lua_State *L) {
 }
 
 int LuaBindingHelper::meta_bultins__call(lua_State *L) {
-	//TODO::builtin 类型的构造函数	
+	//TODO::builtin 类型的构造函数
 	return 0;
 }
 
@@ -490,6 +543,34 @@ int LuaBindingHelper::l_builtins_iterator(lua_State *L) {
 	return 0;
 }
 
+int LuaBindingHelper::meta_script__gc(lua_State *L) {
+	print_format("meta_script__gc");
+	return 0;
+}
+
+int LuaBindingHelper::meta_script__tostring(lua_State *L) {
+	print_format("meta_script__tostring");
+	return 0;
+}
+
+int LuaBindingHelper::meta_script__index(lua_State *L) {
+	LuaScript *p_script = luaL_checkscript(L, 1);
+	StringName index_name = lua_tostring(L, 2);
+	const char *base = String(p_script->cls->name).utf8().get_data();
+	print_format("meta_script__index:%s base:%s %d script:%d", lua_tostring(L, 2), base, p_script->cls, p_script);
+	return 0;
+}
+
+int LuaBindingHelper::meta_script__newindex(lua_State *L) {
+	print_format("meta_script__newindex");
+	return 0;
+}
+
+int LuaBindingHelper::l_script_caller_wrapper(lua_State *L) {
+	print_format("l_script_caller_wrapper");
+	return 0;
+}
+
 void LuaBindingHelper::openLibs(lua_State *L) {
 	luaL_Reg lualibs[] = {
 		{ "", luaopen_base },
@@ -538,6 +619,9 @@ void LuaBindingHelper::register_class(lua_State *L, const ClassDB::ClassInfo *cl
 	lua_pushlightuserdata(L, (void *)cls);
 	lua_pushcclosure(L, create_user_data, 1);
 	lua_setfield(L, -2, "new");
+
+	lua_pushlightuserdata(L, (void *)cls);
+	lua_setfield(L, -2, ".clsinfo");
 
 	lua_pop(L, 2);
 }
@@ -598,6 +682,19 @@ void LuaBindingHelper::initialize() {
 			{ "__tostring", meta_bultins__tostring },
 			{ "__pairs", meta_bultins__pairs },
 			{ "__call", meta_bultins__call },
+			{ NULL, NULL },
+		};
+		luaL_setfuncs(L, meta_methods, 0);
+	}
+	lua_pop(L, 1);
+
+	luaL_newmetatable(L, "LuaScript");
+	{
+		static luaL_Reg meta_methods[] = {
+			{ "__gc", meta_script__gc },
+			{ "__index", meta_script__index },
+			{ "__newindex", meta_script__newindex },
+			{ "__tostring", meta_script__tostring },
 			{ NULL, NULL },
 		};
 		luaL_setfuncs(L, meta_methods, 0);
