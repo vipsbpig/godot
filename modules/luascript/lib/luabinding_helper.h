@@ -99,7 +99,7 @@ public:
 
 	Error script(const String &p_source);
 
-private:
+public:
 	static void stackDump(lua_State *L) {
 		int i = lua_gettop(L);
 		printf(" ----------------  Stack Dump ----------------\n");
