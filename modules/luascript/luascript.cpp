@@ -7,9 +7,11 @@ LuaScript::LuaScript() {
 	cls = NULL;
 	valid = false;
 	tool = false;
+	lua_ref = 0;
 }
 
 LuaScript::~LuaScript() {
+	LuaScriptLanguage::get_singleton()->binding->l_unref_luascript(this);
 }
 
 ScriptInstance *LuaScript::_create_instance(const Variant **p_args, int p_argcount, Object *p_owner, bool p_isref) {

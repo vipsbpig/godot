@@ -74,7 +74,6 @@ private:
 	static int meta_bultins__call(lua_State *L);
 	static int l_bultins_caller_wrapper(lua_State *L);
 
-
 	//TO BE CONFIRM
 	static int l_builtins_iterator(lua_State *L);
 
@@ -86,6 +85,13 @@ private:
 	static int meta_script__newindex(lua_State *L);
 
 	static int l_script_caller_wrapper(lua_State *L);
+
+	static void l_ref_luascript(lua_State *L, void *object);
+public:
+	void l_unref_luascript(void *object);
+
+private:
+	//===global
 
 	void openLibs(lua_State *L);
 	void globalbind();

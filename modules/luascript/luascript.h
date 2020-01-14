@@ -36,6 +36,7 @@ class LuaScript : public Script {
 	String path;
 	String source;
 	const ClassDB::ClassInfo *cls;
+	int lua_ref;
 	Set<StringName> methods_name;
 	Map<StringName, Variant> properties_default_value;
 	Map<StringName, int> lua_properties_type;

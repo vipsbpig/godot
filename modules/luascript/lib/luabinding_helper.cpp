@@ -47,9 +47,7 @@ int LuaBindingHelper::l_extends(lua_State *L) {
 
 		luaL_getmetatable(L, "LuaScript");
 		lua_setmetatable(L, -2);
-		//TODO::这里应该压到一个lua隐藏的表里面
-		//然后script失去引用的时候删除对应引用，坐等回收
-		//这里也需要缓存来取得对应的Script的函数表
+		l_ref_luascript(L, (void *)p_script);
 		return 1;
 	}
 	if (lua_isstring(L, -1)) {
@@ -544,9 +542,7 @@ int LuaBindingHelper::l_builtins_iterator(lua_State *L) {
 }
 
 int LuaBindingHelper::meta_script__gc(lua_State *L) {
-	print_format("meta_script__gc");
-	stackDump(L);
-
+	print_format("meta_script__gc nothing to do");
 	return 0;
 }
 
@@ -555,7 +551,6 @@ int LuaBindingHelper::meta_script__tostring(lua_State *L) {
 	LuaScript *p_script = luaL_getscript(L, 1);
 	auto var = p_script->get_instance_base_type();
 	l_push_variant(L, var);
-
 	return 1;
 }
 
@@ -585,7 +580,7 @@ int LuaBindingHelper::meta_script__newindex(lua_State *L) {
 		p_script->add_lua_property_type(index_name, t);
 		lua_rawset(L, 1);
 	} else if (LUA_TFUNCTION == t) {
-		//p_script->add_lua_method(index_name);
+		p_script->add_lua_method(index_name);
 		lua_rawset(L, 1);
 	} else {
 		Variant var;
@@ -599,6 +594,32 @@ int LuaBindingHelper::meta_script__newindex(lua_State *L) {
 int LuaBindingHelper::l_script_caller_wrapper(lua_State *L) {
 	print_format("l_script_caller_wrapper");
 	return 0;
+}
+void LuaBindingHelper::l_ref_luascript(lua_State *L, void *object) {
+	LuaScript *p_script = (LuaScript *)object;
+	lua_pushstring(L, "lua_scripts");
+	lua_rawget(L, LUA_REGISTRYINDEX);
+	lua_pushvalue(L, -2);
+	p_script->lua_ref = luaL_ref(L, -2);
+	lua_pop(L, 1);
+	print_format("luascript_pushobject:%d s:%d", p_script->lua_ref, p_script);
+
+}
+void LuaBindingHelper::l_unref_luascript(void *object) {
+	LuaScript *p_script = (LuaScript *)object;
+	print_format("luascript_deleteobject:%d s:%d", p_script->lua_ref, p_script);
+
+	lua_pushstring(L, "lua_scripts");
+	lua_rawget(L, LUA_REGISTRYINDEX);
+	lua_rawgeti(L, -1, p_script->lua_ref);
+	if (lua_type(L, -1) == LUA_TTABLE) {
+		print_format("get object success");
+	} else {
+		print_format("get object fail");
+	}
+	lua_pop(L, 1);
+	luaL_unref(L, -1, p_script->lua_ref);
+	lua_pop(L, 1);
 }
 
 void LuaBindingHelper::openLibs(lua_State *L) {
@@ -665,15 +686,15 @@ void LuaBindingHelper::initialize() {
 	lua_setfield(L, LUA_GLOBALSINDEX, "GD");
 
 	//hidden script space
-	lua_pushstring(L, ".lua_scripts");
+	lua_pushstring(L, "lua_scripts");
 	lua_newtable(L);
 	/* make weak value metatable for ubox table to allow userdata to be
        garbage-collected */
-	lua_newtable(L);
-	lua_pushliteral(L, "__mode");
-	lua_pushliteral(L, "v");
-	lua_rawset(L, -3); /* stack: string ubox mt */
-	lua_setmetatable(L, -2);
+	// lua_newtable(L);
+	// lua_pushliteral(L, "__mode");
+	// lua_pushliteral(L, "k");
+	// lua_rawset(L, -3); /* stack: string ubox mt */
+	// lua_setmetatable(L, -2);
 	lua_rawset(L, LUA_REGISTRYINDEX);
 
 	//Object binding
