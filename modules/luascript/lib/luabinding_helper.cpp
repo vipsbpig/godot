@@ -85,21 +85,15 @@ void LuaBindingHelper::unbind_script_function(const char *name) {
 int LuaBindingHelper::create_user_data(lua_State *L) {
 	const ClassDB::ClassInfo *cls = (ClassDB::ClassInfo *)lua_touserdata(L, lua_upvalueindex(1));
 
-	lua_pushstring(L, "gdlua_ubox");
-	lua_rawget(L, LUA_REGISTRYINDEX);
-	{
-		Object **ud = NULL;
-		ud = (Object **)lua_newuserdata(L, sizeof(Object *));
-		Object *object = cls->creation_func();
-		print_format("Name %s call new object_ptr:%d ", object->get_class().utf8().get_data(), object);
+	Object **ud = NULL;
+	ud = (Object **)lua_newuserdata(L, sizeof(Object *));
+	Object *object = cls->creation_func();
+	print_format("Name %s call new object_ptr:%d ", object->get_class().utf8().get_data(), object);
 
-		*ud = object;
-		luaL_getmetatable(L, "LuaObject");
-		lua_setmetatable(L, -2);
-		lua_pushvalue(L, -1);
-		lua_pushvalue(L, -1);
-		lua_rawset(L, -4);
-	}
+	*ud = object;
+	luaL_getmetatable(L, "LuaObject");
+	lua_setmetatable(L, -2);
+
 	//const StringName *key = cls->method_map.next(NULL);
 	//    while (key) {
 	//        print_format("-- methods:%s", String(*key).utf8().get_data() );
@@ -259,21 +253,14 @@ void LuaBindingHelper::l_push_variant(lua_State *L, const Variant &var) {
 				break;
 			}
 
-			lua_pushstring(L, "gdlua_ubox");
-			lua_rawget(L, LUA_REGISTRYINDEX);
-			{
-				//TODO::LuaInstance(?)
-				//TODO::ScritpInstance
-				Object **ud = NULL;
-				ud = (Object **)lua_newuserdata(L, sizeof(Object *));
-				*ud = obj;
-				luaL_getmetatable(L, "LuaObject");
-				lua_setmetatable(L, -2);
-				lua_pushvalue(L, -1);
-				lua_pushvalue(L, -1);
-				lua_rawset(L, -4);
-				lua_remove(L, 1);
-			}
+			//TODO::LuaInstance(?)
+			//TODO::ScritpInstance
+			Object **ud = NULL;
+			ud = (Object **)lua_newuserdata(L, sizeof(Object *));
+			*ud = obj;
+			luaL_getmetatable(L, "LuaObject");
+			lua_setmetatable(L, -2);
+
 		} break;
 		case Variant::VECTOR2:
 		case Variant::RECT2:
@@ -469,7 +456,8 @@ int LuaBindingHelper::meta_bultins__pairs(lua_State *L) {
 }
 
 int LuaBindingHelper::meta_bultins__call(lua_State *L) {
-	//TODO::builtin 类型的构造函数
+	//TODO::builtin
+	print_format("meta_bultins__call");
 	return 0;
 }
 
@@ -647,12 +635,6 @@ void LuaBindingHelper::register_class(lua_State *L, const ClassDB::ClassInfo *cl
 	const char *typeName = s.get_data();
 
 	lua_getfield(L, LUA_GLOBALSINDEX, "GD");
-	if (!lua_istable(L, -1)) {
-		lua_pop(L, 1);
-		lua_newtable(L);
-		lua_pushvalue(L, -1);
-		lua_setfield(L, LUA_GLOBALSINDEX, "GD");
-	}
 
 	lua_newtable(L);
 	lua_pushvalue(L, -1);
@@ -677,7 +659,24 @@ void LuaBindingHelper::initialize() {
 
 	//global function
 	globalbind();
-	//basic info
+
+	//GD namespace
+	lua_newtable(L);
+	lua_setfield(L, LUA_GLOBALSINDEX, "GD");
+
+	//hidden script space
+	lua_pushstring(L, ".lua_scripts");
+	lua_newtable(L);
+	/* make weak value metatable for ubox table to allow userdata to be
+       garbage-collected */
+	lua_newtable(L);
+	lua_pushliteral(L, "__mode");
+	lua_pushliteral(L, "v");
+	lua_rawset(L, -3); /* stack: string ubox mt */
+	lua_setmetatable(L, -2);
+	lua_rawset(L, LUA_REGISTRYINDEX);
+
+	//Object binding
 	luaL_newmetatable(L, "LuaObject");
 	{
 		luaL_Reg meta_methods[] = {
@@ -691,6 +690,7 @@ void LuaBindingHelper::initialize() {
 	}
 	lua_pop(L, 1);
 
+	//Variant binding
 	luaL_newmetatable(L, "LuaVariant");
 	{
 		typedef struct {
@@ -730,6 +730,7 @@ void LuaBindingHelper::initialize() {
 	}
 	lua_pop(L, 1);
 
+	//LuaScript binding
 	luaL_newmetatable(L, "LuaScript");
 	{
 		static luaL_Reg meta_methods[] = {
@@ -742,20 +743,6 @@ void LuaBindingHelper::initialize() {
 		luaL_setfuncs(L, meta_methods, 0);
 	}
 	lua_pop(L, 1);
-
-	//print_format("stack size = %d", lua_gettop(L));
-
-	/* create object ptr -> udata mapping table */
-	lua_pushstring(L, "gdlua_ubox");
-	lua_newtable(L);
-	/* make weak value metatable for ubox table to allow userdata to be
-       garbage-collected */
-	lua_newtable(L);
-	lua_pushliteral(L, "__mode");
-	lua_pushliteral(L, "kv");
-	lua_rawset(L, -3); /* stack: string ubox mt */
-	lua_setmetatable(L, -2); /* stack: string ubox */
-	lua_rawset(L, LUA_REGISTRYINDEX);
 
 	// register class
 	{
