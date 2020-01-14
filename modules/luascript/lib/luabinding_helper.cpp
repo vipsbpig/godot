@@ -549,20 +549,42 @@ int LuaBindingHelper::meta_script__gc(lua_State *L) {
 }
 
 int LuaBindingHelper::meta_script__tostring(lua_State *L) {
-	print_format("meta_script__tostring");
-	return 0;
+	print_format("meta_script__tostring.");
+	LuaScript *p_script = luaL_checkscript(L, 1);
+	auto var = p_script->get_instance_base_type();
+	l_push_variant(L, var);
+	return 1;
 }
 
 int LuaBindingHelper::meta_script__index(lua_State *L) {
-	LuaScript *p_script = luaL_checkscript(L, 1);
-	StringName index_name = lua_tostring(L, 2);
-	const char *base = String(p_script->cls->name).utf8().get_data();
-	print_format("meta_script__index:%s base:%s %d script:%d", lua_tostring(L, 2), base, p_script->cls, p_script);
+	// LuaScript *p_script = luaL_checkscript(L, 1);
+	// StringName index_name = lua_tostring(L, 2);
+	// const char *base = String(p_script->cls->name).utf8().get_data();
+	print_format("meta_script__index: this shoulding be call.");
 	return 0;
 }
 
 int LuaBindingHelper::meta_script__newindex(lua_State *L) {
-	print_format("meta_script__newindex");
+	LuaScript *p_script = luaL_checkscript(L, 1);
+	StringName index_name = lua_tostring(L, 2);
+	const char *base = String(p_script->cls->name).utf8().get_data();
+	print_format("meta_script__newindex:%s base:%s %d script:%d", lua_tostring(L, 2), base, p_script->cls, p_script);
+
+	int idx = 3;
+	int t = lua_type(L, idx);
+	print_format("lua_t:%d", t);
+	if (LUA_TNONE == t || LUA_TTHREAD == t || LUA_TLIGHTUSERDATA == t || LUA_TTABLE == t) {
+		p_script->add_lua_property_type(index_name, t);
+		lua_rawset(L, 1);
+	} else if (LUA_TFUNCTION == t) {
+		//p_script->add_lua_method(index_name);
+		lua_rawset(L, 1);
+	} else {
+		Variant var;
+		l_get_variant(L, idx, var);
+		p_script->add_property_default_value(index_name, var);
+	}
+
 	return 0;
 }
 

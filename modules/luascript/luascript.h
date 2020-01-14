@@ -27,14 +27,18 @@ class LuaScript : public Script {
 	GDCLASS(LuaScript, Script)
 	bool tool;
 	bool valid;
+	//--unknown
 	Ref<LuaScript> base;
 	LuaScript *_base;
 	Ref<LuaScriptNativeClass> native;
 	Set<Object *> instances;
+	//--unknown
 	String path;
 	String source;
 	const ClassDB::ClassInfo *cls;
-
+	Set<StringName> methods_name;
+	Map<StringName, Variant> properties_default_value;
+	Map<StringName, int> lua_properties_type;
 	friend class LuaBindingHelper;
 	friend class LuaScriptInstance;
 	friend class LuaScriptLanguage;
@@ -69,10 +73,8 @@ public:
 	virtual String get_source_code() const;
 	virtual void set_source_code(const String &p_code);
 	virtual Error reload(bool p_keep_state = false);
-	/*TODO*/ virtual bool has_method(const StringName &p_method) const {
-		print_debug("LuaScript::has_method");
-		return false;
-	}
+	void add_lua_method(const StringName &method_name);
+	virtual bool has_method(const StringName &p_method) const;
 	/*TODO*/ virtual MethodInfo get_method_info(const StringName &p_method) const {
 		print_debug("LuaScript::get_method_info");
 		return MethodInfo();
@@ -93,17 +95,15 @@ public:
 	/*TODO*/ virtual void get_script_signal_list(List<MethodInfo> *r_signals) const {
 		print_debug("LuaScript::get_script_signal_list");
 	}
-	/*TODO*/ virtual bool get_property_default_value(const StringName &p_property, Variant &r_value) const {
-		print_debug("LuaScript::get_property_default_value");
-		return false;
-	}
+	void add_property_default_value(const StringName &p_property, const Variant &p_value);
+	virtual bool get_property_default_value(const StringName &p_property, Variant &r_value) const;
 	/*TODO*/ virtual void get_script_method_list(List<MethodInfo> *p_list) const {
 		print_debug("LuaScript::get_script_method_list");
 	}
 	/*TODO*/ virtual void get_script_property_list(List<PropertyInfo> *p_list) const {
 		print_debug("LuaScript::get_script_property_list");
 	}
-
+	void add_lua_property_type(const StringName &name, int idx);
 	Error load_source_code(const String &p_path);
 };
 

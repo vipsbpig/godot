@@ -50,6 +50,9 @@ StringName LuaScript::get_instance_base_type() const {
 		return native->get_name();
 	if (base.is_valid())
 		return _base->get_instance_base_type();
+	if (cls != NULL) {
+		return cls->name;
+	}
 	return StringName();
 }
 ScriptInstance *LuaScript::instance_create(Object *p_this) {
@@ -121,6 +124,24 @@ Error LuaScript::reload(bool p_keep_state) {
 	return err;
 }
 
+void LuaScript::add_lua_method(const StringName &method_name) {
+	if (methods_name.has(method_name)) return;
+	methods_name.insert(method_name);
+}
+bool LuaScript::has_method(const StringName &p_method) const {
+	return methods_name.has(p_method);
+}
+void LuaScript::add_property_default_value(const StringName &p_property, const Variant &p_value) {
+	properties_default_value[p_property] = p_property;
+}
+bool LuaScript::get_property_default_value(const StringName &p_property, Variant &r_value) const {
+	if (!properties_default_value.has(p_property)) return false;
+	r_value = properties_default_value[p_property];
+	return true;
+}
+void LuaScript::add_lua_property_type(const StringName &name, int type) {
+	lua_properties_type[name] = type;
+}
 Error LuaScript::load_source_code(const String &p_path) {
 	//TODO::把脚本传进来加载内容
 	print_debug("LuaScript::load_source_code");
