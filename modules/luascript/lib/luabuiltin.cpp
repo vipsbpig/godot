@@ -1,7 +1,9 @@
 #include "luabuiltin.h"
+#include "../debug.h"
 #include "luabinding_helper.h"
 
 void LuaBuiltin::regitser_builtins(lua_State *L) {
+	LuaBindingHelper::stackDump(L);
 	const char *buildIns[] = {
 		"Vector2", //0
 		"Rect2", //1
@@ -24,19 +26,24 @@ void LuaBuiltin::regitser_builtins(lua_State *L) {
 	};
 
 	lua_getfield(L, LUA_GLOBALSINDEX, "GD");
+
 	int len = sizeof(buildIns) / sizeof(char *);
 	for (int i = 0; i < len; i++) {
 		lua_newtable(L);
-		//metatable
-		luaL_newmetatable(L, "LuaBuiltIn");
+		char dst[20];
+		sprintf(dst, ".%s", buildIns[i]);
+		luaL_newmetatable(L, dst);
 		{
-			lua_pushlightuserdata(L, &buildIns[i]);
+			lua_pushstring(L, "__call");
+			lua_pushstring(L, buildIns[i]);
 			lua_pushinteger(L, i);
 			lua_pushcclosure(L, LuaBuiltin::meta_bultins__call, 2);
+			lua_rawset(L, -3);
 		}
 		lua_setmetatable(L, -2);
 		lua_setfield(L, -2, buildIns[i]);
 	}
+
 	lua_pop(L, 1);
 }
 
@@ -44,6 +51,8 @@ int LuaBuiltin::meta_bultins__call(lua_State *L) {
 	const char *builtInType = luaL_checkstring(L, lua_upvalueindex(1));
 	int builtIn = lua_tointeger(L, lua_upvalueindex(2));
 	int args_c = lua_gettop(L);
+	print_format("%d type:%s", builtIn, builtInType);
+
 	if (0 == builtIn) { //Vector2
 		Vector2 *ptr;
 		switch (args_c) {
@@ -66,7 +75,7 @@ int LuaBuiltin::meta_bultins__call(lua_State *L) {
 			}
 			default: return 0; break;
 		}
-		l_push_bulltins_type(L, ptr);
+		l_push_bulltins_type(L, *ptr);
 		delete ptr;
 		return 1;
 
@@ -94,7 +103,7 @@ int LuaBuiltin::meta_bultins__call(lua_State *L) {
 			}
 			default: return 0; break;
 		}
-		l_push_bulltins_type(L, ptr);
+		l_push_bulltins_type(L, *ptr);
 		delete ptr;
 		return 1;
 
@@ -136,7 +145,7 @@ int LuaBuiltin::meta_bultins__call(lua_State *L) {
 			}
 			default: return 0; break;
 		}
-		l_push_bulltins_type(L, ptr);
+		l_push_bulltins_type(L, *ptr);
 		delete ptr;
 		return 1;
 
@@ -162,7 +171,7 @@ int LuaBuiltin::meta_bultins__call(lua_State *L) {
 			}
 			default: return 0; break;
 		}
-		l_push_bulltins_type(L, ptr);
+		l_push_bulltins_type(L, *ptr);
 		return 1;
 		delete ptr;
 
@@ -188,7 +197,7 @@ int LuaBuiltin::meta_bultins__call(lua_State *L) {
 			}
 			default: return 0; break;
 		}
-		l_push_bulltins_type(L, ptr);
+		l_push_bulltins_type(L, *ptr);
 		return 1;
 		delete ptr;
 

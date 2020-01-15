@@ -385,6 +385,7 @@ int LuaBindingHelper::meta_bultins__evaluate(lua_State *L) {
 
 int LuaBindingHelper::meta_bultins__gc(lua_State *L) {
 	Variant *var = luaL_checkvariant(L, 1);
+	print_format("var:%d gc",var );
 	memdelete(var);
 
 	// lua_pushnil(L);
