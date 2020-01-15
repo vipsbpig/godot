@@ -1,6 +1,7 @@
 #include "luabinding_helper.h"
 #include "../debug.h"
 #include "../luascript.h"
+#include "../luascript_instance.h"
 #include "luabuiltin.h"
 #include "scene/main/node.h"
 
@@ -385,7 +386,7 @@ int LuaBindingHelper::meta_bultins__evaluate(lua_State *L) {
 
 int LuaBindingHelper::meta_bultins__gc(lua_State *L) {
 	Variant *var = luaL_checkvariant(L, 1);
-	print_format("var:%d gc",var );
+	print_format("var:%d gc", var);
 	memdelete(var);
 
 	// lua_pushnil(L);
@@ -600,16 +601,69 @@ void LuaBindingHelper::l_ref_luascript(lua_State *L, void *object) {
 	lua_pop(L, 1);
 	print_format("l_ref_luascript:%d s:%d", p_script->lua_ref, p_script);
 }
+
+void LuaBindingHelper::l_push_luascript_ref(lua_State *L, int ref) {
+	lua_pushstring(L, "lua_scripts");
+	lua_rawget(L, LUA_REGISTRYINDEX);
+	lua_rawgeti(L, -1, ref);
+	lua_remove(L, -2);
+}
+
 void LuaBindingHelper::l_unref_luascript(void *object) {
 	LuaScript *p_script = (LuaScript *)object;
 	print_format("l_unref_luascript:%d s:%d", p_script->lua_ref, p_script);
 
 	lua_pushstring(L, "lua_scripts");
 	lua_rawget(L, LUA_REGISTRYINDEX);
-	lua_rawgeti(L, -1, p_script->lua_ref);
-	lua_pop(L, 1);
 	luaL_unref(L, -1, p_script->lua_ref);
 	lua_pop(L, 1);
+}
+
+int LuaBindingHelper::pcall_callback_err_fun(lua_State *L) {
+	lua_Debug debug = {};
+	int ret = lua_getstack(L, 2, &debug); // 0是pcall_callback_err_fun自己, 1是error函数, 2是真正出错的函数.
+	lua_getinfo(L, "Sln", &debug);
+
+	String errmsg = lua_tostring(L, -1);
+	lua_pop(L, 1);
+	String msg = debug.short_src + String(":line ") + itos(debug.currentline) + "\n";
+	if (debug.name != 0) {
+		msg += String("(") + debug.namewhat + " " + debug.name + ")";
+	}
+	print_error(errmsg);
+	lua_pushstring(L, msg.utf8().get_data());
+	return 1;
+}
+
+void LuaBindingHelper::instance_call(ScriptInstance *p_instance, const StringName &p_method, const Variant **p_args, int p_argcount, Variant &r_var, Variant::CallError &r_error) {
+	LuaScriptInstance *p_si = (LuaScriptInstance *)p_instance;
+	print_format("instance_call: script:%d ", p_si->script);
+
+	//get class
+	l_push_luascript_ref(L, p_si->script->lua_ref);
+	//get function
+	lua_pushstring(L, String(p_method).utf8().get_data());
+	lua_rawget(L, -2);
+	if (lua_isfunction(L, -1)) {
+		//args
+		for (int i = 0; i < p_argcount; i++) {
+			l_push_variant(L, *p_args[i]);
+		}
+		//error
+		lua_pushcfunction(L, pcall_callback_err_fun);
+		//pcall
+		//5.3可以换成pcallk
+		if (lua_pcall(L, p_argcount, 1, -1) == 0) {
+			l_get_variant(L, -1, r_var);
+		} else {
+			r_error.error = Variant::CallError::CALL_ERROR_INVALID_METHOD;
+		}
+	} else {
+		print_format("script cannot get function:%s", String(p_method).utf8().get_data());
+		r_error.error = Variant::CallError::CALL_ERROR_INVALID_METHOD;
+	}
+	r_error.argument = p_argcount;
+	lua_settop(L, 0);
 }
 
 void LuaBindingHelper::openLibs(lua_State *L) {

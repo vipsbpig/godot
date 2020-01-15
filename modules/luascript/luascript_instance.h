@@ -5,6 +5,7 @@
 
 class LuaScriptInstance : public ScriptInstance {
 	friend class LuaScript;
+	friend class LuaBindingHelper;
 
 private:
 	Object *owner;
@@ -41,15 +42,9 @@ public:
 	/*TODO*/ virtual void get_method_list(List<MethodInfo> *p_list) const {
 		print_debug("LuaScriptInstance::get_method_list");
 	}
-	/*TODO*/ virtual bool has_method(const StringName &p_method) const {
-		print_debug("LuaScriptInstance::has_method");
-		return false;
-	}
+	virtual bool has_method(const StringName &p_method) const;
 	///*TODO*/ virtual Variant call(const StringName &p_method, VARIANT_ARG_LIST) { return Variant::NIL; }
-	/*TODO*/ virtual Variant call(const StringName &p_method, const Variant **p_args, int p_argcount, Variant::CallError &r_error) {
-		print_debug("LuaScriptInstance::call");
-		return Variant::NIL;
-	}
+	virtual Variant call(const StringName &p_method, const Variant **p_args, int p_argcount, Variant::CallError &r_error);
 	//virtual void call_multilevel(const StringName &p_method, VARIANT_ARG_LIST) {}
 	///*TODO*/ virtual void call_multilevel(const StringName &p_method, const Variant **p_args, int p_argcount) {}
 	///*TODO*/ virtual void call_multilevel_reversed(const StringName &p_method, const Variant **p_args, int p_argcount) {}
