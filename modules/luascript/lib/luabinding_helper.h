@@ -33,6 +33,11 @@ static int lua_isinteger(lua_State *L, int index) {
 
 #endif
 
+//push a Variant into lua stack
+void l_push_variant(lua_State *L, const Variant &var);
+void l_push_bulltins_type(lua_State *L, const Variant &var);
+void l_get_variant(lua_State *L, int idx, Variant &var);
+
 class LuaBindingHelper {
 	lua_State *L;
 
@@ -58,11 +63,7 @@ private:
 	static int l_methodbind_wrapper(lua_State *L);
 	//===lua variant convert helper
 
-	//push a Variant into lua stack
-	static void l_push_variant(lua_State *L, const Variant &var);
-	static void l_push_bulltins_type(lua_State *L, const Variant &var);
-	static void l_get_variant(lua_State *L, int idx, Variant &var);
-
+private:
 	//===LuaVariant lua meta methods
 
 	static int meta_bultins__evaluate(lua_State *L);
@@ -71,7 +72,6 @@ private:
 	static int meta_bultins__index(lua_State *L);
 	static int meta_bultins__newindex(lua_State *L);
 	static int meta_bultins__pairs(lua_State *L);
-	static int meta_bultins__call(lua_State *L);
 	static int l_bultins_caller_wrapper(lua_State *L);
 
 	//TO BE CONFIRM
@@ -87,6 +87,7 @@ private:
 	static int l_script_caller_wrapper(lua_State *L);
 
 	static void l_ref_luascript(lua_State *L, void *object);
+
 public:
 	void l_unref_luascript(void *object);
 
@@ -96,6 +97,7 @@ private:
 	void openLibs(lua_State *L);
 	void globalbind();
 	void register_class(lua_State *L, const ClassDB::ClassInfo *cls);
+	void regitser_builtins(lua_State *L);
 
 public:
 	LuaBindingHelper();

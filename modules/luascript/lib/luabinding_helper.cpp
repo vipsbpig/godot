@@ -1,6 +1,7 @@
 #include "luabinding_helper.h"
 #include "../debug.h"
 #include "../luascript.h"
+#include "luabuiltin.h"
 #include "scene/main/node.h"
 
 static Variant *luaL_checkvariant(lua_State *L, int idx) {
@@ -15,6 +16,190 @@ static LuaScript *luaL_getscript(lua_State *L, int idx) {
 	lua_pop(L, 1);
 
 	return ptr;
+}
+
+int LuaBindingHelper::l_methodbind_wrapper(lua_State *L) {
+	MethodBind *mb = (MethodBind *)lua_touserdata(L, lua_upvalueindex(1));
+	Object **ud = (Object **)lua_touserdata(L, 1);
+	Object *obj = *ud;
+
+	Variant ret;
+	Variant::CallError err;
+
+	int top = lua_gettop(L);
+	if (top >= 2) {
+
+		Variant *vars = memnew_arr(Variant, top - 1);
+		Variant *args[128];
+		for (int idx = 2; idx <= top; idx++) {
+
+			Variant &var = vars[idx - 2];
+			args[idx - 2] = &var;
+			l_get_variant(L, idx, var);
+		}
+		ret = mb->call(obj, (const Variant **)args, top - 1, err);
+		memdelete_arr(vars);
+	} else {
+		ret = mb->call(obj, NULL, 0, err);
+	}
+	switch (err.error) {
+		case Variant::CallError::CALL_OK:
+			l_push_variant(L, ret);
+			return 1;
+		case Variant::CallError::CALL_ERROR_INVALID_METHOD:
+			luaL_error(L, "Invalid method");
+			break;
+		case Variant::CallError::CALL_ERROR_INVALID_ARGUMENT:
+			luaL_error(L, "Invalid arguments");
+			break;
+		case Variant::CallError::CALL_ERROR_TOO_MANY_ARGUMENTS:
+			luaL_error(L, "Too many arguments");
+			break;
+		case Variant::CallError::CALL_ERROR_TOO_FEW_ARGUMENTS:
+			luaL_error(L, "Too few arguments");
+			break;
+		case Variant::CallError::CALL_ERROR_INSTANCE_IS_NULL:
+			luaL_error(L, "Instance is null");
+			break;
+	}
+	return 0;
+}
+
+void l_push_variant(lua_State *L, const Variant &var) {
+	switch (var.get_type()) {
+		case Variant::NIL:
+			lua_pushnil(L);
+			break;
+		case Variant::BOOL:
+			lua_pushboolean(L, ((bool)var) ? 1 : 0);
+			break;
+		case Variant::INT:
+			lua_pushinteger(L, (int)var);
+			break;
+		case Variant::REAL:
+			lua_pushnumber(L, (double)var);
+			break;
+		case Variant::STRING:
+			lua_pushstring(L, ((String)var).utf8().get_data());
+			break;
+		case Variant::OBJECT: {
+			//TODO::
+			Object *obj = var;
+			if (obj == NULL) {
+				lua_pushnil(L);
+				break;
+			}
+
+			//TODO::LuaInstance(?)
+			//TODO::ScritpInstance
+			Object **ud = NULL;
+			ud = (Object **)lua_newuserdata(L, sizeof(Object *));
+			*ud = obj;
+			luaL_getmetatable(L, "LuaObject");
+			lua_setmetatable(L, -2);
+
+		} break;
+		case Variant::VECTOR2:
+		case Variant::RECT2:
+		case Variant::VECTOR3:
+		case Variant::TRANSFORM2D:
+		case Variant::PLANE:
+		case Variant::QUAT:
+		case Variant::AABB:
+		case Variant::BASIS:
+		case Variant::TRANSFORM:
+		case Variant::COLOR:
+		case Variant::NODE_PATH:
+		case Variant::_RID:
+		case Variant::DICTIONARY:
+		case Variant::ARRAY:
+
+		case Variant::POOL_BYTE_ARRAY:
+		case Variant::POOL_INT_ARRAY:
+		case Variant::POOL_REAL_ARRAY:
+		case Variant::POOL_STRING_ARRAY:
+		case Variant::POOL_VECTOR2_ARRAY:
+		case Variant::POOL_VECTOR3_ARRAY:
+		case Variant::POOL_COLOR_ARRAY: {
+			l_push_bulltins_type(L, var);
+		} break;
+		default:
+			print_format("unknow Type:%s", Variant::get_type_name(var.get_type()).utf8().get_data());
+			break;
+	}
+}
+
+void l_push_bulltins_type(lua_State *L, const Variant &var) {
+	print_format("builtIn Type:%s", Variant::get_type_name(var.get_type()).utf8().get_data());
+	Variant **ptr = (Variant **)lua_newuserdata(L, sizeof(Variant *));
+	*ptr = memnew(Variant);
+	**ptr = var;
+	luaL_getmetatable(L, "LuaVariant");
+	lua_setmetatable(L, -2);
+}
+
+void l_get_variant(lua_State *L, int idx, Variant &var) {
+	switch (lua_type(L, idx)) {
+		case LUA_TNONE:
+		case LUA_TNIL:
+		case LUA_TTHREAD:
+		case LUA_TLIGHTUSERDATA:
+		case LUA_TFUNCTION:
+			var = Variant();
+			break;
+
+		case LUA_TTABLE:
+			break;
+
+		case LUA_TBOOLEAN:
+			var = (lua_toboolean(L, idx) != 0);
+			break;
+
+		case LUA_TNUMBER:
+			if (lua_isinteger(L, idx))
+				var = Variant((int)lua_tointeger(L, idx));
+			else
+				var = Variant(lua_tonumber(L, idx));
+			break;
+
+		case LUA_TSTRING: {
+			String str;
+			str.parse_utf8(lua_tostring(L, idx));
+			var = Variant(str);
+		} break;
+
+		case LUA_TUSERDATA: {
+			void *ud = lua_touserdata(L, idx);
+			if (ud != NULL) {
+				if (lua_getmetatable(L, idx)) {
+					lua_getfield(L, LUA_REGISTRYINDEX, "LuaObject");
+					if (lua_rawequal(L, -1, -2)) {
+
+						lua_pop(L, 2);
+						Object *obj = *((Object **)ud);
+						if (obj->is_class_ptr(Reference::get_class_ptr_static())) {
+							Reference *ref = Object::cast_to<Reference>(obj);
+							var = Ref<Reference>(ref);
+						} else {
+							var = obj;
+						}
+						return;
+					}
+					lua_pop(L, 1);
+
+					lua_getfield(L, LUA_REGISTRYINDEX, "LuaVariant");
+					if (lua_rawequal(L, -1, -2)) {
+
+						lua_pop(L, 2);
+						var = **((Variant **)ud);
+						return;
+					}
+					lua_pop(L, 1);
+				}
+				lua_pop(L, 1);
+			}
+		} break;
+	}
 }
 
 LuaBindingHelper::LuaBindingHelper() :
@@ -179,190 +364,6 @@ int LuaBindingHelper::meta__newindex(lua_State *L) {
 	return 0;
 }
 
-int LuaBindingHelper::l_methodbind_wrapper(lua_State *L) {
-	MethodBind *mb = (MethodBind *)lua_touserdata(L, lua_upvalueindex(1));
-	Object **ud = (Object **)lua_touserdata(L, 1);
-	Object *obj = *ud;
-
-	Variant ret;
-	Variant::CallError err;
-
-	int top = lua_gettop(L);
-	if (top >= 2) {
-
-		Variant *vars = memnew_arr(Variant, top - 1);
-		Variant *args[128];
-		for (int idx = 2; idx <= top; idx++) {
-
-			Variant &var = vars[idx - 2];
-			args[idx - 2] = &var;
-			l_get_variant(L, idx, var);
-		}
-		ret = mb->call(obj, (const Variant **)args, top - 1, err);
-		memdelete_arr(vars);
-	} else {
-		ret = mb->call(obj, NULL, 0, err);
-	}
-	switch (err.error) {
-		case Variant::CallError::CALL_OK:
-			l_push_variant(L, ret);
-			return 1;
-		case Variant::CallError::CALL_ERROR_INVALID_METHOD:
-			luaL_error(L, "Invalid method");
-			break;
-		case Variant::CallError::CALL_ERROR_INVALID_ARGUMENT:
-			luaL_error(L, "Invalid arguments");
-			break;
-		case Variant::CallError::CALL_ERROR_TOO_MANY_ARGUMENTS:
-			luaL_error(L, "Too many arguments");
-			break;
-		case Variant::CallError::CALL_ERROR_TOO_FEW_ARGUMENTS:
-			luaL_error(L, "Too few arguments");
-			break;
-		case Variant::CallError::CALL_ERROR_INSTANCE_IS_NULL:
-			luaL_error(L, "Instance is null");
-			break;
-	}
-	return 0;
-}
-
-void LuaBindingHelper::l_push_variant(lua_State *L, const Variant &var) {
-	switch (var.get_type()) {
-		case Variant::NIL:
-			lua_pushnil(L);
-			break;
-		case Variant::BOOL:
-			lua_pushboolean(L, ((bool)var) ? 1 : 0);
-			break;
-		case Variant::INT:
-			lua_pushinteger(L, (int)var);
-			break;
-		case Variant::REAL:
-			lua_pushnumber(L, (double)var);
-			break;
-		case Variant::STRING:
-			lua_pushstring(L, ((String)var).utf8().get_data());
-			break;
-		case Variant::OBJECT: {
-			//TODO::
-			Object *obj = var;
-			if (obj == NULL) {
-				lua_pushnil(L);
-				break;
-			}
-
-			//TODO::LuaInstance(?)
-			//TODO::ScritpInstance
-			Object **ud = NULL;
-			ud = (Object **)lua_newuserdata(L, sizeof(Object *));
-			*ud = obj;
-			luaL_getmetatable(L, "LuaObject");
-			lua_setmetatable(L, -2);
-
-		} break;
-		case Variant::VECTOR2:
-		case Variant::RECT2:
-		case Variant::VECTOR3:
-		case Variant::TRANSFORM2D:
-		case Variant::PLANE:
-		case Variant::QUAT:
-		case Variant::AABB:
-		case Variant::BASIS:
-		case Variant::TRANSFORM:
-		case Variant::COLOR:
-		case Variant::NODE_PATH:
-		case Variant::_RID:
-		case Variant::DICTIONARY:
-		case Variant::ARRAY:
-
-		case Variant::POOL_BYTE_ARRAY:
-		case Variant::POOL_INT_ARRAY:
-		case Variant::POOL_REAL_ARRAY:
-		case Variant::POOL_STRING_ARRAY:
-		case Variant::POOL_VECTOR2_ARRAY:
-		case Variant::POOL_VECTOR3_ARRAY:
-		case Variant::POOL_COLOR_ARRAY: {
-			l_push_bulltins_type(L, var);
-		} break;
-		default:
-			print_format("unknow Type:%s", Variant::get_type_name(var.get_type()).utf8().get_data());
-			break;
-	}
-}
-
-void LuaBindingHelper::l_push_bulltins_type(lua_State *L, const Variant &var) {
-	print_format("builtIn Type:%s", Variant::get_type_name(var.get_type()).utf8().get_data());
-	Variant **ptr = (Variant **)lua_newuserdata(L, sizeof(Variant *));
-	*ptr = memnew(Variant);
-	**ptr = var;
-	luaL_getmetatable(L, "LuaVariant");
-	lua_setmetatable(L, -2);
-}
-
-void LuaBindingHelper::l_get_variant(lua_State *L, int idx, Variant &var) {
-	switch (lua_type(L, idx)) {
-		case LUA_TNONE:
-		case LUA_TNIL:
-		case LUA_TTHREAD:
-		case LUA_TLIGHTUSERDATA:
-		case LUA_TFUNCTION:
-			var = Variant();
-			break;
-
-		case LUA_TTABLE:
-			break;
-
-		case LUA_TBOOLEAN:
-			var = (lua_toboolean(L, idx) != 0);
-			break;
-
-		case LUA_TNUMBER:
-			if (lua_isinteger(L, idx))
-				var = Variant((int)lua_tointeger(L, idx));
-			else
-				var = Variant(lua_tonumber(L, idx));
-			break;
-
-		case LUA_TSTRING: {
-			String str;
-			str.parse_utf8(lua_tostring(L, idx));
-			var = Variant(str);
-		} break;
-
-		case LUA_TUSERDATA: {
-			void *ud = lua_touserdata(L, idx);
-			if (ud != NULL) {
-				if (lua_getmetatable(L, idx)) {
-					lua_getfield(L, LUA_REGISTRYINDEX, "LuaObject");
-					if (lua_rawequal(L, -1, -2)) {
-
-						lua_pop(L, 2);
-						Object *obj = *((Object **)ud);
-						if (obj->is_class_ptr(Reference::get_class_ptr_static())) {
-							Reference *ref = Object::cast_to<Reference>(obj);
-							var = Ref<Reference>(ref);
-						} else {
-							var = obj;
-						}
-						return;
-					}
-					lua_pop(L, 1);
-
-					lua_getfield(L, LUA_REGISTRYINDEX, "LuaVariant");
-					if (lua_rawequal(L, -1, -2)) {
-
-						lua_pop(L, 2);
-						var = **((Variant **)ud);
-						return;
-					}
-					lua_pop(L, 1);
-				}
-				lua_pop(L, 1);
-			}
-		} break;
-	}
-}
-
 int LuaBindingHelper::meta_bultins__evaluate(lua_State *L) {
 	Variant::Operator op = (Variant::Operator)lua_tointeger(L, lua_upvalueindex(1));
 
@@ -450,12 +451,6 @@ int LuaBindingHelper::meta_bultins__pairs(lua_State *L) {
 			luaL_error(L, "Cannot pairs an %s value", var.get_type_name(var.get_type()).utf8().get_data());
 			break;
 	}
-	return 0;
-}
-
-int LuaBindingHelper::meta_bultins__call(lua_State *L) {
-	//TODO::builtin
-	print_format("meta_bultins__call");
 	return 0;
 }
 
@@ -602,21 +597,15 @@ void LuaBindingHelper::l_ref_luascript(lua_State *L, void *object) {
 	lua_pushvalue(L, -2);
 	p_script->lua_ref = luaL_ref(L, -2);
 	lua_pop(L, 1);
-	print_format("luascript_pushobject:%d s:%d", p_script->lua_ref, p_script);
-
+	print_format("l_ref_luascript:%d s:%d", p_script->lua_ref, p_script);
 }
 void LuaBindingHelper::l_unref_luascript(void *object) {
 	LuaScript *p_script = (LuaScript *)object;
-	print_format("luascript_deleteobject:%d s:%d", p_script->lua_ref, p_script);
+	print_format("l_unref_luascript:%d s:%d", p_script->lua_ref, p_script);
 
 	lua_pushstring(L, "lua_scripts");
 	lua_rawget(L, LUA_REGISTRYINDEX);
 	lua_rawgeti(L, -1, p_script->lua_ref);
-	if (lua_type(L, -1) == LUA_TTABLE) {
-		print_format("get object success");
-	} else {
-		print_format("get object fail");
-	}
 	lua_pop(L, 1);
 	luaL_unref(L, -1, p_script->lua_ref);
 	lua_pop(L, 1);
@@ -650,6 +639,7 @@ void LuaBindingHelper::globalbind() {
 void LuaBindingHelper::register_class(lua_State *L, const ClassDB::ClassInfo *cls) {
 	// if (!(String(cls->name) == "Object" || String(cls->name) == "Node" || String(cls->name) == "_OS" || String(cls->name) == "Node2D"))
 	// 	return;
+
 	printf("regist:[%s:%s]\n", String(cls->name).utf8().get_data(), String(cls->inherits).utf8().get_data());
 
 	CharString s = String(cls->name).utf8();
@@ -669,6 +659,10 @@ void LuaBindingHelper::register_class(lua_State *L, const ClassDB::ClassInfo *cl
 	lua_setfield(L, -2, ".clsinfo");
 
 	lua_pop(L, 2);
+}
+
+void LuaBindingHelper::regitser_builtins(lua_State *L) {
+	LuaBuiltin::regitser_builtins(L);
 }
 
 void LuaBindingHelper::initialize() {
@@ -744,7 +738,6 @@ void LuaBindingHelper::initialize() {
 			{ "__newindex", meta_bultins__newindex },
 			{ "__tostring", meta_bultins__tostring },
 			{ "__pairs", meta_bultins__pairs },
-			{ "__call", meta_bultins__call },
 			{ NULL, NULL },
 		};
 		luaL_setfuncs(L, meta_methods, 0);
@@ -774,6 +767,9 @@ void LuaBindingHelper::initialize() {
 			key = ClassDB::classes.next(key);
 		}
 	}
+
+	//regise builtin
+	regitser_builtins(L);
 }
 
 void LuaBindingHelper::uninitialize() {

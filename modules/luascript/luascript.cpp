@@ -100,7 +100,7 @@ void LuaScript::set_source_code(const String &p_code) {
 }
 
 Error LuaScript::reload(bool p_keep_state) {
-	//TODO::完成绑定等内容和调整
+	//完成绑定等内容和调整
 	//传入调用等内容
 	//extends 的设计 是谁的
 	//只要是绑定到node的可以通过
@@ -145,7 +145,7 @@ void LuaScript::add_lua_property_type(const StringName &name, int type) {
 	lua_properties_type[name] = type;
 }
 Error LuaScript::load_source_code(const String &p_path) {
-	//TODO::把脚本传进来加载内容
+	//把脚本传进来加载内容
 	print_debug("LuaScript::load_source_code");
 
 	PoolVector<uint8_t> sourcef;

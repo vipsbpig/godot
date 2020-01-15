@@ -84,7 +84,7 @@ public:
 		print_debug("LuaScript::is_tool");
 		return tool;
 	}
-	/*TODO*/ virtual bool is_valid() const {
+	virtual bool is_valid() const {
 		print_debug("LuaScript::is_valid");
 		return valid;
 	}
