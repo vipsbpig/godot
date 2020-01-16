@@ -37,9 +37,9 @@ bool LuaScriptInstance::has_method(const StringName &p_method) const {
 
 Variant LuaScriptInstance::call(const StringName &p_method, const Variant **p_args, int p_argcount, Variant::CallError &r_error) {
 	//TODO:: need to complete
-	print_format("LuaScriptInstance::call %s %d", String(p_method).utf8().get_data(), p_argcount);
 	if (script->has_method(p_method)) {
 		Variant &&var = LuaScriptLanguage::get_singleton()->binding->instance_call(this, p_method, p_args, p_argcount, r_error);
+		print_format("LuaScriptInstance::call %s %d", String(p_method).utf8().get_data(), p_argcount);
 		return var;
 	}
 
@@ -47,6 +47,7 @@ Variant LuaScriptInstance::call(const StringName &p_method, const Variant **p_ar
 	const ClassDB::ClassInfo *top = script->cls;
 	while (top->inherits_ptr) {
 		if (top->method_map.has(p_method)) {
+			print_format("LuaScriptInstance::call base %d:%s argc:%d", String(top->name).utf8().get_data(), String(p_method).utf8().get_data(), p_argcount);
 			MethodBind *mb = top->method_map[p_method];
 			return mb->call(owner, p_args, p_argcount, r_error);
 		}

@@ -83,14 +83,27 @@ private:
 	static int meta_script__tostring(lua_State *L);
 	static int meta_script__index(lua_State *L);
 	static int meta_script__newindex(lua_State *L);
-	static int l_script_caller_wrapper(lua_State *L);
 	void l_push_luascript_ref(lua_State *L, int ref);
 	static void l_ref_luascript(lua_State *L, void *object);
 
 public:
 	void l_unref_luascript(void *object);
 
+private:
 	//===LuaInstance lua code
+	//===LuaInstance lua meta methods
+
+	static int meta_instance__gc(lua_State *L);
+	static int meta_instance__tostring(lua_State *L);
+	static int meta_instance__index(lua_State *L);
+	static int meta_instance__newindex(lua_State *L);
+	//void l_push_instance_ref(lua_State *L, int ref);
+	static void l_ref_instance(lua_State *L, void *object);
+
+public:
+	void l_unref_instance(void *object);
+
+private:
 	static int pcall_callback_err_fun(lua_State *L);
 
 public:

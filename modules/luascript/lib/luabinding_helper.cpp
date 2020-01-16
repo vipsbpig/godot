@@ -588,10 +588,6 @@ int LuaBindingHelper::meta_script__newindex(lua_State *L) {
 	return 0;
 }
 
-int LuaBindingHelper::l_script_caller_wrapper(lua_State *L) {
-	print_format("l_script_caller_wrapper");
-	return 0;
-}
 void LuaBindingHelper::l_ref_luascript(lua_State *L, void *object) {
 	LuaScript *p_script = (LuaScript *)object;
 	lua_pushstring(L, "lua_scripts");
@@ -619,6 +615,30 @@ void LuaBindingHelper::l_unref_luascript(void *object) {
 	lua_pop(L, 1);
 }
 
+int LuaBindingHelper::meta_instance__gc(lua_State *L) {
+	print_format("meta_instance__gc");
+	return 0;
+}
+int LuaBindingHelper::meta_instance__tostring(lua_State *L) {
+	print_format("meta_instance__tostring");
+	return 0;
+}
+int LuaBindingHelper::meta_instance__index(lua_State *L) {
+	print_format("meta_instancet__index");
+	return 0;
+}
+int LuaBindingHelper::meta_instance__newindex(lua_State *L) {
+	print_format("meta_instance__newindex");
+	return 0;
+}
+void LuaBindingHelper::l_ref_instance(lua_State *L, void *object) {
+	print_format("l_ref_instance");
+}
+
+void LuaBindingHelper::l_unref_instance(void *object) {
+	print_format("l_unref_instance");
+}
+
 int LuaBindingHelper::pcall_callback_err_fun(lua_State *L) {
 	lua_Debug debug = {};
 	int ret = lua_getstack(L, 2, &debug); // 0是pcall_callback_err_fun自己, 1是error函数, 2是真正出错的函数.
@@ -637,7 +657,11 @@ int LuaBindingHelper::pcall_callback_err_fun(lua_State *L) {
 
 Variant LuaBindingHelper::instance_call(ScriptInstance *p_instance, const StringName &p_method, const Variant **p_args, int p_argcount, Variant::CallError &r_error) {
 	LuaScriptInstance *p_si = (LuaScriptInstance *)p_instance;
-	print_format("instance_call: script:%d ", p_si->script);
+	print_format("instance_call: script:%d argc:%d", p_si->script, p_argcount);
+	//error
+	lua_pushcfunction(L, pcall_callback_err_fun);
+	int pos_err = lua_gettop(L);
+
 	Variant var;
 	//get class
 	l_push_luascript_ref(L, p_si->script->lua_ref);
@@ -649,11 +673,9 @@ Variant LuaBindingHelper::instance_call(ScriptInstance *p_instance, const String
 		for (int i = 0; i < p_argcount; i++) {
 			l_push_variant(L, *p_args[i]);
 		}
-		//error
-		lua_pushcfunction(L, pcall_callback_err_fun);
 		//pcall
 		//5.3可以换成pcallk
-		if (lua_pcall(L, p_argcount, 1, -1) == 0) {
+		if (lua_pcall(L, p_argcount, 1, pos_err) == 0) {
 			l_get_variant(L, -1, var);
 		} else {
 			r_error.error = Variant::CallError::CALL_ERROR_INVALID_METHOD;
@@ -808,6 +830,20 @@ void LuaBindingHelper::initialize() {
 			{ "__index", meta_script__index },
 			{ "__newindex", meta_script__newindex },
 			{ "__tostring", meta_script__tostring },
+			{ NULL, NULL },
+		};
+		luaL_setfuncs(L, meta_methods, 0);
+	}
+	lua_pop(L, 1);
+
+	//LuaInstance binding
+	luaL_newmetatable(L, "LuaInstance");
+	{
+		static luaL_Reg meta_methods[] = {
+			{ "__gc", meta_instance__gc },
+			{ "__index", meta_instance__index },
+			{ "__newindex", meta_instance__newindex },
+			{ "__tostring", meta_instance__tostring },
 			{ NULL, NULL },
 		};
 		luaL_setfuncs(L, meta_methods, 0);
