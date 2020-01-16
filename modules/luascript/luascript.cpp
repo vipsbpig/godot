@@ -14,7 +14,7 @@ LuaScript::~LuaScript() {
 	LuaScriptLanguage::get_singleton()->binding->l_unref_luascript(this);
 }
 
-ScriptInstance *LuaScript::_create_instance(const Variant **p_args, int p_argcount, Object *p_owner, bool p_isref) {
+ScriptInstance *LuaScript::_create_instance(const Variant **p_args, int p_argcount, Object *p_owner, bool p_isref, Variant::CallError &r_error) {
 
 	/* STEP 1, CREATE */
 	LuaScriptInstance *instance = memnew(LuaScriptInstance);
@@ -24,11 +24,13 @@ ScriptInstance *LuaScript::_create_instance(const Variant **p_args, int p_argcou
 	instance->script = Ref<LuaScript>(this);
 	instance->owner = p_owner;
 	instance->owner->set_script_instance(instance);
+	LuaScriptLanguage::get_singleton()->binding->l_ref_instance(instance);
 
 	/* STEP 2, INITIALIZE AND CONSRTUCT */
 	instances.insert(instance->owner);
 
-	if (instance->init(true) != OK) {
+	instance->call("_init", p_args, p_argcount, r_error);
+	if (instance->initialize(true) != OK) {
 		instance->script = Ref<LuaScript>();
 		instance->owner->set_script_instance(NULL);
 
@@ -40,6 +42,28 @@ ScriptInstance *LuaScript::_create_instance(const Variant **p_args, int p_argcou
 
 	//@TODO make thread safe
 	return instance;
+}
+
+Variant LuaScript::call(LuaScriptInstance *p_instance, const StringName &p_method, const Variant **p_args, int p_argcount, Variant::CallError &r_error) {
+	//TODO:: need to complete
+	if (this->has_method(p_method)) {
+		Variant &&var = LuaScriptLanguage::get_singleton()->binding->instance_call(p_instance, p_method, p_args, p_argcount, r_error);
+		print_format("LuaScript::call %s %d", String(p_method).utf8().get_data(), p_argcount);
+		return var;
+	}
+
+	//find object in cls
+	const ClassDB::ClassInfo *top = this->cls;
+	while (top->inherits_ptr) {
+		if (top->method_map.has(p_method)) {
+			print_format("LuaScript::call cls %d:%s argc:%d", String(top->name).utf8().get_data(), String(p_method).utf8().get_data(), p_argcount);
+			MethodBind *mb = top->method_map[p_method];
+			return mb->call(p_instance->owner, p_args, p_argcount, r_error);
+		}
+		top = top->inherits_ptr;
+	}
+
+	return Variant();
 }
 
 bool LuaScript::can_instance() const {
@@ -75,8 +99,8 @@ ScriptInstance *LuaScript::instance_create(Object *p_this) {
 		}
 	}
 
-	//Variant::CallError unchecked_error;
-	return _create_instance(NULL, 0, p_this, Object::cast_to<Reference>(p_this));
+	Variant::CallError unchecked_error;
+	return _create_instance(NULL, 0, p_this, Object::cast_to<Reference>(p_this), unchecked_error);
 }
 
 ScriptLanguage *LuaScript::get_language() const {

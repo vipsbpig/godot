@@ -97,10 +97,11 @@ private:
 	static int meta_instance__tostring(lua_State *L);
 	static int meta_instance__index(lua_State *L);
 	static int meta_instance__newindex(lua_State *L);
-	//void l_push_instance_ref(lua_State *L, int ref);
+	void l_push_instance_ref(lua_State *L, int ref);
 	static void l_ref_instance(lua_State *L, void *object);
 
 public:
+	void l_ref_instance(void *object);
 	void l_unref_instance(void *object);
 
 private:

@@ -10,6 +10,7 @@ class LuaScriptInstance : public ScriptInstance {
 private:
 	Object *owner;
 	Ref<LuaScript> script;
+	int lua_ref;
 
 public:
 	bool base_ref;
@@ -19,7 +20,7 @@ public:
 
 	// ScriptInstance interface
 public:
-	Error init(bool p_ref = false);
+	Error initialize(bool p_ref = false);
 	/*TODO*/ virtual bool set(const StringName &p_name, const Variant &p_value) {
 		print_debug("LuaScriptInstance::set");
 		return false;

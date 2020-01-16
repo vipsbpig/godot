@@ -2,13 +2,16 @@
 #include "luascript_language.h"
 
 LuaScriptInstance::LuaScriptInstance() {
+	lua_ref = 0;
+	base_ref = false;
 }
 
 LuaScriptInstance::~LuaScriptInstance() {
 	print_format("LuaScriptInstance::descontruct");
+	LuaScriptLanguage::get_singleton()->binding->l_unref_instance(this);
 }
 
-Error LuaScriptInstance::init(bool p_ref) {
+Error LuaScriptInstance::initialize(bool p_ref) {
 	//TODO::调用lua的类下面的构造函数
 	//把script 的 luaref存在instance下面
 	//然后方便后续的调用
@@ -19,9 +22,9 @@ Error LuaScriptInstance::init(bool p_ref) {
 	//赋值可以传递到引擎里面
 	//如果复制到自己就引擎就不可以得知
 
-	Object *obj = owner;
-	print_format("LuaScriptInstance::init obj type:%s script:%d", String(Variant(obj)).utf8().get_data(), script.ptr());
-	//call("_init", NULL, 0, Variant::CallError());
+	// Object *obj = owner;
+	// print_format("LuaScriptInstance::init obj type:%s script:%d", String(Variant(obj)).utf8().get_data(), script.ptr());
+	// call("_init", NULL, 0, Variant::CallError());
 	return OK;
 }
 bool LuaScriptInstance::has_method(const StringName &p_method) const {
@@ -36,24 +39,16 @@ bool LuaScriptInstance::has_method(const StringName &p_method) const {
 }
 
 Variant LuaScriptInstance::call(const StringName &p_method, const Variant **p_args, int p_argcount, Variant::CallError &r_error) {
-	//TODO:: need to complete
-	if (script->has_method(p_method)) {
-		Variant &&var = LuaScriptLanguage::get_singleton()->binding->instance_call(this, p_method, p_args, p_argcount, r_error);
-		print_format("LuaScriptInstance::call %s %d", String(p_method).utf8().get_data(), p_argcount);
-		return var;
-	}
 
-	//find object in cls
-	const ClassDB::ClassInfo *top = script->cls;
-	while (top->inherits_ptr) {
-		if (top->method_map.has(p_method)) {
-			print_format("LuaScriptInstance::call base %d:%s argc:%d", String(top->name).utf8().get_data(), String(p_method).utf8().get_data(), p_argcount);
-			MethodBind *mb = top->method_map[p_method];
-			return mb->call(owner, p_args, p_argcount, r_error);
+	LuaScript *sptr = script.ptr();
+	while (sptr) {
+		bool found = false;
+		if (found) {
+			return sptr->call(this, p_method, p_args, p_argcount, r_error);
 		}
-		top = top->inherits_ptr;
+		sptr = sptr->_base;
 	}
-
+	r_error.error = Variant::CallError::CALL_ERROR_INVALID_METHOD;
 	return Variant();
 }
 

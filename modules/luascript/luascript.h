@@ -27,9 +27,9 @@ class LuaScript : public Script {
 	GDCLASS(LuaScript, Script)
 	bool tool;
 	bool valid;
-	//--unknown
 	Ref<LuaScript> base;
 	LuaScript *_base;
+	//--unknown
 	Ref<LuaScriptNativeClass> native;
 	Set<Object *> instances;
 	//--unknown
@@ -49,13 +49,17 @@ public:
 	~LuaScript();
 
 private:
-	ScriptInstance *_create_instance(const Variant **p_args, int p_argcount, Object *p_owner, bool p_isref);
+	//new function should bind to this
+	ScriptInstance *_create_instance(const Variant **p_args, int p_argcount, Object *p_owner, bool p_isref, Variant::CallError &r_error);
+
+protected:
+	Variant call(LuaScriptInstance *p_instance, const StringName &p_method, const Variant **p_args, int p_argcount, Variant::CallError &r_error);
+
 	// Script interface
 public:
 	virtual bool can_instance() const;
-	/*TODO*/ virtual Ref<Script> get_base_script() const {
-		print_debug("LuaScript::can_instance");
-		return NULL;
+	virtual Ref<Script> get_base_script() const {
+		return base;
 	}
 	virtual StringName get_instance_base_type() const;
 	/*TODO*/ virtual PlaceHolderScriptInstance *placeholder_instance_create(Object *p_this) {

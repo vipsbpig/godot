@@ -18,7 +18,14 @@ static LuaScript *luaL_getscript(lua_State *L, int idx) {
 
 	return ptr;
 }
+static LuaScriptInstance *luaL_getinstance(lua_State *L, int idx) {
+	lua_pushstring(L, ".c_instance");
+	lua_rawget(L, idx);
+	LuaScriptInstance *ptr = (LuaScriptInstance *)lua_touserdata(L, -1);
+	lua_pop(L, 1);
 
+	return ptr;
+}
 int LuaBindingHelper::l_methodbind_wrapper(lua_State *L) {
 	MethodBind *mb = (MethodBind *)lua_touserdata(L, lua_upvalueindex(1));
 	Object **ud = (Object **)lua_touserdata(L, 1);
@@ -96,6 +103,10 @@ void l_push_variant(lua_State *L, const Variant &var) {
 			}
 
 			//TODO::LuaInstance(?)
+			//TODO::LuaInstannce->baseref
+			// 		if (p_instance) {
+			// if (p_instance->base_ref && static_cast<Reference *>(p_instance->owner)->is_referenced()) {
+			// 	self = REF(static_cast<Reference *>(p_instance->owner));
 			//TODO::ScritpInstance
 			Object **ud = NULL;
 			ud = (Object **)lua_newuserdata(L, sizeof(Object *));
@@ -304,19 +315,19 @@ int LuaBindingHelper::meta__gc(lua_State *L) {
 		return 0;
 	}
 
-	if (obj->is_class("Node")) {
+	//if (obj->is_class("Node")) {
+	if (obj->is_class_ptr(Node::get_class_ptr_static())) {
+
 		Node *node = Object::cast_to<Node>(obj);
 		if (!node->is_inside_tree()) {
-			print_format("DELETED!node not in tree");
+			print_format("DELETED!node %s not in tree", String(Variant(node)).utf8().get_data());
 			memdelete(obj);
-			//SceneTree::get_singleton()->queue_delete(obj);
 			return 0;
 		}
 		return 0;
 	}
-	// lua_pushnil(L);
-	// lua_setmetatable(L, 1);
-	print_format("Is Object just delete");
+
+	print_format("DELETED!  %s", String(Variant(obj)).utf8().get_data());
 	memdelete(obj);
 	return 0;
 }
@@ -324,7 +335,6 @@ int LuaBindingHelper::meta__gc(lua_State *L) {
 int LuaBindingHelper::meta__tostring(lua_State *L) {
 	Object **ud = (Object **)lua_touserdata(L, 1);
 	Object *obj = *ud;
-	String toString = "[" + obj->get_class() + ":" + itos(obj->get_instance_id()) + "]";
 	lua_pushstring(L, String(Variant(obj)).utf8().get_data());
 	return 1;
 }
@@ -596,7 +606,7 @@ int LuaBindingHelper::meta_script__newindex(lua_State *L) {
 
 void LuaBindingHelper::l_ref_luascript(lua_State *L, void *object) {
 	LuaScript *p_script = (LuaScript *)object;
-	lua_pushstring(L, "lua_scripts");
+	lua_pushstring(L, "lua_script_ubox");
 	lua_rawget(L, LUA_REGISTRYINDEX);
 	lua_pushvalue(L, -2);
 	p_script->lua_ref = luaL_ref(L, -2);
@@ -605,7 +615,7 @@ void LuaBindingHelper::l_ref_luascript(lua_State *L, void *object) {
 }
 
 void LuaBindingHelper::l_push_luascript_ref(lua_State *L, int ref) {
-	lua_pushstring(L, "lua_scripts");
+	lua_pushstring(L, "lua_script_ubox");
 	lua_rawget(L, LUA_REGISTRYINDEX);
 	lua_rawgeti(L, -1, ref);
 	lua_remove(L, -2);
@@ -615,34 +625,67 @@ void LuaBindingHelper::l_unref_luascript(void *object) {
 	LuaScript *p_script = (LuaScript *)object;
 	print_format("l_unref_luascript:%d s:%d", p_script->lua_ref, p_script);
 
-	lua_pushstring(L, "lua_scripts");
+	lua_pushstring(L, "lua_script_ubox");
 	lua_rawget(L, LUA_REGISTRYINDEX);
 	luaL_unref(L, -1, p_script->lua_ref);
 	lua_pop(L, 1);
 }
 
 int LuaBindingHelper::meta_instance__gc(lua_State *L) {
-	print_format("meta_instance__gc");
+	print_format("meta_instance__gc nothing to do");
 	return 0;
 }
 int LuaBindingHelper::meta_instance__tostring(lua_State *L) {
 	print_format("meta_instance__tostring");
-	return 0;
+	LuaScriptInstance *p_instance = luaL_getinstance(L, 1);
+	lua_pushstring(L, String(Variant(p_instance->get_owner())).utf8().get_data());
+	return 1;
 }
 int LuaBindingHelper::meta_instance__index(lua_State *L) {
-	print_format("meta_instancet__index");
+	LuaScriptInstance *p_instance = luaL_getinstance(L, 1);
+	StringName index_name = lua_tostring(L, 2);
+	print_format("meta_instance__index:%s instance:%s", lua_tostring(L, 2), String(Variant(p_instance->get_owner())).utf8().get_data());
+	//TODO::instance 取值时run
+
 	return 0;
 }
 int LuaBindingHelper::meta_instance__newindex(lua_State *L) {
-	print_format("meta_instance__newindex");
+	LuaScriptInstance *p_instance = luaL_getinstance(L, 1);
+	StringName index_name = lua_tostring(L, 2);
+	int idx = 3;
+	int t = lua_type(L, idx);
+	print_format("meta_instance__newindex:%s lua_typ:%s ", lua_tostring(L, 2), lua_typename(L, t));
 	return 0;
 }
+
 void LuaBindingHelper::l_ref_instance(lua_State *L, void *object) {
-	print_format("l_ref_instance");
+	LuaScriptInstance *p_instance = (LuaScriptInstance *)object;
+	lua_pushstring(L, "lua_instance_ubox");
+	lua_rawget(L, LUA_REGISTRYINDEX);
+	lua_pushvalue(L, -2);
+	p_instance->lua_ref = luaL_ref(L, -2);
+	lua_pop(L, 1);
+	print_format("l_ref_instance:%d instance:%s", p_instance->lua_ref, String(Variant(p_instance->get_owner())).utf8().get_data());
+}
+
+void LuaBindingHelper::l_ref_instance(void *object) {
+	l_ref_instance(L, object);
+}
+
+void LuaBindingHelper::l_push_instance_ref(lua_State *L, int ref) {
+	lua_pushstring(L, "lua_instance_ubox");
+	lua_rawget(L, LUA_REGISTRYINDEX);
+	lua_rawgeti(L, -1, ref);
+	lua_remove(L, -2);
 }
 
 void LuaBindingHelper::l_unref_instance(void *object) {
-	print_format("l_unref_instance");
+	LuaScriptInstance *p_instance = (LuaScriptInstance *)object;
+	print_format("l_unref_instance:%d s:%s", p_instance->lua_ref, String(Variant(p_instance->get_owner())).utf8().get_data());
+	lua_pushstring(L, "lua_script_ubox");
+	lua_rawget(L, LUA_REGISTRYINDEX);
+	luaL_unref(L, -1, p_instance->lua_ref);
+	lua_pop(L, 1);
 }
 
 int LuaBindingHelper::pcall_callback_err_fun(lua_State *L) {
@@ -764,15 +807,13 @@ void LuaBindingHelper::initialize() {
 	lua_setfield(L, LUA_GLOBALSINDEX, "GD");
 
 	//hidden script space
-	lua_pushstring(L, "lua_scripts");
+	lua_pushstring(L, "lua_script_ubox");
 	lua_newtable(L);
-	/* make weak value metatable for ubox table to allow userdata to be
-       garbage-collected */
-	// lua_newtable(L);
-	// lua_pushliteral(L, "__mode");
-	// lua_pushliteral(L, "k");
-	// lua_rawset(L, -3); /* stack: string ubox mt */
-	// lua_setmetatable(L, -2);
+	lua_rawset(L, LUA_REGISTRYINDEX);
+
+	//hidden instance space
+	lua_pushstring(L, "lua_instance_ubox");
+	lua_newtable(L);
 	lua_rawset(L, LUA_REGISTRYINDEX);
 
 	//Object binding
