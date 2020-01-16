@@ -26,7 +26,28 @@ static LuaScriptInstance *luaL_getinstance(lua_State *L, int idx) {
 
 	return ptr;
 }
-int LuaBindingHelper::l_methodbind_wrapper(lua_State *L) {
+
+void l_method_error(lua_State *L, const Variant::CallError &err) {
+	switch (err.error) {
+		case Variant::CallError::CALL_ERROR_INVALID_METHOD:
+			luaL_error(L, "Invalid method");
+			break;
+		case Variant::CallError::CALL_ERROR_INVALID_ARGUMENT:
+			luaL_error(L, "Invalid arguments");
+			break;
+		case Variant::CallError::CALL_ERROR_TOO_MANY_ARGUMENTS:
+			luaL_error(L, "Too many arguments");
+			break;
+		case Variant::CallError::CALL_ERROR_TOO_FEW_ARGUMENTS:
+			luaL_error(L, "Too few arguments");
+			break;
+		case Variant::CallError::CALL_ERROR_INSTANCE_IS_NULL:
+			luaL_error(L, "Instance is null");
+			break;
+	}
+}
+
+int l_methodbind_wrapper(lua_State *L) {
 	MethodBind *mb = (MethodBind *)lua_touserdata(L, lua_upvalueindex(1));
 	Object **ud = (Object **)lua_touserdata(L, 1);
 	Object *obj = *ud;
@@ -57,23 +78,7 @@ int LuaBindingHelper::l_methodbind_wrapper(lua_State *L) {
 			return 1;
 		}
 	}
-	switch (err.error) {
-		case Variant::CallError::CALL_ERROR_INVALID_METHOD:
-			luaL_error(L, "Invalid method");
-			break;
-		case Variant::CallError::CALL_ERROR_INVALID_ARGUMENT:
-			luaL_error(L, "Invalid arguments");
-			break;
-		case Variant::CallError::CALL_ERROR_TOO_MANY_ARGUMENTS:
-			luaL_error(L, "Too many arguments");
-			break;
-		case Variant::CallError::CALL_ERROR_TOO_FEW_ARGUMENTS:
-			luaL_error(L, "Too few arguments");
-			break;
-		case Variant::CallError::CALL_ERROR_INSTANCE_IS_NULL:
-			luaL_error(L, "Instance is null");
-			break;
-	}
+	l_method_error(L, err);
 	return 0;
 }
 
@@ -499,23 +504,7 @@ int LuaBindingHelper::l_bultins_caller_wrapper(lua_State *L) {
 			return 1;
 		}
 	}
-	switch (err.error) {
-		case Variant::CallError::CALL_ERROR_INVALID_METHOD:
-			luaL_error(L, "Invalid method '%s'", key);
-			break;
-		case Variant::CallError::CALL_ERROR_INVALID_ARGUMENT:
-			luaL_error(L, "Invalid argument to call '%s'", key);
-			break;
-		case Variant::CallError::CALL_ERROR_TOO_MANY_ARGUMENTS:
-			luaL_error(L, "Too many arguments to call '%s'", key);
-			break;
-		case Variant::CallError::CALL_ERROR_TOO_FEW_ARGUMENTS:
-			luaL_error(L, "Too few arguments to call '%s'", key);
-			break;
-		case Variant::CallError::CALL_ERROR_INSTANCE_IS_NULL:
-			luaL_error(L, "Instance is null");
-			break;
-	}
+	l_method_error(L, err);
 	return 0;
 }
 
@@ -644,10 +633,35 @@ int LuaBindingHelper::meta_instance__tostring(lua_State *L) {
 int LuaBindingHelper::meta_instance__index(lua_State *L) {
 	LuaScriptInstance *p_instance = luaL_getinstance(L, 1);
 	StringName index_name = lua_tostring(L, 2);
-	print_format("meta_instance__index:%s instance:%s", lua_tostring(L, 2), String(Variant(p_instance->get_owner())).utf8().get_data());
-	//TODO::instance 取值时run
-
-	return 0;
+	//print_format("meta_instance__index:%s instance:%s", lua_tostring(L, 2), String(Variant(p_instance->get_owner())).utf8().get_data());
+	//1.如果是变量，压入
+	bool success = false;
+	Variant variant;
+	success = p_instance->get(index_name, variant);
+	if (success) {
+		l_push_variant(L, variant);
+		return 1;
+	}
+	//2.如果是方法，压入
+	MethodBind *mb = ClassDB::get_method(p_instance->owner->get_class_name(), index_name);
+	if (mb != NULL) {
+		lua_pushlightuserdata(L, mb);
+		lua_pushcclosure(L, l_methodbind_wrapper, 1);
+		return 1;
+	}
+	//3.类方法获取
+	Variant var;
+	//get class
+	l_push_luascript_ref(L, p_instance->script->lua_ref);
+	//get function
+	lua_pushvalue(L, 2);
+	lua_rawget(L, -2);
+	if (!lua_isnil(L, -1))
+		return 1;
+	//4.普通获取
+	lua_pop(L, 2); //pop script and result
+	lua_rawget(L, -2);
+	return 1;
 }
 int LuaBindingHelper::meta_instance__newindex(lua_State *L) {
 	LuaScriptInstance *p_instance = luaL_getinstance(L, 1);
@@ -655,7 +669,107 @@ int LuaBindingHelper::meta_instance__newindex(lua_State *L) {
 	int idx = 3;
 	int t = lua_type(L, idx);
 	print_format("meta_instance__newindex:%s lua_typ:%s ", lua_tostring(L, 2), lua_typename(L, t));
+	if (LUA_TNONE == t || LUA_TTHREAD == t || LUA_TLIGHTUSERDATA == t || LUA_TTABLE == t) {
+		//p_instance->add_lua_property_type(index_name, t);
+		lua_rawset(L, 1);
+	} else if (LUA_TFUNCTION == t) {
+		//p_script->add_lua_method(index_name);
+		lua_rawset(L, 1);
+	} else {
+		Variant var;
+		l_get_variant(L, idx, var);
+		//set
+
+		bool success = false;
+		p_instance->set(index_name, var);
+		if (!success) {
+			luaL_error(L, "set %s.%s = %s error", String(Variant(p_instance->owner)).utf8().get_data(), String(index_name).utf8().get_data(), String(var).utf8().get_data());
+		}
+	}
 	return 0;
+}
+
+int l_base_methodbind_wrapper(lua_State *L) {
+	MethodBind *mb = (MethodBind *)lua_touserdata(L, lua_upvalueindex(1));
+	Object *obj = (Object *)lua_touserdata(L, lua_upvalueindex(2));
+	Variant::CallError err;
+
+	int top = lua_gettop(L);
+	if (top >= 2) {
+
+		Variant *vars = memnew_arr(Variant, top - 1);
+		Variant *args[128];
+		for (int idx = 2; idx <= top; idx++) {
+
+			Variant &var = vars[idx - 2];
+			args[idx - 2] = &var;
+			l_get_variant(L, idx, var);
+		}
+		Variant &&ret = mb->call(obj, (const Variant **)args, top - 1, err);
+		memdelete_arr(vars);
+		if (Variant::CallError::CALL_OK == err.error) {
+			l_push_variant(L, ret);
+			return 1;
+		}
+	} else {
+		Variant &&ret = mb->call(obj, NULL, 0, err);
+		if (Variant::CallError::CALL_OK == err.error) {
+			l_push_variant(L, ret);
+			return 1;
+		}
+	}
+	l_method_error(L, err);
+	return 0;
+}
+
+int meta_base_cls__index(lua_State *L) {
+	//压入方法来调用
+	//
+	StringName *class_name = (StringName *)lua_touserdata(L, lua_upvalueindex(1));
+	Object *pushobj = (Object *)lua_touserdata(L, lua_upvalueindex(2));
+
+	StringName index_name = lua_tostring(L, 2);
+	MethodBind *mb = ClassDB::get_method(*class_name, index_name);
+	if (mb != NULL) {
+		lua_pushlightuserdata(L, mb);
+		lua_pushcclosure(L, l_base_methodbind_wrapper, 1);
+		return 1;
+	}
+	return 0;
+}
+
+void LuaBindingHelper::helper_push_instance(void *object) {
+	LuaScriptInstance *p_instance = (LuaScriptInstance *)object;
+	print_format("helper_push_instance:%d s:%s", p_instance->lua_ref, String(Variant(p_instance->get_owner())).utf8().get_data());
+	lua_newtable(L);
+	lua_pushlightuserdata(L, object);
+	stackDump(L);
+	lua_setfield(L, -2, ".c_instance");
+	stackDump(L);
+
+	//==base
+	lua_newtable(L);
+	if (p_instance->script->cls != NULL) {
+		//TODO:: get base info set some caller here
+		//压入一个函数调用的类名
+		//然后
+		//
+		lua_newtable(L);
+		lua_pushvalue(L, -1);
+		lua_pushlightuserdata(L, (void *)&p_instance->script->cls->name);
+		lua_pushlightuserdata(L, p_instance->owner);
+		lua_pushcclosure(L, meta_base_cls__index, 2);
+		lua_pushstring(L, "__index");
+		lua_rawset(L, -3);
+		lua_setmetatable(L, -2);
+	} else {
+		//TODO::Set BaseScriptFunction caller here
+	}
+	lua_setfield(L, -2, "base");
+	//==
+	// luaL_getmetatable(L, "LuaInstance");
+	// lua_setmetatable(L, -2);
+	l_ref_instance(L, object);
 }
 
 void LuaBindingHelper::l_ref_instance(lua_State *L, void *object) {
@@ -665,14 +779,11 @@ void LuaBindingHelper::l_ref_instance(lua_State *L, void *object) {
 	lua_pushvalue(L, -2);
 	p_instance->lua_ref = luaL_ref(L, -2);
 	lua_pop(L, 1);
-	print_format("l_ref_instance:%d instance:%s", p_instance->lua_ref, String(Variant(p_instance->get_owner())).utf8().get_data());
-}
-
-void LuaBindingHelper::l_ref_instance(void *object) {
-	l_ref_instance(L, object);
+	print_format("l_ref_instance:%d s:%s", p_instance->lua_ref, String(Variant(p_instance->get_owner())).utf8().get_data());
 }
 
 void LuaBindingHelper::l_push_instance_ref(lua_State *L, int ref) {
+	print_format("l_push_instance_ref :%d ", ref);
 	lua_pushstring(L, "lua_instance_ubox");
 	lua_rawget(L, LUA_REGISTRYINDEX);
 	lua_rawgeti(L, -1, ref);
@@ -682,7 +793,7 @@ void LuaBindingHelper::l_push_instance_ref(lua_State *L, int ref) {
 void LuaBindingHelper::l_unref_instance(void *object) {
 	LuaScriptInstance *p_instance = (LuaScriptInstance *)object;
 	print_format("l_unref_instance:%d s:%s", p_instance->lua_ref, String(Variant(p_instance->get_owner())).utf8().get_data());
-	lua_pushstring(L, "lua_script_ubox");
+	lua_pushstring(L, "lua_instance_ubox");
 	lua_rawget(L, LUA_REGISTRYINDEX);
 	luaL_unref(L, -1, p_instance->lua_ref);
 	lua_pop(L, 1);
@@ -718,13 +829,15 @@ Variant LuaBindingHelper::instance_call(ScriptInstance *p_instance, const String
 	lua_pushstring(L, String(p_method).utf8().get_data());
 	lua_rawget(L, -2);
 	if (lua_isfunction(L, -1)) {
+		//pushinstance luaref
+		l_push_instance_ref(L, p_si->lua_ref);
 		//args
 		for (int i = 0; i < p_argcount; i++) {
 			l_push_variant(L, *p_args[i]);
 		}
 		//pcall
 		//5.3可以换成pcallk
-		if (lua_pcall(L, p_argcount, 1, pos_err) == 0) {
+		if (lua_pcall(L, p_argcount + 1, 1, pos_err) == 0) {
 			l_get_variant(L, -1, var);
 		} else {
 			r_error.error = Variant::CallError::CALL_ERROR_INVALID_METHOD;

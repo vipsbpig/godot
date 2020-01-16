@@ -3,7 +3,6 @@
 #include "luabinding_helper.h"
 
 void LuaBuiltin::regitser_builtins(lua_State *L) {
-	LuaBindingHelper::stackDump(L);
 	typedef struct {
 		const char *type;
 		Variant::Type vt;

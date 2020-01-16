@@ -24,7 +24,7 @@ ScriptInstance *LuaScript::_create_instance(const Variant **p_args, int p_argcou
 	instance->script = Ref<LuaScript>(this);
 	instance->owner = p_owner;
 	instance->owner->set_script_instance(instance);
-	LuaScriptLanguage::get_singleton()->binding->l_ref_instance(instance);
+	LuaScriptLanguage::get_singleton()->binding->helper_push_instance(instance);
 
 	/* STEP 2, INITIALIZE AND CONSRTUCT */
 	instances.insert(instance->owner);

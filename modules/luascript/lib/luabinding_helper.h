@@ -60,7 +60,6 @@ private:
 	static int meta__tostring(lua_State *L);
 	static int meta__index(lua_State *L);
 	static int meta__newindex(lua_State *L);
-	static int l_methodbind_wrapper(lua_State *L);
 	//===lua variant convert helper
 
 private:
@@ -83,7 +82,7 @@ private:
 	static int meta_script__tostring(lua_State *L);
 	static int meta_script__index(lua_State *L);
 	static int meta_script__newindex(lua_State *L);
-	void l_push_luascript_ref(lua_State *L, int ref);
+	static void l_push_luascript_ref(lua_State *L, int ref);
 	static void l_ref_luascript(lua_State *L, void *object);
 
 public:
@@ -101,7 +100,7 @@ private:
 	static void l_ref_instance(lua_State *L, void *object);
 
 public:
-	void l_ref_instance(void *object);
+	void helper_push_instance(void *object);
 	void l_unref_instance(void *object);
 
 private:
