@@ -740,13 +740,8 @@ int meta_base_cls__index(lua_State *L) {
 
 void LuaBindingHelper::helper_push_instance(void *object) {
 	LuaScriptInstance *p_instance = (LuaScriptInstance *)object;
-	print_format("helper_push_instance:%d s:%s", p_instance->lua_ref, String(Variant(p_instance->get_owner())).utf8().get_data());
+	print_debug("helper_push_instance:%d s:%s", p_instance->lua_ref, String(Variant(p_instance->get_owner())).utf8().get_data());
 	lua_newtable(L);
-	lua_pushlightuserdata(L, object);
-	stackDump(L);
-	lua_setfield(L, -2, ".c_instance");
-	stackDump(L);
-
 	//==base
 	lua_newtable(L);
 	if (p_instance->script->cls != NULL) {
@@ -766,9 +761,12 @@ void LuaBindingHelper::helper_push_instance(void *object) {
 		//TODO::Set BaseScriptFunction caller here
 	}
 	lua_setfield(L, -2, "base");
-	//==
-	// luaL_getmetatable(L, "LuaInstance");
-	// lua_setmetatable(L, -2);
+
+	lua_pushlightuserdata(L, object);
+	lua_setfield(L, -2, ".c_instance");
+	
+	luaL_getmetatable(L, "LuaInstance");
+	lua_setmetatable(L, -2);
 	l_ref_instance(L, object);
 }
 
@@ -779,7 +777,7 @@ void LuaBindingHelper::l_ref_instance(lua_State *L, void *object) {
 	lua_pushvalue(L, -2);
 	p_instance->lua_ref = luaL_ref(L, -2);
 	lua_pop(L, 1);
-	print_format("l_ref_instance:%d s:%s", p_instance->lua_ref, String(Variant(p_instance->get_owner())).utf8().get_data());
+	print_debug("l_ref_instance:%d s:%s", p_instance->lua_ref, String(Variant(p_instance->get_owner())).utf8().get_data());
 }
 
 void LuaBindingHelper::l_push_instance_ref(lua_State *L, int ref) {
