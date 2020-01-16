@@ -24,7 +24,6 @@ int LuaBindingHelper::l_methodbind_wrapper(lua_State *L) {
 	Object **ud = (Object **)lua_touserdata(L, 1);
 	Object *obj = *ud;
 
-	Variant ret;
 	Variant::CallError err;
 
 	int top = lua_gettop(L);
@@ -38,15 +37,20 @@ int LuaBindingHelper::l_methodbind_wrapper(lua_State *L) {
 			args[idx - 2] = &var;
 			l_get_variant(L, idx, var);
 		}
-		ret = mb->call(obj, (const Variant **)args, top - 1, err);
+		Variant &&ret = mb->call(obj, (const Variant **)args, top - 1, err);
 		memdelete_arr(vars);
-	} else {
-		ret = mb->call(obj, NULL, 0, err);
-	}
-	switch (err.error) {
-		case Variant::CallError::CALL_OK:
+		if (Variant::CallError::CALL_OK == err.error) {
 			l_push_variant(L, ret);
 			return 1;
+		}
+	} else {
+		Variant &&ret = mb->call(obj, NULL, 0, err);
+		if (Variant::CallError::CALL_OK == err.error) {
+			l_push_variant(L, ret);
+			return 1;
+		}
+	}
+	switch (err.error) {
 		case Variant::CallError::CALL_ERROR_INVALID_METHOD:
 			luaL_error(L, "Invalid method");
 			break;
@@ -463,13 +467,14 @@ int LuaBindingHelper::l_bultins_caller_wrapper(lua_State *L) {
 
 	Variant *var = luaL_checkvariant(L, 1);
 	Variant::CallError err;
-	Variant ret;
 
 	if (top == 1) {
-
-		ret = var->call(key, NULL, 0, err);
+		Variant &&ret = var->call(key, NULL, 0, err);
+		if (Variant::CallError::CALL_OK == err.error) {
+			l_push_variant(L, ret);
+			return 1;
+		}
 	} else {
-
 		Variant *vars = memnew_arr(Variant, top - 1);
 		Variant *args[128];
 		for (int idx = 2; idx <= top; idx++) {
@@ -477,13 +482,14 @@ int LuaBindingHelper::l_bultins_caller_wrapper(lua_State *L) {
 			args[idx - 2] = &var;
 			l_get_variant(L, idx, var);
 		}
-		ret = var->call(key, (const Variant **)(args), top - 1, err);
+		Variant &&ret = var->call(key, (const Variant **)(args), top - 1, err);
 		memdelete_arr(vars);
-	}
-	switch (err.error) {
-		case Variant::CallError::CALL_OK:
+		if (Variant::CallError::CALL_OK == err.error) {
 			l_push_variant(L, ret);
 			return 1;
+		}
+	}
+	switch (err.error) {
 		case Variant::CallError::CALL_ERROR_INVALID_METHOD:
 			luaL_error(L, "Invalid method '%s'", key);
 			break;

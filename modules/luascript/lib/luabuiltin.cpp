@@ -54,10 +54,13 @@ int LuaBuiltin::meta_bultins__call(lua_State *L) {
 	const char *type_name = lua_tostring(L, lua_upvalueindex(2));
 	int top = lua_gettop(L);
 	Variant::CallError err;
-	Variant ret;
 	if (top <= 1) {
 
-		ret = Variant::construct(type, NULL, 0, err);
+		Variant &&ret = Variant::construct(type, NULL, 0, err);
+		if (Variant::CallError::CALL_OK == err.error) {
+			l_push_variant(L, ret);
+			return 1;
+		}
 	} else {
 
 		Variant *vars = memnew_arr(Variant, top - 1);
@@ -68,13 +71,14 @@ int LuaBuiltin::meta_bultins__call(lua_State *L) {
 			args[idx - 2] = &var;
 			l_get_variant(L, idx, var);
 		}
-		ret = Variant::construct(type, (const Variant **)(args), top - 1, err);
+		Variant &&ret = Variant::construct(type, (const Variant **)(args), top - 1, err);
 		memdelete_arr(vars);
-	}
-	switch (err.error) {
-		case Variant::CallError::CALL_OK:
+		if (Variant::CallError::CALL_OK == err.error) {
 			l_push_variant(L, ret);
 			return 1;
+		}
+	}
+	switch (err.error) {
 		case Variant::CallError::CALL_ERROR_INVALID_METHOD:
 			luaL_error(L, "Invalid method");
 			break;
