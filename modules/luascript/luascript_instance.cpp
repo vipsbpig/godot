@@ -42,7 +42,27 @@ bool LuaScriptInstance::has_method(const StringName &p_method) const {
 }
 
 Variant LuaScriptInstance::call(const StringName &p_method, const Variant **p_args, int p_argcount, Variant::CallError &r_error) {
-	return script->call(this,p_method,p_args,p_argcount,r_error);
+	LuaScript *p_spt = script.ptr();
+	while (p_spt) {
+		if (p_spt->has_method(p_method)) {
+			print_format("LuaScript::call %s %d", String(p_method).utf8().get_data(), p_argcount);
+			return LuaScriptLanguage::get_singleton()->binding->instance_call(this, p_method, p_args, p_argcount, r_error);
+		}
+		p_spt = p_spt->_base;
+	}
+
+	//find object in cls
+	const ClassDB::ClassInfo *top = script->cls;
+	while (top) {
+		if (top->method_map.has(p_method)) {
+			print_format("LuaScript::call cls %d:%s argc:%d", String(top->name).utf8().get_data(), String(p_method).utf8().get_data(), p_argcount);
+			MethodBind *mb = top->method_map[p_method];
+			return mb->call(owner, p_args, p_argcount, r_error);
+		}
+		top = top->inherits_ptr;
+	}
+	r_error.error = Variant::CallError::CALL_ERROR_INVALID_METHOD;
+	return Variant();
 }
 
 Ref<Script> LuaScriptInstance::get_script() const {

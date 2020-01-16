@@ -764,7 +764,7 @@ void LuaBindingHelper::helper_push_instance(void *object) {
 
 	lua_pushlightuserdata(L, object);
 	lua_setfield(L, -2, ".c_instance");
-	
+
 	luaL_getmetatable(L, "LuaInstance");
 	lua_setmetatable(L, -2);
 	l_ref_instance(L, object);
@@ -815,7 +815,7 @@ int LuaBindingHelper::pcall_callback_err_fun(lua_State *L) {
 
 Variant LuaBindingHelper::instance_call(ScriptInstance *p_instance, const StringName &p_method, const Variant **p_args, int p_argcount, Variant::CallError &r_error) {
 	LuaScriptInstance *p_si = (LuaScriptInstance *)p_instance;
-	print_format("instance_call: script:%d argc:%d", p_si->script, p_argcount);
+	print_format("instance_call: script:%d argc:%d", p_si->script.ptr(), p_argcount);
 	//error
 	lua_pushcfunction(L, pcall_callback_err_fun);
 	int pos_err = lua_gettop(L);

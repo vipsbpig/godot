@@ -53,9 +53,7 @@ private:
 	ScriptInstance *_create_instance(const Variant **p_args, int p_argcount, Object *p_owner, bool p_isref, Variant::CallError &r_error);
 
 protected:
-	Variant call(LuaScriptInstance *p_instance, const StringName &p_method, const Variant **p_args, int p_argcount, Variant::CallError &r_error);
 
-	// Script interface
 public:
 	virtual bool can_instance() const;
 	virtual Ref<Script> get_base_script() const {
