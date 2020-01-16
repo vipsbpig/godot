@@ -45,16 +45,18 @@ ScriptInstance *LuaScript::_create_instance(const Variant **p_args, int p_argcou
 }
 
 Variant LuaScript::call(LuaScriptInstance *p_instance, const StringName &p_method, const Variant **p_args, int p_argcount, Variant::CallError &r_error) {
-	//TODO:: need to complete
-	if (this->has_method(p_method)) {
-		Variant &&var = LuaScriptLanguage::get_singleton()->binding->instance_call(p_instance, p_method, p_args, p_argcount, r_error);
-		print_format("LuaScript::call %s %d", String(p_method).utf8().get_data(), p_argcount);
-		return var;
-	}
+	LuaScript *p_spt = this;
+	while (p_spt) {
+		if (p_spt->has_method(p_method)) {
+			print_format("LuaScript::call %s %d", String(p_method).utf8().get_data(), p_argcount);
+			return LuaScriptLanguage::get_singleton()->binding->instance_call(p_instance, p_method, p_args, p_argcount, r_error);
+		}
+		p_spt = p_spt->_base;
+	}	
 
 	//find object in cls
 	const ClassDB::ClassInfo *top = this->cls;
-	while (top->inherits_ptr) {
+	while (top) {
 		if (top->method_map.has(p_method)) {
 			print_format("LuaScript::call cls %d:%s argc:%d", String(top->name).utf8().get_data(), String(p_method).utf8().get_data(), p_argcount);
 			MethodBind *mb = top->method_map[p_method];
@@ -62,7 +64,7 @@ Variant LuaScript::call(LuaScriptInstance *p_instance, const StringName &p_metho
 		}
 		top = top->inherits_ptr;
 	}
-
+	r_error.error = Variant::CallError::CALL_ERROR_INVALID_METHOD;
 	return Variant();
 }
 
@@ -157,6 +159,20 @@ void LuaScript::add_lua_method(const StringName &method_name) {
 bool LuaScript::has_method(const StringName &p_method) const {
 	return methods_name.has(p_method);
 }
+// bool LuaScript::has_method_with_cls(const String &p_method) const {
+// 	bool ret = has_method(p_method);
+// 	if (has_method(p_method) || cls == NULL)
+// 		return ret;
+// 	else {
+// 		auto *top = this->cls;
+// 		while (top) {
+// 			if (top->method_map.has(p_method))
+// 				return true;
+// 			top = top->inherits_ptr;
+// 		}
+// 		return false;
+// 	}
+// }
 void LuaScript::add_property_default_value(const StringName &p_property, const Variant &p_value) {
 	properties_default_value[p_property] = p_property;
 }

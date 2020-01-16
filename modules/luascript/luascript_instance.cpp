@@ -28,28 +28,21 @@ Error LuaScriptInstance::initialize(bool p_ref) {
 	return OK;
 }
 bool LuaScriptInstance::has_method(const StringName &p_method) const {
-	bool ret = script->has_method(p_method);
-	if (ret || script->cls != NULL)
-		ret = script->cls->method_map.has(p_method);
-	if (ret || script->_base != NULL)
-		ret = script->_base->has_method(p_method);
+	const LuaScript *p_spt = script.ptr();
+	bool ret = false;
+	while (p_spt) {
+		if (p_spt->has_method(p_method)) {
+			ret = true;
+			break;
+		}
+		p_spt = p_spt->_base;
+	}
 	print_format("LuaScriptInstance::has_method %s ret:%s", String(p_method).utf8().get_data(), ret ? "true" : "false");
-
 	return ret;
 }
 
 Variant LuaScriptInstance::call(const StringName &p_method, const Variant **p_args, int p_argcount, Variant::CallError &r_error) {
-
-	LuaScript *sptr = script.ptr();
-	while (sptr) {
-		bool found = false;
-		if (found) {
-			return sptr->call(this, p_method, p_args, p_argcount, r_error);
-		}
-		sptr = sptr->_base;
-	}
-	r_error.error = Variant::CallError::CALL_ERROR_INVALID_METHOD;
-	return Variant();
+	return script->call(this,p_method,p_args,p_argcount,r_error);
 }
 
 Ref<Script> LuaScriptInstance::get_script() const {

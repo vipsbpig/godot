@@ -80,6 +80,7 @@ public:
 	virtual Error reload(bool p_keep_state = false);
 	void add_lua_method(const StringName &method_name);
 	virtual bool has_method(const StringName &p_method) const;
+	// bool LuaScript::has_method_with_cls(const String &p_method) const;
 	/*TODO*/ virtual MethodInfo get_method_info(const StringName &p_method) const {
 		print_debug("LuaScript::get_method_info");
 		return MethodInfo();
