@@ -21,7 +21,7 @@ Error LuaScriptInstance::init(bool p_ref) {
 
 	Object *obj = owner;
 	print_format("LuaScriptInstance::init obj type:%s script:%d", String(Variant(obj)).utf8().get_data(), script.ptr());
-	call("_init", NULL, 0, Variant::CallError());
+	//call("_init", NULL, 0, Variant::CallError());
 	return OK;
 }
 bool LuaScriptInstance::has_method(const StringName &p_method) const {
@@ -39,8 +39,7 @@ Variant LuaScriptInstance::call(const StringName &p_method, const Variant **p_ar
 	//TODO:: need to complete
 	print_format("LuaScriptInstance::call %s %d", String(p_method).utf8().get_data(), p_argcount);
 	if (script->has_method(p_method)) {
-		Variant var;
-		LuaScriptLanguage::get_singleton()->binding->instance_call(this, p_method, p_args, p_argcount, var, r_error);
+		Variant &&var = LuaScriptLanguage::get_singleton()->binding->instance_call(this, p_method, p_args, p_argcount, r_error);
 		return var;
 	}
 

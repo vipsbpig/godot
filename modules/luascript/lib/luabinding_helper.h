@@ -94,7 +94,7 @@ public:
 	static int pcall_callback_err_fun(lua_State *L);
 
 public:
-	void instance_call(ScriptInstance *p_instance, const StringName &p_method, const Variant **p_args, int p_argcount, Variant &r_var, Variant::CallError &r_error);
+	Variant instance_call(ScriptInstance *p_instance, const StringName &p_method, const Variant **p_args, int p_argcount, Variant::CallError &r_error);
 
 private:
 	//===global

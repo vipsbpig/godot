@@ -635,10 +635,10 @@ int LuaBindingHelper::pcall_callback_err_fun(lua_State *L) {
 	return 1;
 }
 
-void LuaBindingHelper::instance_call(ScriptInstance *p_instance, const StringName &p_method, const Variant **p_args, int p_argcount, Variant &r_var, Variant::CallError &r_error) {
+Variant LuaBindingHelper::instance_call(ScriptInstance *p_instance, const StringName &p_method, const Variant **p_args, int p_argcount, Variant::CallError &r_error) {
 	LuaScriptInstance *p_si = (LuaScriptInstance *)p_instance;
 	print_format("instance_call: script:%d ", p_si->script);
-
+	Variant var;
 	//get class
 	l_push_luascript_ref(L, p_si->script->lua_ref);
 	//get function
@@ -654,7 +654,7 @@ void LuaBindingHelper::instance_call(ScriptInstance *p_instance, const StringNam
 		//pcall
 		//5.3可以换成pcallk
 		if (lua_pcall(L, p_argcount, 1, -1) == 0) {
-			l_get_variant(L, -1, r_var);
+			l_get_variant(L, -1, var);
 		} else {
 			r_error.error = Variant::CallError::CALL_ERROR_INVALID_METHOD;
 		}
@@ -664,6 +664,7 @@ void LuaBindingHelper::instance_call(ScriptInstance *p_instance, const StringNam
 	}
 	r_error.argument = p_argcount;
 	lua_settop(L, 0);
+	return var;
 }
 
 void LuaBindingHelper::openLibs(lua_State *L) {
