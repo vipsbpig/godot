@@ -951,7 +951,7 @@ void LuaBindingHelper::openLibs(lua_State *L) {
 void LuaBindingHelper::godotbind() {
 	lua_getfield(L, LUA_GLOBALSINDEX, "GD");
 	lua_pushcfunction(L, l_print);
-	lua_setfield(L, -2, "println");
+	lua_setfield(L, -2, "print");
 	lua_pop(L, 1);
 }
 
