@@ -11,22 +11,31 @@ LuaScriptInstance::~LuaScriptInstance() {
 	LuaScriptLanguage::get_singleton()->binding->l_unref_instance(this);
 }
 
-Error LuaScriptInstance::initialize(bool p_ref) {
-	//TODO::调用lua的类下面的构造函数
-	//把script 的 luaref存在instance下面
-	//然后方便后续的调用
-	//script里面获取方法，instance的对象来调用
-	//这里要父类调用设置叫base吧
-	//需要创建LuaInstance的metatable ，用table还是userdata呢？
-	//不能创建新的变量，但是可以赋值
-	//赋值可以传递到引擎里面
-	//如果复制到自己就引擎就不可以得知
+// Error LuaScriptInstance::initialize(const Variant **p_args, int p_argcount, bool p_ref) {
+// 	Variant::CallError err;
+// 	call("_init", p_args, p_argcount, err);
+// 	return err.error == Variant::CallError::CALL_OK ? OK : FAILED;
+// }
 
-	// Object *obj = owner;
-	// print_format("LuaScriptInstance::init obj type:%s script:%d", String(Variant(obj)).ascii().get_data(), script.ptr());
-	// call("_init", NULL, 0, Variant::CallError());
-	return OK;
+bool LuaScriptInstance::set(const StringName &p_name, const Variant &p_value) {
+	print_debug("LuaScriptInstance::set");
+	return false;
 }
+
+bool LuaScriptInstance::get(const StringName &p_name, Variant &r_ret) const {
+	print_debug("LuaScriptInstance::get");
+	return false;
+}
+
+/*TODO*/ void LuaScriptInstance::get_property_list(List<PropertyInfo> *p_properties) const {
+	print_debug("LuaScriptInstance::get_property_list");
+}
+
+/*TODO*/ Variant::Type LuaScriptInstance::get_property_type(const StringName &p_name, bool *r_is_valid) const {
+	print_debug("LuaScriptInstance::get_property_type");
+	return Variant::NIL;
+}
+
 bool LuaScriptInstance::has_method(const StringName &p_method) const {
 	const LuaScript *p_spt = script.ptr();
 	bool ret = false;

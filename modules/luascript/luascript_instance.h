@@ -20,22 +20,11 @@ public:
 
 	// ScriptInstance interface
 public:
-	Error initialize(bool p_ref = false);
-	/*TODO*/ virtual bool set(const StringName &p_name, const Variant &p_value) {
-		print_debug("LuaScriptInstance::set");
-		return false;
-	}
-	/*TODO*/ virtual bool get(const StringName &p_name, Variant &r_ret) const {
-		print_debug("LuaScriptInstance::get");
-		return false;
-	}
-	/*TODO*/ virtual void get_property_list(List<PropertyInfo> *p_properties) const {
-		print_debug("LuaScriptInstance::get_property_list");
-	}
-	/*TODO*/ virtual Variant::Type get_property_type(const StringName &p_name, bool *r_is_valid) const {
-		print_debug("LuaScriptInstance::get_property_type");
-		return Variant::NIL;
-	}
+	// Error initialize(const Variant **p_args, int p_argcount, bool p_ref = false);
+	virtual bool set(const StringName &p_name, const Variant &p_value);
+	virtual bool get(const StringName &p_name, Variant &r_ret) const;
+	/*TODO*/ virtual void get_property_list(List<PropertyInfo> *p_properties) const;
+	/*TODO*/ virtual Variant::Type get_property_type(const StringName &p_name, bool *r_is_valid) const;
 
 	virtual Object *get_owner() { return owner; }
 	///*TODO*/ virtual void get_property_state(List<Pair<StringName, Variant> > &state) {}

@@ -30,20 +30,19 @@ ScriptInstance *LuaScript::_create_instance(const Variant **p_args, int p_argcou
 	instances.insert(instance->owner);
 
 	instance->call("_init", p_args, p_argcount, r_error);
-	if (instance->initialize(true) != OK) {
+	if (r_error.error != Variant::CallError::CALL_OK) {
 		instance->script = Ref<LuaScript>();
 		instance->owner->set_script_instance(NULL);
 
 		memdelete(instance);
 		instances.erase(p_owner);
 
-		ERR_FAIL_V(NULL); //error consrtucting
+		ERR_FAIL_COND_V(r_error.error != Variant::CallError::CALL_OK, NULL); //error constructing
 	}
 
 	//@TODO make thread safe
 	return instance;
 }
-
 
 bool LuaScript::can_instance() const {
 	print_debug("LuaScript::can_instance");
