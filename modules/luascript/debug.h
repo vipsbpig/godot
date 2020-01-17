@@ -19,7 +19,7 @@
 
 #pragma once
 
-#define LUA_SCRIPT_DEBUG_ENABLED
+//#define LUA_SCRIPT_DEBUG_ENABLED
 
 #if defined(LUA_SCRIPT_DEBUG_ENABLED)
 
@@ -32,8 +32,7 @@ void print_luadebug(const char *str);
 
 void print_format(const char *fmt, ...);
 
+void print_debug(fmt, ...)
 #else
-
-#define print_debug(fmt, ...)
 
 #endif

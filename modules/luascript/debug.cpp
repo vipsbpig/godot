@@ -49,8 +49,6 @@ void print_luadebug(const char *str) {
 	print_line(str);
 }
 
-#endif
-
 void print_format(const char *fmt, ...) {
 	char buf[100]; // this should really be sized appropriately
 			// possibly in response to a call to vsnprintf()
@@ -63,3 +61,4 @@ void print_format(const char *fmt, ...) {
 
 	print_line(buf);
 }
+#endif

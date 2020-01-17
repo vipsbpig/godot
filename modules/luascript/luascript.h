@@ -53,7 +53,6 @@ private:
 	ScriptInstance *_create_instance(const Variant **p_args, int p_argcount, Object *p_owner, bool p_isref, Variant::CallError &r_error);
 
 protected:
-
 public:
 	virtual bool can_instance() const;
 	virtual Ref<Script> get_base_script() const {
@@ -61,16 +60,22 @@ public:
 	}
 	virtual StringName get_instance_base_type() const;
 	/*TODO*/ virtual PlaceHolderScriptInstance *placeholder_instance_create(Object *p_this) {
+#ifdef LUA_SCRIPT_DEBUG_ENABLED
 		print_debug("LuaScript::placeholder_instance_create");
+#endif
 		return NULL;
 	}
 	virtual ScriptInstance *instance_create(Object *p_this);
 	/*TODO*/ virtual bool instance_has(const Object *p_this) const {
+#ifdef LUA_SCRIPT_DEBUG_ENABLED
 		print_debug("LuaScript::instance_has");
+#endif
 		return false;
 	}
 	/*TODO*/ virtual bool has_source_code() const {
+#ifdef LUA_SCRIPT_DEBUG_ENABLED
 		print_debug("LuaScript::has_source_code");
+#endif
 		return false;
 	}
 	virtual String get_source_code() const;
@@ -80,32 +85,46 @@ public:
 	virtual bool has_method(const StringName &p_method) const;
 	// bool LuaScript::has_method_with_cls(const String &p_method) const;
 	/*TODO*/ virtual MethodInfo get_method_info(const StringName &p_method) const {
+#ifdef LUA_SCRIPT_DEBUG_ENABLED
 		print_debug("LuaScript::get_method_info");
+#endif
 		return MethodInfo();
 	}
 	/*TODO*/ virtual bool is_tool() const {
+#ifdef LUA_SCRIPT_DEBUG_ENABLED
 		print_debug("LuaScript::is_tool");
+#endif
 		return tool;
 	}
 	virtual bool is_valid() const {
+#ifdef LUA_SCRIPT_DEBUG_ENABLED
 		print_debug("LuaScript::is_valid");
+#endif
 		return valid;
 	}
 	virtual ScriptLanguage *get_language() const;
 	/*TODO*/ virtual bool has_script_signal(const StringName &p_signal) const {
+#ifdef LUA_SCRIPT_DEBUG_ENABLED
 		print_debug("LuaScript::has_script_signal");
+#endif
 		return false;
 	}
 	/*TODO*/ virtual void get_script_signal_list(List<MethodInfo> *r_signals) const {
+#ifdef LUA_SCRIPT_DEBUG_ENABLED
 		print_debug("LuaScript::get_script_signal_list");
+#endif
 	}
 	void add_property_default_value(const StringName &p_property, const Variant &p_value);
 	virtual bool get_property_default_value(const StringName &p_property, Variant &r_value) const;
 	/*TODO*/ virtual void get_script_method_list(List<MethodInfo> *p_list) const {
+#ifdef LUA_SCRIPT_DEBUG_ENABLED
 		print_debug("LuaScript::get_script_method_list");
+#endif
 	}
 	/*TODO*/ virtual void get_script_property_list(List<PropertyInfo> *p_list) const {
+#ifdef LUA_SCRIPT_DEBUG_ENABLED
 		print_debug("LuaScript::get_script_property_list");
+#endif
 	}
 	void add_lua_property_type(const StringName &name, int idx);
 	Error load_source_code(const String &p_path);

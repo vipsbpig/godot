@@ -109,13 +109,14 @@ private:
 	static int pcall_callback_err_fun(lua_State *L);
 
 public:
+	// Variant initialize_call(ScriptInstance *p_instance, const Variant **p_args, int p_argcount, Variant::CallError &r_error);
 	Variant instance_call(ScriptInstance *p_instance, const StringName &p_method, const Variant **p_args, int p_argcount, Variant::CallError &r_error);
 
 private:
 	//===global
 
 	void openLibs(lua_State *L);
-	void globalbind();
+	void godotbind();
 	void register_class(lua_State *L, const ClassDB::ClassInfo *cls);
 	void regitser_builtins(lua_State *L);
 

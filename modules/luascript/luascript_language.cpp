@@ -1,6 +1,7 @@
 #include "luascript_language.h"
-#include "luascript.h"
+#include "core/os/file_access.h"
 #include "debug.h"
+#include "luascript.h"
 
 LuaScriptLanguage *LuaScriptLanguage::singleton = NULL;
 
