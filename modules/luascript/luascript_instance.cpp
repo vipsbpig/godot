@@ -19,12 +19,31 @@ LuaScriptInstance::~LuaScriptInstance() {
 
 bool LuaScriptInstance::set(const StringName &p_name, const Variant &p_value) {
 	print_debug("LuaScriptInstance::set");
-	return false;
+	LuaScript *p_spt = script.ptr();
+	while (p_spt) {
+		if (p_spt->properties_default_value.has(p_name)) {
+			print_format("LuaScriptInstance::set %s %s", String(p_name).ascii().get_data(), String(p_value).utf8().get_data());
+			return LuaScriptLanguage::get_singleton()->binding->l_instance_set(this, p_name, p_value);
+		}
+		p_spt = p_spt->_base;
+	}
+	bool success = false;
+	ClassDB::set_property(owner, p_name, p_value, &success);
+	return success;
 }
 
 bool LuaScriptInstance::get(const StringName &p_name, Variant &r_ret) const {
 	print_debug("LuaScriptInstance::get");
-	return false;
+	const LuaScript *p_spt = script.ptr();
+	while (p_spt) {
+		if (p_spt->properties_default_value.has(p_name)) {
+			print_format("LuaScriptInstance::set %s %s", String(p_name).ascii().get_data());
+			return LuaScriptLanguage::get_singleton()->binding->l_instance_get(this, p_name, r_ret);
+		}
+		p_spt = p_spt->_base;
+	}
+	bool success = ClassDB::get_property(owner, p_name, r_ret);
+	return success;
 }
 
 /*TODO*/ void LuaScriptInstance::get_property_list(List<PropertyInfo> *p_properties) const {
@@ -54,7 +73,7 @@ Variant LuaScriptInstance::call(const StringName &p_method, const Variant **p_ar
 	LuaScript *p_spt = script.ptr();
 	while (p_spt) {
 		if (p_spt->has_method(p_method)) {
-			print_format("LuaScript::call %s %d", String(p_method).ascii().get_data(), p_argcount);
+			print_format("LuaScriptInstance::call %s %d", String(p_method).ascii().get_data(), p_argcount);
 			return LuaScriptLanguage::get_singleton()->binding->instance_call(this, p_method, p_args, p_argcount, r_error);
 		}
 		p_spt = p_spt->_base;
@@ -64,7 +83,7 @@ Variant LuaScriptInstance::call(const StringName &p_method, const Variant **p_ar
 	const ClassDB::ClassInfo *top = script->cls;
 	while (top) {
 		if (top->method_map.has(p_method)) {
-			print_format("LuaScript::call cls %d:%s argc:%d", String(top->name).ascii().get_data(), String(p_method).ascii().get_data(), p_argcount);
+			print_format("LuaScriptInstance::call cls %d:%s argc:%d", String(top->name).ascii().get_data(), String(p_method).ascii().get_data(), p_argcount);
 			MethodBind *mb = top->method_map[p_method];
 			return mb->call(owner, p_args, p_argcount, r_error);
 		}

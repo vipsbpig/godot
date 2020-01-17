@@ -102,6 +102,8 @@ private:
 public:
 	void helper_push_instance(void *object);
 	void l_unref_instance(void *object);
+	bool l_instance_set(ScriptInstance *p_instance, const StringName &p_name, const Variant &p_value);
+	bool l_instance_get(const ScriptInstance *p_instance, const StringName &p_name, Variant &r_ret);
 
 private:
 	static int pcall_callback_err_fun(lua_State *L);

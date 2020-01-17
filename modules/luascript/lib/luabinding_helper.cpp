@@ -800,7 +800,24 @@ void LuaBindingHelper::l_unref_instance(void *object) {
 	luaL_unref(L, -1, p_instance->lua_ref);
 	lua_pop(L, 1);
 }
-
+bool LuaBindingHelper::l_instance_set(ScriptInstance *object, const StringName &p_name, const Variant &p_value) {
+	LuaScriptInstance *p_instance = (LuaScriptInstance *)object;
+	l_push_instance_ref(L, p_instance->lua_ref);
+	lua_pushstring(L, String(p_name).ascii().get_data());
+	l_push_variant(L, p_value);
+	lua_rawset(L, -3);
+	lua_pop(L, 2);
+	return true;
+}
+bool LuaBindingHelper::l_instance_get(const ScriptInstance *object, const StringName &p_name, Variant &r_ret) {
+	LuaScriptInstance *p_instance = (LuaScriptInstance *)object;
+	l_push_instance_ref(L, p_instance->lua_ref);
+	lua_pushstring(L, String(p_name).ascii().get_data());
+	lua_rawget(L, -2);
+	l_get_variant(L, -1, r_ret);
+	lua_pop(L, 2);
+	return true;
+}
 int LuaBindingHelper::pcall_callback_err_fun(lua_State *L) {
 	lua_Debug debug = {};
 	int ret = lua_getstack(L, 2, &debug); // 0是pcall_callback_err_fun自己, 1是error函数, 2是真正出错的函数.
