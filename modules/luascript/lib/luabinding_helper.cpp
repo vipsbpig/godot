@@ -145,13 +145,13 @@ void l_push_variant(lua_State *L, const Variant &var) {
 			l_push_bulltins_type(L, var);
 		} break;
 		default:
-			print_format("unknow Type:%s", Variant::get_type_name(var.get_type()).utf8().get_data());
+			print_format("unknow Type:%s", Variant::get_type_name(var.get_type()).ascii().get_data());
 			break;
 	}
 }
 
 void l_push_bulltins_type(lua_State *L, const Variant &var) {
-	print_format("builtIn Type:%s", Variant::get_type_name(var.get_type()).utf8().get_data());
+	print_format("builtIn Type:%s", Variant::get_type_name(var.get_type()).ascii().get_data());
 	Variant **ptr = (Variant **)lua_newuserdata(L, sizeof(Variant *));
 	*ptr = memnew(Variant);
 	**ptr = var;
@@ -243,7 +243,7 @@ int LuaBindingHelper::l_extends(lua_State *L) {
 			luaL_error(L, "Extends Wrong Type");
 			return 0;
 		}
-		const char *base = String(cls->name).utf8().get_data();
+		const char *base = String(cls->name).ascii().get_data();
 		print_format("l_extends from:%s %d script:%d", base, cls, p_script);
 		p_script->cls = cls;
 
@@ -261,7 +261,7 @@ int LuaBindingHelper::l_extends(lua_State *L) {
 		//现在临时用Object来代替
 		print_line("Should extends from a res.Now Only extends from Object");
 		const ClassDB::ClassInfo *cls = &ClassDB::classes["Object"];
-		const char *base = String(cls->name).utf8().get_data();
+		const char *base = String(cls->name).ascii().get_data();
 		print_format("l_extends from:%s", base);
 		p_script->cls = cls;
 		lua_newtable(L);
@@ -292,7 +292,7 @@ int LuaBindingHelper::create_user_data(lua_State *L) {
 	Object **ud = NULL;
 	ud = (Object **)lua_newuserdata(L, sizeof(Object *));
 	Object *object = cls->creation_func();
-	print_format("Name %s call new object_ptr:%d ", object->get_class().utf8().get_data(), object);
+	print_format("Name %s call new object_ptr:%d ", object->get_class().ascii().get_data(), object);
 
 	*ud = object;
 	luaL_getmetatable(L, "LuaObject");
@@ -300,7 +300,7 @@ int LuaBindingHelper::create_user_data(lua_State *L) {
 
 	//const StringName *key = cls->method_map.next(NULL);
 	//    while (key) {
-	//        print_format("-- methods:%s", String(*key).utf8().get_data() );
+	//        print_format("-- methods:%s", String(*key).ascii().get_data() );
 	//        key = cls->method_map.next(key);
 	//    }
 	return 1;
@@ -313,8 +313,8 @@ int LuaBindingHelper::meta__gc(lua_State *L) {
 
 	if (obj->is_class_ptr(Reference::get_class_ptr_static())) {
 		Reference *ref = Object::cast_to<Reference>(obj);
-		String toString = "[" + obj->get_class() + ":" + itos(obj->get_instance_id()) + "]";
-		print_format("%s unreferenct by lua gc.", toString.utf8().get_data());
+		//String toString = "[" + obj->get_class() + ":" + itos(obj->get_instance_id()) + "]";
+		print_format("%s unreferenct by lua gc.", String(Variant(obj)).ascii().get_data());
 		if (ref->unreference())
 			memdelete(ref);
 		return 0;
@@ -325,14 +325,14 @@ int LuaBindingHelper::meta__gc(lua_State *L) {
 
 		Node *node = Object::cast_to<Node>(obj);
 		if (!node->is_inside_tree()) {
-			print_format("DELETED!node %s not in tree", String(Variant(node)).utf8().get_data());
+			print_format("DELETED!node %s not in tree", String(Variant(node)).ascii().get_data());
 			memdelete(obj);
 			return 0;
 		}
 		return 0;
 	}
 
-	print_format("DELETED!  %s", String(Variant(obj)).utf8().get_data());
+	print_format("DELETED!  %s", String(Variant(obj)).ascii().get_data());
 	memdelete(obj);
 	return 0;
 }
@@ -340,7 +340,7 @@ int LuaBindingHelper::meta__gc(lua_State *L) {
 int LuaBindingHelper::meta__tostring(lua_State *L) {
 	Object **ud = (Object **)lua_touserdata(L, 1);
 	Object *obj = *ud;
-	lua_pushstring(L, String(Variant(obj)).utf8().get_data());
+	lua_pushstring(L, String(Variant(obj)).ascii().get_data());
 	return 1;
 }
 
@@ -348,7 +348,7 @@ int LuaBindingHelper::meta__index(lua_State *L) {
 	Object **ud = (Object **)lua_touserdata(L, 1);
 	Object *obj = *ud;
 	StringName index_name = lua_tostring(L, 2);
-	print_format("meta__index: %s call %s", obj->get_class().utf8().get_data(), String(index_name).utf8().get_data());
+	print_format("meta__index: %s call %s", obj->get_class().ascii().get_data(), String(index_name).ascii().get_data());
 
 	//1.如果是变量，压入
 	bool success = false;
@@ -380,7 +380,7 @@ int LuaBindingHelper::meta__newindex(lua_State *L) {
 	bool valid = false;
 	obj->set(key, value, &valid);
 	if (!valid)
-		luaL_error(L, "Unable to set field: '%s'", ((String)key).utf8().get_data());
+		luaL_error(L, "Unable to set field: '%s'", ((String)key).ascii().get_data());
 	return 0;
 }
 
@@ -447,7 +447,7 @@ int LuaBindingHelper::meta_bultins__newindex(lua_State *L) {
 	bool valid = false;
 	var->set(key, value, &valid);
 	if (!valid)
-		luaL_error(L, "Unable to set field: '%s'", ((String)key).utf8().get_data());
+		luaL_error(L, "Unable to set field: '%s'", ((String)key).ascii().get_data());
 
 	return 0;
 }
@@ -469,7 +469,7 @@ int LuaBindingHelper::meta_bultins__pairs(lua_State *L) {
 			lua_pushnil(L);
 			return 3;
 		default:
-			luaL_error(L, "Cannot pairs an %s value", var.get_type_name(var.get_type()).utf8().get_data());
+			luaL_error(L, "Cannot pairs an %s value", var.get_type_name(var.get_type()).ascii().get_data());
 			break;
 	}
 	return 0;
@@ -559,7 +559,7 @@ int LuaBindingHelper::meta_script__tostring(lua_State *L) {
 int LuaBindingHelper::meta_script__index(lua_State *L) {
 	LuaScript *p_script = luaL_getscript(L, 1);
 	StringName index_name = lua_tostring(L, 2);
-	const char *base = String(p_script->cls->name).utf8().get_data();
+	const char *base = String(p_script->cls->name).ascii().get_data();
 	print_format("meta_script__index:%s base:%s %d script:%d", lua_tostring(L, 2), base, p_script->cls, p_script);
 	if (p_script->properties_default_value.has(index_name)) {
 		l_push_variant(L, p_script->properties_default_value[index_name]);
@@ -574,7 +574,7 @@ int LuaBindingHelper::meta_script__index(lua_State *L) {
 int LuaBindingHelper::meta_script__newindex(lua_State *L) {
 	LuaScript *p_script = luaL_getscript(L, 1);
 	StringName index_name = lua_tostring(L, 2);
-	const char *base = String(p_script->cls->name).utf8().get_data();
+	const char *base = String(p_script->cls->name).ascii().get_data();
 	int idx = 3;
 	int t = lua_type(L, idx);
 	print_format("meta_script__newindex:%slua_typ:%d  base:%s script:%d lua_t:%d", lua_tostring(L, 2), t, base, p_script->cls, p_script);
@@ -612,7 +612,7 @@ void LuaBindingHelper::l_push_luascript_ref(lua_State *L, int ref) {
 
 void LuaBindingHelper::l_unref_luascript(void *object) {
 	LuaScript *p_script = (LuaScript *)object;
-	print_format("l_unref_luascript:%d s:%d", p_script->lua_ref, p_script);
+	printf("l_unref_luascript:%d s:%d", p_script->lua_ref, p_script);
 
 	lua_pushstring(L, "lua_script_ubox");
 	lua_rawget(L, LUA_REGISTRYINDEX);
@@ -627,13 +627,13 @@ int LuaBindingHelper::meta_instance__gc(lua_State *L) {
 int LuaBindingHelper::meta_instance__tostring(lua_State *L) {
 	print_format("meta_instance__tostring");
 	LuaScriptInstance *p_instance = luaL_getinstance(L, 1);
-	lua_pushstring(L, String(Variant(p_instance->get_owner())).utf8().get_data());
+	lua_pushstring(L, String(Variant(p_instance->get_owner())).ascii().get_data());
 	return 1;
 }
 int LuaBindingHelper::meta_instance__index(lua_State *L) {
 	LuaScriptInstance *p_instance = luaL_getinstance(L, 1);
 	StringName index_name = lua_tostring(L, 2);
-	//print_format("meta_instance__index:%s instance:%s", lua_tostring(L, 2), String(Variant(p_instance->get_owner())).utf8().get_data());
+	//print_format("meta_instance__index:%s instance:%s", lua_tostring(L, 2), String(Variant(p_instance->get_owner())).ascii().get_data());
 	//1.如果是变量，压入
 	bool success = false;
 	Variant variant;
@@ -684,7 +684,7 @@ int LuaBindingHelper::meta_instance__newindex(lua_State *L) {
 		bool success = false;
 		p_instance->set(index_name, var);
 		if (!success) {
-			luaL_error(L, "set %s.%s = %s error", String(Variant(p_instance->owner)).utf8().get_data(), String(index_name).utf8().get_data(), String(var).utf8().get_data());
+			luaL_error(L, "set %s.%s = %s error", String(Variant(p_instance->owner)).ascii().get_data(), String(index_name).ascii().get_data(), String(var).ascii().get_data());
 		}
 	}
 	return 0;
@@ -741,15 +741,11 @@ int meta_base_cls__index(lua_State *L) {
 
 void LuaBindingHelper::helper_push_instance(void *object) {
 	LuaScriptInstance *p_instance = (LuaScriptInstance *)object;
-	print_debug("helper_push_instance:%d s:%s", p_instance->lua_ref, String(Variant(p_instance->get_owner())).utf8().get_data());
+	print_debug("helper_push_instance:%d s:%s", p_instance->lua_ref, String(Variant(p_instance->get_owner())).ascii().get_data());
 	lua_newtable(L);
 	//==base
 	lua_newtable(L);
 	if (p_instance->script->cls != NULL) {
-		//TODO:: get base info set some caller here
-		//压入一个函数调用的类名
-		//然后
-		//
 		lua_newtable(L);
 		lua_pushvalue(L, -1);
 		lua_pushlightuserdata(L, (void *)&p_instance->script->cls->name);
@@ -763,6 +759,13 @@ void LuaBindingHelper::helper_push_instance(void *object) {
 	}
 	lua_setfield(L, -2, "base");
 
+	//==push script default Variant
+	for (auto E = p_instance->script->properties_default_value.front(); E != NULL; E = E->next()) {
+		l_push_variant(L, E->value());
+		lua_setfield(L, -2, String(E->key()).ascii().get_data());
+	}
+
+	//instance_pointer
 	lua_pushlightuserdata(L, object);
 	lua_setfield(L, -2, ".c_instance");
 
@@ -778,7 +781,7 @@ void LuaBindingHelper::l_ref_instance(lua_State *L, void *object) {
 	lua_pushvalue(L, -2);
 	p_instance->lua_ref = luaL_ref(L, -2);
 	lua_pop(L, 1);
-	print_debug("l_ref_instance:%d s:%s", p_instance->lua_ref, String(Variant(p_instance->get_owner())).utf8().get_data());
+	print_debug("l_ref_instance:%d s:%s", p_instance->lua_ref, String(Variant(p_instance->get_owner())).ascii().get_data());
 }
 
 void LuaBindingHelper::l_push_instance_ref(lua_State *L, int ref) {
@@ -791,7 +794,7 @@ void LuaBindingHelper::l_push_instance_ref(lua_State *L, int ref) {
 
 void LuaBindingHelper::l_unref_instance(void *object) {
 	LuaScriptInstance *p_instance = (LuaScriptInstance *)object;
-	print_format("l_unref_instance:%d s:%s", p_instance->lua_ref, String(Variant(p_instance->get_owner())).utf8().get_data());
+	print_format("l_unref_instance:%d s:%s", p_instance->lua_ref, String(Variant(p_instance->get_owner())).ascii().get_data());
 	lua_pushstring(L, "lua_instance_ubox");
 	lua_rawget(L, LUA_REGISTRYINDEX);
 	luaL_unref(L, -1, p_instance->lua_ref);
@@ -825,7 +828,7 @@ Variant LuaBindingHelper::instance_call(ScriptInstance *p_instance, const String
 	//get class
 	l_push_luascript_ref(L, p_si->script->lua_ref);
 	//get function
-	lua_pushstring(L, String(p_method).utf8().get_data());
+	lua_pushstring(L, String(p_method).ascii().get_data());
 	lua_rawget(L, -2);
 	if (lua_isfunction(L, -1)) {
 		//pushinstance luaref
@@ -842,7 +845,7 @@ Variant LuaBindingHelper::instance_call(ScriptInstance *p_instance, const String
 			r_error.error = Variant::CallError::CALL_ERROR_INVALID_METHOD;
 		}
 	} else {
-		print_format("script cannot get function:%s", String(p_method).utf8().get_data());
+		print_format("script cannot get function:%s", String(p_method).ascii().get_data());
 		r_error.error = Variant::CallError::CALL_ERROR_INVALID_METHOD;
 	}
 	r_error.argument = p_argcount;
@@ -879,9 +882,9 @@ void LuaBindingHelper::register_class(lua_State *L, const ClassDB::ClassInfo *cl
 	// if (!(String(cls->name) == "Object" || String(cls->name) == "Node" || String(cls->name) == "_OS" || String(cls->name) == "Node2D"))
 	// 	return;
 
-	printf("regist:[%s:%s]\n", String(cls->name).utf8().get_data(), String(cls->inherits).utf8().get_data());
+	printf("regist:[%s:%s]\n", String(cls->name).ascii().get_data(), String(cls->inherits).ascii().get_data());
 
-	CharString s = String(cls->name).utf8();
+	CharString s = String(cls->name).ascii();
 	const char *typeName = s.get_data();
 
 	lua_getfield(L, LUA_GLOBALSINDEX, "GD");

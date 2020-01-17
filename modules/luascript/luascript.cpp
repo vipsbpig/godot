@@ -151,7 +151,7 @@ bool LuaScript::has_method(const StringName &p_method) const {
 // 	}
 // }
 void LuaScript::add_property_default_value(const StringName &p_property, const Variant &p_value) {
-	properties_default_value[p_property] = p_property;
+	properties_default_value[p_property] = p_value;
 }
 bool LuaScript::get_property_default_value(const StringName &p_property, Variant &r_value) const {
 	if (!properties_default_value.has(p_property)) return false;

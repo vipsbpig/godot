@@ -23,7 +23,7 @@ Error LuaScriptInstance::initialize(bool p_ref) {
 	//如果复制到自己就引擎就不可以得知
 
 	// Object *obj = owner;
-	// print_format("LuaScriptInstance::init obj type:%s script:%d", String(Variant(obj)).utf8().get_data(), script.ptr());
+	// print_format("LuaScriptInstance::init obj type:%s script:%d", String(Variant(obj)).ascii().get_data(), script.ptr());
 	// call("_init", NULL, 0, Variant::CallError());
 	return OK;
 }
@@ -37,7 +37,7 @@ bool LuaScriptInstance::has_method(const StringName &p_method) const {
 		}
 		p_spt = p_spt->_base;
 	}
-	print_format("LuaScriptInstance::has_method %s ret:%s", String(p_method).utf8().get_data(), ret ? "true" : "false");
+	print_format("LuaScriptInstance::has_method %s ret:%s", String(p_method).ascii().get_data(), ret ? "true" : "false");
 	return ret;
 }
 
@@ -45,7 +45,7 @@ Variant LuaScriptInstance::call(const StringName &p_method, const Variant **p_ar
 	LuaScript *p_spt = script.ptr();
 	while (p_spt) {
 		if (p_spt->has_method(p_method)) {
-			print_format("LuaScript::call %s %d", String(p_method).utf8().get_data(), p_argcount);
+			print_format("LuaScript::call %s %d", String(p_method).ascii().get_data(), p_argcount);
 			return LuaScriptLanguage::get_singleton()->binding->instance_call(this, p_method, p_args, p_argcount, r_error);
 		}
 		p_spt = p_spt->_base;
@@ -55,7 +55,7 @@ Variant LuaScriptInstance::call(const StringName &p_method, const Variant **p_ar
 	const ClassDB::ClassInfo *top = script->cls;
 	while (top) {
 		if (top->method_map.has(p_method)) {
-			print_format("LuaScript::call cls %d:%s argc:%d", String(top->name).utf8().get_data(), String(p_method).utf8().get_data(), p_argcount);
+			print_format("LuaScript::call cls %d:%s argc:%d", String(top->name).ascii().get_data(), String(p_method).ascii().get_data(), p_argcount);
 			MethodBind *mb = top->method_map[p_method];
 			return mb->call(owner, p_args, p_argcount, r_error);
 		}
