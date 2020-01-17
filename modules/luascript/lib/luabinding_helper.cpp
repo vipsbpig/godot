@@ -658,10 +658,11 @@ int LuaBindingHelper::meta_instance__index(lua_State *L) {
 	lua_rawget(L, -2);
 	if (!lua_isnil(L, -1))
 		return 1;
-	//4.普通获取
-	lua_pop(L, 2); //pop script and result
-	lua_rawget(L, -2);
-	return 1;
+	return 0;
+	// //4.普通获取--因为inde是在原本没有才会调用的
+	// lua_pop(L, 2); //pop script and result
+	// lua_rawget(L, -2);
+	// return 1;
 }
 int LuaBindingHelper::meta_instance__newindex(lua_State *L) {
 	LuaScriptInstance *p_instance = luaL_getinstance(L, 1);
