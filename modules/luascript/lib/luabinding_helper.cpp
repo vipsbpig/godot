@@ -857,6 +857,7 @@ Variant LuaBindingHelper::instance_call(ScriptInstance *p_instance, const String
 		//pcall
 		//5.3可以换成pcallk
 		if (lua_pcall(L, p_argcount + 1, 1, pos_err) == 0) {
+			r_error.error = Variant::CallError::CALL_OK;
 			l_get_variant(L, -1, var);
 		} else {
 			r_error.error = Variant::CallError::CALL_ERROR_INVALID_METHOD;
