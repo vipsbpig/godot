@@ -48,10 +48,24 @@ void l_method_error(lua_State *L, const Variant::CallError &err) {
 }
 
 int l_methodbind_wrapper(lua_State *L) {
-	MethodBind *mb = (MethodBind *)lua_touserdata(L, lua_upvalueindex(1));
-	Object **ud = (Object **)lua_touserdata(L, 1);
-	Object *obj = *ud;
 
+	MethodBind *mb = (MethodBind *)lua_touserdata(L, lua_upvalueindex(1));
+	Object *obj = NULL;
+	int t = lua_type(L, 1);
+	if (LUA_TTABLE == t) {
+		if (lua_getmetatable(L, 1)) {
+			luaL_getmetatable(L, "LuaInstance");
+			if (lua_rawequal(L, -1, -2)) {
+				LuaScriptInstance *p_instance = luaL_getinstance(L, 1);
+				obj = p_instance->get_owner();
+			}
+			lua_pop(L, 1);
+		}
+		lua_pop(L, 1);
+	} else if (LUA_TUSERDATA == t) {
+		Object **ud = (Object **)lua_touserdata(L, 1);
+		obj = *ud;
+	}
 	Variant::CallError err;
 
 	int top = lua_gettop(L);
@@ -172,6 +186,15 @@ void l_get_variant(lua_State *L, int idx, Variant &var) {
 			break;
 
 		case LUA_TTABLE:
+			if (lua_getmetatable(L, 1)) {
+				luaL_getmetatable(L, "LuaInstance");
+				if (lua_rawequal(L, -1, -2)) {
+					LuaScriptInstance *p_instance = luaL_getinstance(L, 1);
+					var = p_instance->get_owner();
+				}
+				lua_pop(L, 1);
+			}
+			lua_pop(L, 1);
 			break;
 
 		case LUA_TBOOLEAN:
@@ -323,12 +346,16 @@ int LuaBindingHelper::meta__gc(lua_State *L) {
 	Object *obj = *ud;
 #ifdef LUA_SCRIPT_DEBUG_ENABLED
 	print_format("meta__gc");
+#else
+	printf("meta__gc");
 #endif
 
 	if (obj->is_class_ptr(Reference::get_class_ptr_static())) {
 		Reference *ref = Object::cast_to<Reference>(obj);
 #ifdef LUA_SCRIPT_DEBUG_ENABLED
 		print_format("%s unreferenct by lua gc.", String(Variant(obj)).ascii().get_data());
+#else
+		// printf("%s unreferenct by lua gc.", String(Variant(obj)).ascii().get_data());
 #endif
 		if (ref->unreference())
 			memdelete(ref);
@@ -342,14 +369,19 @@ int LuaBindingHelper::meta__gc(lua_State *L) {
 		if (!node->is_inside_tree()) {
 #ifdef LUA_SCRIPT_DEBUG_ENABLED
 			print_format("DELETED!node %s not in tree", String(Variant(node)).ascii().get_data());
+#else
+			// printf("DELETED!node %s not in tree", String(Variant(obj)).ascii().get_data());
 #endif
 			memdelete(obj);
 			return 0;
 		}
+		// printf("%s NO DELETED! handle by engine", String(Variant(obj)).ascii().get_data());
 		return 0;
 	}
 #ifdef LUA_SCRIPT_DEBUG_ENABLED
 	print_format("DELETED!  %s", String(Variant(obj)).ascii().get_data());
+#else
+	// printf("DELETED!  %s", String(Variant(obj)).ascii().get_data());
 #endif
 	memdelete(obj);
 	return 0;
