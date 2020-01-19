@@ -44,6 +44,7 @@ void l_method_error(lua_State *L, const Variant::CallError &err) {
 		case Variant::CallError::CALL_ERROR_INSTANCE_IS_NULL:
 			luaL_error(L, "Instance is null");
 			break;
+		default: break;
 	}
 }
 
@@ -127,11 +128,27 @@ void l_push_variant(lua_State *L, const Variant &var) {
 			// if (p_instance->base_ref && static_cast<Reference *>(p_instance->owner)->is_referenced()) {
 			// 	self = REF(static_cast<Reference *>(p_instance->owner));
 			//TODO::ScritpInstance
-			Object **ud = NULL;
-			ud = (Object **)lua_newuserdata(L, sizeof(Object *));
-			*ud = obj;
-			luaL_getmetatable(L, "LuaObject");
-			lua_setmetatable(L, -2);
+
+			printf("l_push object\n");
+			lua_pushstring(L, "gdlua_ubox");
+			lua_rawget(L, LUA_REGISTRYINDEX);
+			lua_pushnumber(L, obj->get_instance_id());
+			lua_rawget(L, -2);
+			if (lua_isnil(L, -1)) {
+				lua_pop(L, 1);
+				Object **ud = (Object **)lua_newuserdata(L, sizeof(Object *));
+				*ud = obj;
+				luaL_getmetatable(L, "LuaObject");
+				lua_setmetatable(L, -2);
+				lua_insert(L, -2);
+				//
+				lua_pushnumber(L, obj->get_instance_id());
+				lua_pushvalue(L, -3);
+				lua_rawset(L, -3);
+				lua_pop(L, 1);
+			} else {
+				lua_remove(L, -2);
+			}
 
 		} break;
 		case Variant::VECTOR2:
@@ -322,16 +339,21 @@ void LuaBindingHelper::unbind_script_function(const char *name) {
 
 int LuaBindingHelper::create_user_data(lua_State *L) {
 	const ClassDB::ClassInfo *cls = (ClassDB::ClassInfo *)lua_touserdata(L, lua_upvalueindex(1));
-
 	Object **ud = NULL;
 	ud = (Object **)lua_newuserdata(L, sizeof(Object *));
 	Object *object = cls->creation_func();
-#ifdef LUA_SCRIPT_DEBUG_ENABLED
-	print_format("Name %s call new object_ptr:%d ", object->get_class().ascii().get_data(), object);
-#endif
 	*ud = object;
 	luaL_getmetatable(L, "LuaObject");
 	lua_setmetatable(L, -2);
+#ifdef LUA_SCRIPT_DEBUG_ENABLED
+	print_format("Name %s call new object_ptr:%d ", object->get_class().ascii().get_data(), object);
+#endif
+	lua_pushstring(L, "gdlua_ubox");
+	lua_rawget(L, LUA_REGISTRYINDEX);
+	lua_pushnumber(L, object->get_instance_id());
+	lua_pushvalue(L, -3);
+	lua_rawset(L, -3);
+	lua_pop(L, 1);
 
 	//const StringName *key = cls->method_map.next(NULL);
 	//    while (key) {
@@ -343,47 +365,62 @@ int LuaBindingHelper::create_user_data(lua_State *L) {
 
 int LuaBindingHelper::meta__gc(lua_State *L) {
 	Object **ud = (Object **)lua_touserdata(L, 1);
-	Object *obj = *ud;
-#ifdef LUA_SCRIPT_DEBUG_ENABLED
-	print_format("meta__gc");
-#else
-	printf("meta__gc");
-#endif
-
-	if (obj->is_class_ptr(Reference::get_class_ptr_static())) {
-		Reference *ref = Object::cast_to<Reference>(obj);
-#ifdef LUA_SCRIPT_DEBUG_ENABLED
-		print_format("%s unreferenct by lua gc.", String(Variant(obj)).ascii().get_data());
-#else
-		// printf("%s unreferenct by lua gc.", String(Variant(obj)).ascii().get_data());
-#endif
-		if (ref->unreference())
-			memdelete(ref);
+	if (ud == NULL) {
+		printf("gc	ud is null\n;");
 		return 0;
 	}
+	Object *obj = *ud;
+	if (obj == NULL) {
+		//GC process
+#ifdef LUA_SCRIPT_DEBUG_ENABLED
+		print_format("meta__gc");
+#endif
+		printf("meta__gc obj\n");
+		return 0;
+	}
+
+#ifdef LUA_SCRIPT_DEBUG_ENABLED
+	print_format("free");
+#endif
+	printf("free\n");
+
+	//free process;
+	lua_pushstring(L, "gdlua_ubox");
+	lua_rawget(L, LUA_REGISTRYINDEX);
+	lua_pushnumber(L, obj->get_instance_id());
+	lua_pushnil(L);
+	lua_rawset(L, -3);
+	*ud = NULL;
+
+	// 	if (obj->is_class_ptr(Reference::get_class_ptr_static())) {
+	// 		Reference *ref = Object::cast_to<Reference>(obj);
+	// #ifdef LUA_SCRIPT_DEBUG_ENABLED
+	// 		print_format("%s unreferenct by lua gc.", String(Variant(obj)).ascii().get_data());
+	// #else
+	// 		// printf("%s unreferenct by lua gc.", String(Variant(obj)).ascii().get_data());
+	// #endif
+	// 		if (ref->unreference())
+	// 			memdelete(ref);
+	// 		return 0;
+	// 	}
 
 	//if (obj->is_class("Node")) {
-	if (obj->is_class_ptr(Node::get_class_ptr_static())) {
+	// 	if (obj->is_class_ptr(Node::get_class_ptr_static())) {
 
-		Node *node = Object::cast_to<Node>(obj);
-		if (!node->is_inside_tree()) {
-#ifdef LUA_SCRIPT_DEBUG_ENABLED
-			print_format("DELETED!node %s not in tree", String(Variant(node)).ascii().get_data());
-#else
-			// printf("DELETED!node %s not in tree", String(Variant(obj)).ascii().get_data());
-#endif
-			memdelete(obj);
-			return 0;
-		}
-		// printf("%s NO DELETED! handle by engine", String(Variant(obj)).ascii().get_data());
-		return 0;
-	}
-#ifdef LUA_SCRIPT_DEBUG_ENABLED
-	print_format("DELETED!  %s", String(Variant(obj)).ascii().get_data());
-#else
-	// printf("DELETED!  %s", String(Variant(obj)).ascii().get_data());
-#endif
-	memdelete(obj);
+	// 		Node *node = Object::cast_to<Node>(obj);
+	// 		if (!node->is_inside_tree()) {
+	// #ifdef LUA_SCRIPT_DEBUG_ENABLED
+	// 			print_format("DELETED!node %s not in tree", String(Variant(node)).ascii().get_data());
+	// #else
+	// 			// printf("DELETED!node %s not in tree", String(Variant(obj)).ascii().get_data());
+	// #endif
+	// 			memdelete(obj);
+	// 			return 0;
+	// 		}
+	// 		// printf("%s NO DELETED! handle by engine", String(Variant(obj)).ascii().get_data());
+	// 		return 0;
+	// 	}
+
 	return 0;
 }
 
@@ -397,10 +434,12 @@ int LuaBindingHelper::meta__tostring(lua_State *L) {
 int LuaBindingHelper::meta__index(lua_State *L) {
 	Object **ud = (Object **)lua_touserdata(L, 1);
 	Object *obj = *ud;
-	StringName index_name = lua_tostring(L, 2);
+	const char *methodname = lua_tostring(L, 2);
+	StringName index_name = methodname;
 #ifdef LUA_SCRIPT_DEBUG_ENABLED
 	print_format("meta__index: %s call %s", obj->get_class().ascii().get_data(), String(index_name).ascii().get_data());
 #endif
+
 	//1.如果是变量，压入
 	bool success = false;
 	Variant variant = obj->get(index_name, &success);
@@ -413,6 +452,11 @@ int LuaBindingHelper::meta__index(lua_State *L) {
 	if (mb != NULL) {
 		lua_pushlightuserdata(L, mb);
 		lua_pushcclosure(L, l_methodbind_wrapper, 1);
+		return 1;
+	}
+	//3.free方法
+	if (strncmp(methodname, "free", 4) == 0) {
+		lua_pushcclosure(L, meta__gc, 0);
 		return 1;
 	}
 	return 0;
@@ -620,8 +664,8 @@ int LuaBindingHelper::meta_script__tostring(lua_State *L) {
 int LuaBindingHelper::meta_script__index(lua_State *L) {
 	LuaScript *p_script = luaL_getscript(L, 1);
 	StringName index_name = lua_tostring(L, 2);
-	const char *base = String(p_script->cls->name).ascii().get_data();
 #ifdef LUA_SCRIPT_DEBUG_ENABLED
+	const char *base = String(p_script->cls->name).ascii().get_data();
 	print_format("meta_script__index:%s base:%s %d script:%d", lua_tostring(L, 2), base, p_script->cls, p_script);
 #endif
 	if (p_script->properties_default_value.has(index_name)) {
@@ -637,10 +681,10 @@ int LuaBindingHelper::meta_script__index(lua_State *L) {
 int LuaBindingHelper::meta_script__newindex(lua_State *L) {
 	LuaScript *p_script = luaL_getscript(L, 1);
 	StringName index_name = lua_tostring(L, 2);
-	const char *base = String(p_script->cls->name).ascii().get_data();
 	int idx = 3;
 	int t = lua_type(L, idx);
 #ifdef LUA_SCRIPT_DEBUG_ENABLED
+	const char *base = String(p_script->cls->name).ascii().get_data();
 	print_format("meta_script__newindex:%slua_typ:%d  base:%s script:%d lua_t:%d", lua_tostring(L, 2), t, base, p_script->cls, p_script);
 #endif
 	if (LUA_TNONE == t || LUA_TTHREAD == t || LUA_TLIGHTUSERDATA == t || LUA_TTABLE == t) {
@@ -1041,7 +1085,17 @@ void LuaBindingHelper::initialize() {
 	lua_newtable(L);
 	lua_rawset(L, LUA_REGISTRYINDEX);
 
-
+	//hidden object space
+	lua_pushstring(L, "gdlua_ubox");
+	lua_newtable(L);
+	/* make weak value metatable for ubox table to allow userdata to be
+	   garbage-collected */
+	lua_newtable(L);
+	lua_pushliteral(L, "__mode");
+	lua_pushliteral(L, "v");
+	lua_rawset(L, -3); /* stack: string ubox mt */
+	lua_setmetatable(L, -2); /* stack: string ubox */
+	lua_rawset(L, LUA_REGISTRYINDEX);
 
 	//Object binding
 	luaL_newmetatable(L, "LuaObject");
