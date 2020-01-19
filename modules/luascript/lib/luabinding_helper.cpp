@@ -269,8 +269,8 @@ int LuaBindingHelper::l_extends(lua_State *L) {
 			luaL_error(L, "Extends Wrong Type");
 			return 0;
 		}
-		const char *base = String(cls->name).ascii().get_data();
 #ifdef LUA_SCRIPT_DEBUG_ENABLED
+		const char *base = String(cls->name).ascii().get_data();
 		print_format("l_extends from:%s %d script:%d", base, cls, p_script);
 #endif
 		p_script->cls = cls;
@@ -293,8 +293,8 @@ int LuaBindingHelper::l_extends(lua_State *L) {
 		//现在临时用Object来代替
 		//
 		const ClassDB::ClassInfo *cls = &ClassDB::classes["Object"];
-		const char *base = String(cls->name).ascii().get_data();
 #ifdef LUA_SCRIPT_DEBUG_ENABLED
+		const char *base = String(cls->name).ascii().get_data();
 		print_format("l_extends from:%s", base);
 #endif
 		p_script->cls = cls;
@@ -802,7 +802,7 @@ int meta_base_cls__index(lua_State *L) {
 	//压入方法来调用
 	//
 	StringName *class_name = (StringName *)lua_touserdata(L, lua_upvalueindex(1));
-	Object *pushobj = (Object *)lua_touserdata(L, lua_upvalueindex(2));
+	//Object *pushobj = (Object *)lua_touserdata(L, lua_upvalueindex(2));
 
 	StringName index_name = lua_tostring(L, 2);
 	MethodBind *mb = ClassDB::get_method(*class_name, index_name);
@@ -826,8 +826,8 @@ void LuaBindingHelper::helper_push_instance(void *object) {
 		lua_newtable(L);
 		lua_pushvalue(L, -1);
 		lua_pushlightuserdata(L, (void *)&p_instance->script->cls->name);
-		lua_pushlightuserdata(L, p_instance->owner);
-		lua_pushcclosure(L, meta_base_cls__index, 2);
+		//lua_pushlightuserdata(L, p_instance->owner);
+		lua_pushcclosure(L, meta_base_cls__index, 1);
 		lua_pushstring(L, "__index");
 		lua_rawset(L, -3);
 		lua_setmetatable(L, -2);
