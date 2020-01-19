@@ -86,8 +86,8 @@ public:
 	/* EXTRA FUNTIONS */
 	/*TODO*/ virtual void *alloc_instance_binding_data(Object *p_object) { return NULL; }
 	/*TODO*/ virtual void free_instance_binding_data(void *p_data) {}
-	/*TODO*/ virtual void refcount_incremented_instance_binding(Object *p_object) {}
-	/*TODO*/ virtual bool refcount_decremented_instance_binding(Object *p_object) { return true; }
+	virtual void refcount_incremented_instance_binding(Object *p_object);
+	virtual bool refcount_decremented_instance_binding(Object *p_object);
 	/*TODO*/ virtual void frame() {}
 	/*TODO*/ virtual bool handles_global_class_type(const String &p_type) const { return false; }
 	/*TODO*/ virtual String get_global_class_name(const String &p_path, String *r_base_type, String *r_icon_path) const { return ""; }

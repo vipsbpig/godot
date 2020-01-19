@@ -660,7 +660,7 @@ int LuaBindingHelper::meta_script__newindex(lua_State *L) {
 
 void LuaBindingHelper::l_ref_luascript(lua_State *L, void *object) {
 	LuaScript *p_script = (LuaScript *)object;
-	lua_pushstring(L, "lua_script_ubox");
+	lua_pushstring(L, "lua_script_ref");
 	lua_rawget(L, LUA_REGISTRYINDEX);
 	lua_pushvalue(L, -2);
 	p_script->lua_ref = luaL_ref(L, -2);
@@ -671,7 +671,7 @@ void LuaBindingHelper::l_ref_luascript(lua_State *L, void *object) {
 }
 
 void LuaBindingHelper::l_push_luascript_ref(lua_State *L, int ref) {
-	lua_pushstring(L, "lua_script_ubox");
+	lua_pushstring(L, "lua_script_ref");
 	lua_rawget(L, LUA_REGISTRYINDEX);
 	lua_rawgeti(L, -1, ref);
 	lua_remove(L, -2);
@@ -683,7 +683,7 @@ void LuaBindingHelper::l_unref_luascript(void *object) {
 	printf("l_unref_luascript:%d s:%d", p_script->lua_ref, p_script);
 #endif
 
-	lua_pushstring(L, "lua_script_ubox");
+	lua_pushstring(L, "lua_script_ref");
 	lua_rawget(L, LUA_REGISTRYINDEX);
 	luaL_unref(L, -1, p_script->lua_ref);
 	lua_pop(L, 1);
@@ -853,7 +853,7 @@ void LuaBindingHelper::helper_push_instance(void *object) {
 
 void LuaBindingHelper::l_ref_instance(lua_State *L, void *object) {
 	LuaScriptInstance *p_instance = (LuaScriptInstance *)object;
-	lua_pushstring(L, "lua_instance_ubox");
+	lua_pushstring(L, "lua_instance_ref");
 	lua_rawget(L, LUA_REGISTRYINDEX);
 	lua_pushvalue(L, -2);
 	p_instance->lua_ref = luaL_ref(L, -2);
@@ -867,7 +867,7 @@ void LuaBindingHelper::l_push_instance_ref(lua_State *L, int ref) {
 #ifdef LUA_SCRIPT_DEBUG_ENABLED
 	print_format("l_push_instance_ref :%d ", ref);
 #endif
-	lua_pushstring(L, "lua_instance_ubox");
+	lua_pushstring(L, "lua_instance_ref");
 	lua_rawget(L, LUA_REGISTRYINDEX);
 	lua_rawgeti(L, -1, ref);
 	lua_remove(L, -2);
@@ -878,7 +878,7 @@ void LuaBindingHelper::l_unref_instance(void *object) {
 #ifdef LUA_SCRIPT_DEBUG_ENABLED
 	print_format("l_unref_instance:%d s:%s", p_instance->lua_ref, String(Variant(p_instance->get_owner())).ascii().get_data());
 #endif
-	lua_pushstring(L, "lua_instance_ubox");
+	lua_pushstring(L, "lua_instance_ref");
 	lua_rawget(L, LUA_REGISTRYINDEX);
 	luaL_unref(L, -1, p_instance->lua_ref);
 	lua_pop(L, 1);
@@ -1032,14 +1032,16 @@ void LuaBindingHelper::initialize() {
 	godotbind();
 
 	//hidden script space
-	lua_pushstring(L, "lua_script_ubox");
+	lua_pushstring(L, "lua_script_ref");
 	lua_newtable(L);
 	lua_rawset(L, LUA_REGISTRYINDEX);
 
 	//hidden instance space
-	lua_pushstring(L, "lua_instance_ubox");
+	lua_pushstring(L, "lua_instance_ref");
 	lua_newtable(L);
 	lua_rawset(L, LUA_REGISTRYINDEX);
+
+
 
 	//Object binding
 	luaL_newmetatable(L, "LuaObject");

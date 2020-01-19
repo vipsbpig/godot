@@ -85,7 +85,7 @@ void LuaScriptLanguage::get_reserved_words(List<String> *p_words) const {
 	const char **w = _reserved_words;
 
 	while (*w) {
-		
+
 		p_words->push_back(*w);
 		w++;
 	}
@@ -119,4 +119,12 @@ Ref<Script> LuaScriptLanguage::get_template(const String &p_class_name, const St
 	script->set_source_code(_template);
 
 	return script;
+}
+
+void LuaScriptLanguage::refcount_incremented_instance_binding(Object *p_object) {
+	
+}
+
+bool LuaScriptLanguage::refcount_decremented_instance_binding(Object *p_object){
+	return true;
 }
