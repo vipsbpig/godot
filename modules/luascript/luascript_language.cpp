@@ -79,12 +79,13 @@ void LuaScriptLanguage::get_reserved_words(List<String> *p_words) const {
 		"NAN",
 		"export",
 		"extends",
+		0
 	};
 
 	const char **w = _reserved_words;
 
 	while (*w) {
-
+		
 		p_words->push_back(*w);
 		w++;
 	}
