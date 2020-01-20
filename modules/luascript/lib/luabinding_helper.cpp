@@ -470,7 +470,10 @@ int LuaBindingHelper::meta__gc(lua_State *L) {
 int LuaBindingHelper::meta__tostring(lua_State *L) {
 	Object **ud = (Object **)lua_touserdata(L, 1);
 	Object *obj = *ud;
-	lua_pushstring(L, String(Variant(obj)).ascii().get_data());
+	if (obj != NULL)
+		lua_pushstring(L, String(Variant(obj)).ascii().get_data());
+	else
+		lua_pushstring(L, "[DELETED Object]");
 	return 1;
 }
 
@@ -478,6 +481,10 @@ int LuaBindingHelper::meta__index(lua_State *L) {
 	Object **ud = (Object **)lua_touserdata(L, 1);
 	Object *obj = *ud;
 	const char *methodname = lua_tostring(L, 2);
+	if (obj == NULL) {
+		luaL_error(L, "Faild To Get %s Form NULL Object", methodname);
+		return 0;
+	}
 	StringName index_name = methodname;
 #ifdef LUA_SCRIPT_DEBUG_ENABLED
 	print_format("meta__index: %s call %s", obj->get_class().ascii().get_data(), String(index_name).ascii().get_data());
@@ -512,7 +519,11 @@ int LuaBindingHelper::meta__newindex(lua_State *L) {
 	//TODO:: scriptinstance
 	Object **ud = (Object **)lua_touserdata(L, 1);
 	Object *obj = *ud;
-
+	if (obj == NULL) {
+		const char *methodname = lua_tostring(L, 2);
+		luaL_error(L, "Failed To Set Field :'%s' To NULL Object", methodname);
+		return 0;
+	}
 	Variant key, value;
 	l_get_variant(L, 2, key);
 	l_get_variant(L, 3, value);
@@ -531,6 +542,7 @@ int LuaBindingHelper::l_object_free(lua_State *L) {
 	Object *obj = *ud;
 	printf("memdelete in free\n");
 	memdelete(obj);
+	*ud = NULL;
 	return 0;
 }
 void LuaBindingHelper::l_add_reference(Object *p_reference) {
