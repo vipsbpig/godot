@@ -865,8 +865,7 @@ int LuaBindingHelper::meta_instance__newindex(lua_State *L) {
 		l_get_variant(L, idx, var);
 		//set
 
-		bool success = false;
-		p_instance->set(index_name, var);
+		bool success = p_instance->set(index_name, var);
 		if (!success) {
 			luaL_error(L, "set %s.%s = %s error", String(Variant(p_instance->owner)).ascii().get_data(), String(index_name).ascii().get_data(), String(var).ascii().get_data());
 		}

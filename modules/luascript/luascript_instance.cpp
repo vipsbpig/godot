@@ -36,7 +36,7 @@ bool LuaScriptInstance::set(const StringName &p_name, const Variant &p_value) {
 #endif
 	LuaScript *p_spt = script.ptr();
 	while (p_spt) {
-		if (p_spt->properties_default_value.has(p_name)) {
+		if (p_spt->properties_default_value.has(p_name) || p_spt->lua_properties_type.has(p_name)) {
 #ifdef LUA_SCRIPT_DEBUG_ENABLED
 			print_format("LuaScriptInstance::set %s %s", String(p_name).ascii().get_data(), String(p_value).utf8().get_data());
 #endif
