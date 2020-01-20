@@ -179,6 +179,11 @@ void l_push_variant(lua_State *L, const Variant &var) {
 			//TODO::ScritpInstance
 
 			LuaBindingHelper::script_pushobject(L, obj);
+			if (obj->is_class_ptr(Reference::get_class_ptr_static())) {
+				Reference *ref = Object::cast_to<Reference>(obj);
+				//printf("push ref:%s count:%d\n", String(Variant(ref)).ascii().get_data(), ref->reference_get_count());
+				ref->reference();
+			}
 		} break;
 		case Variant::VECTOR2:
 		case Variant::RECT2:
@@ -272,14 +277,14 @@ void l_get_variant(lua_State *L, int idx, Variant &var) {
 							return;
 						}
 						Object *obj = *((Object **)ud);
-						var = obj;
-						// Object *obj = *((Object **)ud);
-						// if (obj->is_class_ptr(Reference::get_class_ptr_static())) {
-						// 	Reference *ref = Object::cast_to<Reference>(obj);
-						// 	var = Ref<Reference>(ref);
-						// } else {
-						// 	var = obj;
-						// }
+						if (obj->is_class_ptr(Reference::get_class_ptr_static())) {
+							Reference *ref = Object::cast_to<Reference>(obj);
+							var = Ref<Reference>(ref);
+							//printf("Ref %s\n",String(var).ascii().get_data());
+
+						} else {
+							var = obj;
+						}
 						return;
 					}
 					lua_pop(L, 1);
@@ -450,6 +455,14 @@ int LuaBindingHelper::meta__gc(lua_State *L) {
 	if (obj == NULL) {
 		return 0;
 	}
+	if (obj->is_class_ptr(Reference::get_class_ptr_static())) {
+		Reference *ref = Object::cast_to<Reference>(obj);
+		//printf("__gc ref:%s count:%d\n", String(Variant(ref)).ascii().get_data(), ref->reference_get_count());
+		if (ref->unreference()) {
+			//printf("memdelete\n");
+			memdelete(ref);
+		}
+	}
 	return 0;
 }
 
@@ -532,17 +545,11 @@ int LuaBindingHelper::l_object_free(lua_State *L) {
 }
 void LuaBindingHelper::l_add_reference(Object *p_reference) {
 	printf("l_add_reference ref:%s\n", String(Variant(p_reference)).ascii().get_data());
-	// Reference* p_ref =Object::cast_to<Reference> (p_reference);
-	// p_ref->reference();
-	push_strong_ref(L, p_reference);
+	//push_strong_ref(L, p_reference);
 }
 bool LuaBindingHelper::l_del_reference(Object *p_reference) {
 	printf("l_del_reference ref:%s\n", String(Variant(p_reference)).ascii().get_data());
-	//script_deleteobject(L, p_reference);
-	// Reference* p_ref =Object::cast_to<Reference> (p_reference);
-	// if (p_ref->unreference())
-	// 	memdelete(p_ref);
-	del_strong_ref(L, p_reference);
+	//del_strong_ref(L, p_reference);
 	return true;
 }
 
