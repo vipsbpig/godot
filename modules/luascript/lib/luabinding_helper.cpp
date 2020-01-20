@@ -390,7 +390,8 @@ int LuaBindingHelper::script_pushobject(lua_State *L, Object *object) {
 		ud = (Object **)lua_touserdata(L, -1);
 		if (*ud == object) {
 			lua_replace(L, -2);
-			return 0;
+			printf("gdlua_ubox push exist object:%d", object);
+			return 1;
 		}
 		// C 对象指针被释放后，有可能地址被重用。
 		// 这个时候，可能取到曾经保存起来的 userdata ，里面的指针必然为空。
@@ -404,6 +405,7 @@ int LuaBindingHelper::script_pushobject(lua_State *L, Object *object) {
 	lua_rawsetp(L, -4, object);
 	lua_replace(L, -3);
 	lua_pop(L, 1);
+	printf("gdlua_ubox push new object:%d", object);
 	return 1;
 }
 // void *LuaBindingHelper::script_toobject(lua_State *L, int index) {
@@ -418,10 +420,12 @@ void LuaBindingHelper::script_deleteobject(lua_State *L, Object *object) {
 	lua_rawget(L, LUA_REGISTRYINDEX);
 	// if (lua_istable(L, -1)) {
 	lua_rawgetp(L, -1, object);
+	printf("gdlua_ubox delete object:%d", object);
 	if (lua_type(L, -1) == LUA_TUSERDATA) {
 		void **ud = (void **)lua_touserdata(L, -1);
 		// 这个 assert 防止 deleteobject 被重复调用。
 		ERR_FAIL_COND(*ud != object);
+		printf("gdlua_ubox set k:%d as NULL", object);
 		// 销毁一个被 Lua 引用住的对象，只需要把 *ud 置为 NULL 。
 		*ud = NULL;
 	}
@@ -443,7 +447,7 @@ int LuaBindingHelper::meta__gc(lua_State *L) {
 #ifdef LUA_SCRIPT_DEBUG_ENABLED
 		print_format("meta__gc");
 #endif
-		printf("meta__gc obj ==null\n");
+		printf("meta__gc obj == null\n");
 		return 0;
 	}
 
@@ -478,6 +482,7 @@ int LuaBindingHelper::meta__gc(lua_State *L) {
 	// 		// printf("%s NO DELETED! handle by engine", String(Variant(obj)).ascii().get_data());
 	// 		return 0;
 	// 	}
+	printf("meta__gc!!");
 	memdelete(obj);
 	return 0;
 }
