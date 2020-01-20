@@ -1089,10 +1089,25 @@ void LuaBindingHelper::openLibs(lua_State *L) {
 	}
 }
 
+int l_load(lua_State *L) {
+	if (lua_isstring(L, 1)) {
+		Variant var = ResourceLoader::load(lua_tostring(L, 1));
+		l_push_variant(L, var);
+	} else
+		lua_pushnil(L);
+	return 1;
+}
+
 void LuaBindingHelper::godotbind() {
 	lua_getfield(L, LUA_GLOBALSINDEX, "GD");
 	lua_pushcfunction(L, l_print);
 	lua_setfield(L, -2, "print");
+
+	//
+	//basicfunctionbind
+	lua_pushcfunction(L, l_load);
+	lua_setfield(L, -2, "load");
+
 	lua_pop(L, 1);
 }
 
