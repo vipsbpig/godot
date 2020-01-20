@@ -481,6 +481,15 @@ int LuaBindingHelper::meta__newindex(lua_State *L) {
 	return 0;
 }
 
+void LuaBindingHelper::l_add_reference(Reference *p_reference) {
+	printf("l_add_reference ref:%s", String(Variant(p_reference)).ascii().get_data());
+}
+bool LuaBindingHelper::l_del_reference(Reference *p_reference) {
+	printf("l_del_reference ref:%s", String(Variant(p_reference)).ascii().get_data());
+
+	return true;
+}
+
 int LuaBindingHelper::meta_bultins__evaluate(lua_State *L) {
 	Variant::Operator op = (Variant::Operator)lua_tointeger(L, lua_upvalueindex(1));
 

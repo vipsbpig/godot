@@ -60,6 +60,12 @@ private:
 	static int meta__tostring(lua_State *L);
 	static int meta__index(lua_State *L);
 	static int meta__newindex(lua_State *L);
+
+	//==Reference add and remove by engine
+public:
+	void l_add_reference(Reference *p_reference);
+	bool l_del_reference(Reference *p_reference);
+
 	//===lua variant convert helper
 
 private:

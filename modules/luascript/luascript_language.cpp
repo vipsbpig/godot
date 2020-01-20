@@ -122,9 +122,9 @@ Ref<Script> LuaScriptLanguage::get_template(const String &p_class_name, const St
 }
 
 void LuaScriptLanguage::refcount_incremented_instance_binding(Object *p_object) {
-	
+	binding->l_add_reference((Reference *)p_object);
 }
 
-bool LuaScriptLanguage::refcount_decremented_instance_binding(Object *p_object){
-	return true;
+bool LuaScriptLanguage::refcount_decremented_instance_binding(Object *p_object) {
+	return binding->l_del_reference((Reference *)p_object);
 }
