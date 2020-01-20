@@ -178,7 +178,6 @@ void l_push_variant(lua_State *L, const Variant &var) {
 			// 	self = REF(static_cast<Reference *>(p_instance->owner));
 			//TODO::ScritpInstance
 
-			printf("l_push object\n");
 			LuaBindingHelper::script_pushobject(L, obj);
 		} break;
 		case Variant::VECTOR2:
@@ -391,7 +390,6 @@ int LuaBindingHelper::script_pushobject(lua_State *L, Object *object) {
 		ud = (Object **)lua_touserdata(L, -1);
 		if (*ud == object) {
 			lua_replace(L, -2);
-			printf("weak_ubox push exist object:%d\n", object);
 			return 1;
 		}
 		// C 对象指针被释放后，有可能地址被重用。
@@ -407,7 +405,6 @@ int LuaBindingHelper::script_pushobject(lua_State *L, Object *object) {
 	lua_rawset(L, -5);
 	lua_replace(L, -3);
 	lua_pop(L, 1);
-	printf("weak_ubox push new object:%d\n", object);
 	return 1;
 }
 
@@ -447,23 +444,12 @@ void LuaBindingHelper::del_strong_ref(lua_State *L, Object *object) {
 int LuaBindingHelper::meta__gc(lua_State *L) {
 	Object **ud = (Object **)lua_touserdata(L, 1);
 	if (ud == NULL) {
-		printf("gc	ud is null\n;");
 		return 0;
 	}
 	Object *obj = *ud;
 	if (obj == NULL) {
-		//GC process
-#ifdef LUA_SCRIPT_DEBUG_ENABLED
-		print_format("meta__gc");
-#endif
-		printf("meta__gc obj == null\n");
 		return 0;
 	}
-
-#ifdef LUA_SCRIPT_DEBUG_ENABLED
-#endif
-
-	printf("let game engine handle life time:%s\n", String(Variant(obj)).ascii().get_data());
 	return 0;
 }
 
@@ -540,7 +526,6 @@ int LuaBindingHelper::l_object_free(lua_State *L) {
 		return 0;
 	}
 	Object *obj = *ud;
-	printf("memdelete in free\n");
 	memdelete(obj);
 	*ud = NULL;
 	return 0;
