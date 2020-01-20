@@ -27,8 +27,10 @@ private:
 
 public:
 	static int script_pushobject(lua_State *L, Object *object);
+	void push_strong_ref(lua_State *L, Object *object);
+	void del_strong_ref(lua_State *L, Object *Object);
 	// static void *script_toobject(lua_State *L, int index);
-	static void script_deleteobject(lua_State *L, Object *object);
+	// static void script_deleteobject(lua_State *L, Object *object);
 
 private:
 	//===LuaObject lua meta methods

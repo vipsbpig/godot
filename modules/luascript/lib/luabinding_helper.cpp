@@ -383,14 +383,15 @@ int LuaBindingHelper::create_user_data(lua_State *L) {
 }
 int LuaBindingHelper::script_pushobject(lua_State *L, Object *object) {
 	Object **ud;
-	lua_pushstring(L, "gdlua_ubox");
+	lua_pushstring(L, "weak_ubox");
 	lua_rawget(L, LUA_REGISTRYINDEX);
-	lua_rawgetp(L, -1, object);
+	lua_pushnumber(L, object->get_instance_id());
+	lua_rawget(L, -2);
 	if (lua_type(L, -1) == LUA_TUSERDATA) {
 		ud = (Object **)lua_touserdata(L, -1);
 		if (*ud == object) {
 			lua_replace(L, -2);
-			printf("gdlua_ubox push exist object:%d", object);
+			printf("weak_ubox push exist object:%d\n", object);
 			return 1;
 		}
 		// C 对象指针被释放后，有可能地址被重用。
@@ -401,13 +402,32 @@ int LuaBindingHelper::script_pushobject(lua_State *L, Object *object) {
 	*ud = object;
 	luaL_getmetatable(L, "LuaObject");
 	lua_setmetatable(L, -2);
-	lua_pushvalue(L, -1);
-	lua_rawsetp(L, -4, object);
+	lua_pushnumber(L, object->get_instance_id());
+	lua_pushvalue(L, -2);
+	lua_rawset(L, -5);
 	lua_replace(L, -3);
 	lua_pop(L, 1);
-	printf("gdlua_ubox push new object:%d", object);
+	printf("weak_ubox push new object:%d\n", object);
 	return 1;
 }
+
+void LuaBindingHelper::push_strong_ref(lua_State *L, Object *object) {
+	script_pushobject(L, object);
+	lua_pushstring(L, "ref_ubox");
+	lua_rawget(L, LUA_REGISTRYINDEX);
+	lua_pushnumber(L, object->get_instance_id());
+	lua_pushvalue(L, -3);
+	lua_rawset(L, -3);
+	lua_pop(L, 2);
+};
+void LuaBindingHelper::del_strong_ref(lua_State *L, Object *object) {
+	lua_pushstring(L, "ref_ubox");
+	lua_rawget(L, LUA_REGISTRYINDEX);
+	lua_pushnil(L);
+	lua_pushnumber(L, object->get_instance_id());
+	lua_rawset(L, -3);
+	lua_pop(L, 1);
+};
 // void *LuaBindingHelper::script_toobject(lua_State *L, int index) {
 // 	void **ud = (void **)lua_touserdata(L, index);
 // 	if (ud == NULL)
@@ -415,26 +435,15 @@ int LuaBindingHelper::script_pushobject(lua_State *L, Object *object) {
 // 	// 如果 object 已在 C 代码中销毁，*ud 为 NULL 。
 // 	return *ud;
 // }
-void LuaBindingHelper::script_deleteobject(lua_State *L, Object *object) {
-	lua_pushstring(L, "gdlua_ubox");
-	lua_rawget(L, LUA_REGISTRYINDEX);
-	// if (lua_istable(L, -1)) {
-	lua_rawgetp(L, -1, object);
-	printf("gdlua_ubox delete object:%d", object);
-	if (lua_type(L, -1) == LUA_TUSERDATA) {
-		void **ud = (void **)lua_touserdata(L, -1);
-		// 这个 assert 防止 deleteobject 被重复调用。
-		ERR_FAIL_COND(*ud != object);
-		printf("gdlua_ubox set k:%d as NULL", object);
-		// 销毁一个被 Lua 引用住的对象，只需要把 *ud 置为 NULL 。
-		*ud = NULL;
-	}
-	// 	lua_pop(L, 2);
-	// } else {
-	// 	// 有可能从未调用过 pushobject ，此时注册表中 script 项尚未建立。
-	// 	lua_pop(L, 1);
-	// }
-}
+// void LuaBindingHelper::script_deleteobject(lua_State *L, Object *object) {
+// 	lua_pushstring(L, "weak_ubox");
+// 	lua_rawget(L, LUA_REGISTRYINDEX);
+
+// 	lua_pushnil(L);
+// 	lua_pushnumber(L, object->get_instance_id());
+// 	lua_rawset(L, -3);
+// 	printf("weak_ubox delete object:%d\n", object);
+// }
 int LuaBindingHelper::meta__gc(lua_State *L) {
 	Object **ud = (Object **)lua_touserdata(L, 1);
 	if (ud == NULL) {
@@ -452,38 +461,9 @@ int LuaBindingHelper::meta__gc(lua_State *L) {
 	}
 
 #ifdef LUA_SCRIPT_DEBUG_ENABLED
-	print_format("free");
 #endif
-	// 	if (obj->is_class_ptr(Reference::get_class_ptr_static())) {
-	// 		Reference *ref = Object::cast_to<Reference>(obj);
-	// #ifdef LUA_SCRIPT_DEBUG_ENABLED
-	// 		print_format("%s unreferenct by lua gc.", String(Variant(obj)).ascii().get_data());
-	// #else
-	// 		// printf("%s unreferenct by lua gc.", String(Variant(obj)).ascii().get_data());
-	// #endif
-	// 		if (ref->unreference())
-	// 			memdelete(ref);
-	// 		return 0;
-	// 	}
 
-	//if (obj->is_class("Node")) {
-	// 	if (obj->is_class_ptr(Node::get_class_ptr_static())) {
-
-	// 		Node *node = Object::cast_to<Node>(obj);
-	// 		if (!node->is_inside_tree()) {
-	// #ifdef LUA_SCRIPT_DEBUG_ENABLED
-	// 			print_format("DELETED!node %s not in tree", String(Variant(node)).ascii().get_data());
-	// #else
-	// 			// printf("DELETED!node %s not in tree", String(Variant(obj)).ascii().get_data());
-	// #endif
-	// 			memdelete(obj);
-	// 			return 0;
-	// 		}
-	// 		// printf("%s NO DELETED! handle by engine", String(Variant(obj)).ascii().get_data());
-	// 		return 0;
-	// 	}
-	printf("meta__gc!!");
-	memdelete(obj);
+	printf("let game engine handle life time:%s\n", String(Variant(obj)).ascii().get_data());
 	return 0;
 }
 
@@ -545,23 +525,27 @@ int LuaBindingHelper::meta__newindex(lua_State *L) {
 }
 int LuaBindingHelper::l_object_free(lua_State *L) {
 	Object **ud = (Object **)lua_touserdata(L, 1);
+	if (ud == NULL) {
+		return 0;
+	}
 	Object *obj = *ud;
-
-	script_deleteobject(L, obj);
+	printf("memdelete in free\n");
+	memdelete(obj);
 	return 0;
 }
 void LuaBindingHelper::l_add_reference(Object *p_reference) {
-	printf("l_add_reference ref:%s", String(Variant(p_reference)).ascii().get_data());
+	printf("l_add_reference ref:%s\n", String(Variant(p_reference)).ascii().get_data());
 	// Reference* p_ref =Object::cast_to<Reference> (p_reference);
 	// p_ref->reference();
-	script_pushobject(L, p_reference);
+	push_strong_ref(L, p_reference);
 }
 bool LuaBindingHelper::l_del_reference(Object *p_reference) {
-	//printf("l_del_reference ref:%s", String(Variant(p_reference)).ascii().get_data());
-	script_deleteobject(L, p_reference);
+	printf("l_del_reference ref:%s\n", String(Variant(p_reference)).ascii().get_data());
+	//script_deleteobject(L, p_reference);
 	// Reference* p_ref =Object::cast_to<Reference> (p_reference);
 	// if (p_ref->unreference())
 	// 	memdelete(p_ref);
+	del_strong_ref(L, p_reference);
 	return true;
 }
 
@@ -808,7 +792,7 @@ void LuaBindingHelper::l_push_luascript_ref(lua_State *L, int ref) {
 void LuaBindingHelper::l_unref_luascript(void *object) {
 	LuaScript *p_script = (LuaScript *)object;
 #ifdef LUA_SCRIPT_DEBUG_ENABLED
-	printf("l_unref_luascript:%d s:%d", p_script->lua_ref, p_script);
+	printf("l_unref_luascript:%d s:%d\n", p_script->lua_ref, p_script);
 #endif
 
 	lua_pushstring(L, "lua_script_ref");
@@ -1170,15 +1154,20 @@ void LuaBindingHelper::initialize() {
 	lua_rawset(L, LUA_REGISTRYINDEX);
 
 	//hidden object space
-	lua_pushstring(L, "gdlua_ubox");
+	lua_pushstring(L, "weak_ubox");
 	lua_newtable(L);
 	/* make weak value metatable for ubox table to allow userdata to be
 	   garbage-collected */
 	lua_newtable(L);
 	lua_pushliteral(L, "__mode");
-	lua_pushliteral(L, "kv");
+	lua_pushliteral(L, "v");
 	lua_rawset(L, -3); /* stack: string ubox mt */
 	lua_setmetatable(L, -2); /* stack: string ubox */
+	lua_rawset(L, LUA_REGISTRYINDEX);
+
+	//ref ubox
+	lua_pushstring(L, "ref_ubox");
+	lua_newtable(L);
 	lua_rawset(L, LUA_REGISTRYINDEX);
 
 	//Object binding
