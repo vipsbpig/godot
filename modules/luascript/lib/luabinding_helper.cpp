@@ -1171,7 +1171,7 @@ void LuaBindingHelper::initialize() {
 	   garbage-collected */
 	lua_newtable(L);
 	lua_pushliteral(L, "__mode");
-	lua_pushliteral(L, "v");
+	lua_pushliteral(L, "kv");
 	lua_rawset(L, -3); /* stack: string ubox mt */
 	lua_setmetatable(L, -2); /* stack: string ubox */
 	lua_rawset(L, LUA_REGISTRYINDEX);
