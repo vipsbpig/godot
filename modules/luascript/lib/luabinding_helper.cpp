@@ -394,7 +394,7 @@ int LuaBindingHelper::script_pushobject(lua_State *L, Object *object) {
 		}
 		// C 对象指针被释放后，有可能地址被重用。
 		// 这个时候，可能取到曾经保存起来的 userdata ，里面的指针必然为空。
-		ERR_FAIL_COND(*ud != NULL);
+		//ERR_FAIL_COND_V(*ud != NULL, -1);
 	}
 	ud = (Object **)lua_newuserdata(L, sizeof(Object *));
 	*ud = object;
@@ -545,13 +545,18 @@ int LuaBindingHelper::l_object_free(lua_State *L) {
 	script_deleteobject(L, obj);
 	return 0;
 }
-void LuaBindingHelper::l_add_reference(Reference *p_reference) {
+void LuaBindingHelper::l_add_reference(Object *p_reference) {
 	printf("l_add_reference ref:%s", String(Variant(p_reference)).ascii().get_data());
+	// Reference* p_ref =Object::cast_to<Reference> (p_reference);
+	// p_ref->reference();
 	script_pushobject(L, p_reference);
 }
-bool LuaBindingHelper::l_del_reference(Reference *p_reference) {
-	printf("l_del_reference ref:%s", String(Variant(p_reference)).ascii().get_data());
+bool LuaBindingHelper::l_del_reference(Object *p_reference) {
+	//printf("l_del_reference ref:%s", String(Variant(p_reference)).ascii().get_data());
 	script_deleteobject(L, p_reference);
+	// Reference* p_ref =Object::cast_to<Reference> (p_reference);
+	// if (p_ref->unreference())
+	// 	memdelete(p_ref);
 	return true;
 }
 

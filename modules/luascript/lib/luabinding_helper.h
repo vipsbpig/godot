@@ -41,8 +41,8 @@ private:
 
 	//==Reference add and remove by engine
 public:
-	void l_add_reference(Reference *p_reference);
-	bool l_del_reference(Reference *p_reference);
+	void l_add_reference(Object *p_reference);
+	bool l_del_reference(Object *p_reference);
 
 	//===lua variant convert helper
 
