@@ -5,6 +5,55 @@
 #include "luabuiltin.h"
 #include "scene/main/node.h"
 
+#if !defined LUA_VERSION_NUM || LUA_VERSION_NUM == 501
+/*
+** Adapted from Lua 5.2.0
+*/
+static void luaL_setfuncs(lua_State *L, const luaL_Reg *l, int nup) {
+	luaL_checkstack(L, nup + 1, "too many upvalues");
+	for (; l->name != NULL; l++) { /* fill the table with given functions */
+		int i;
+		lua_pushstring(L, l->name);
+		for (i = 0; i < nup; i++) /* copy upvalues to the top */
+			lua_pushvalue(L, -(nup + 1));
+		lua_pushcclosure(L, l->func, nup); /* closure with those upvalues */
+		lua_settable(L, -(nup + 3));
+	}
+	lua_pop(L, nup); /* remove upvalues */
+}
+
+static int lua_isinteger(lua_State *L, int index) {
+	if (lua_type(L, index) == LUA_TNUMBER) {
+		lua_Number n = lua_tonumber(L, index);
+		lua_Integer i = lua_tointeger(L, index);
+		if (i == n)
+			return 1;
+	}
+	return 0;
+}
+
+int lua_absindex(lua_State *L, int i) {
+	if (i < 0 && i > LUA_REGISTRYINDEX)
+		i += lua_gettop(L) + 1;
+	return i;
+}
+static int lua_rawgetp(lua_State *L, int i, const void *p) {
+	int abs_i = lua_absindex(L, i);
+	lua_pushlightuserdata(L, (void *)p);
+	lua_rawget(L, abs_i);
+	return lua_type(L, -1);
+}
+
+void lua_rawsetp(lua_State *L, int i, const void *p) {
+	int abs_i = lua_absindex(L, i);
+	luaL_checkstack(L, 1, "not enough stack slots");
+	lua_pushlightuserdata(L, (void *)p);
+	lua_insert(L, -2);
+	lua_rawset(L, abs_i);
+}
+
+#endif
+
 static Variant *luaL_checkvariant(lua_State *L, int idx) {
 	void *ptr = luaL_checkudata(L, idx, "LuaVariant");
 	return *((Variant **)ptr);
@@ -130,26 +179,7 @@ void l_push_variant(lua_State *L, const Variant &var) {
 			//TODO::ScritpInstance
 
 			printf("l_push object\n");
-			lua_pushstring(L, "gdlua_ubox");
-			lua_rawget(L, LUA_REGISTRYINDEX);
-			lua_pushnumber(L, obj->get_instance_id());
-			lua_rawget(L, -2);
-			if (lua_isnil(L, -1)) {
-				lua_pop(L, 1);
-				Object **ud = (Object **)lua_newuserdata(L, sizeof(Object *));
-				*ud = obj;
-				luaL_getmetatable(L, "LuaObject");
-				lua_setmetatable(L, -2);
-				lua_insert(L, -2);
-				//
-				lua_pushnumber(L, obj->get_instance_id());
-				lua_pushvalue(L, -3);
-				lua_rawset(L, -3);
-				lua_pop(L, 1);
-			} else {
-				lua_remove(L, -2);
-			}
-
+			LuaBindingHelper::script_pushobject(L, obj);
 		} break;
 		case Variant::VECTOR2:
 		case Variant::RECT2:
@@ -237,15 +267,20 @@ void l_get_variant(lua_State *L, int idx, Variant &var) {
 				if (lua_getmetatable(L, idx)) {
 					lua_getfield(L, LUA_REGISTRYINDEX, "LuaObject");
 					if (lua_rawequal(L, -1, -2)) {
-
 						lua_pop(L, 2);
-						Object *obj = *((Object **)ud);
-						if (obj->is_class_ptr(Reference::get_class_ptr_static())) {
-							Reference *ref = Object::cast_to<Reference>(obj);
-							var = Ref<Reference>(ref);
-						} else {
-							var = obj;
+						if (ud == NULL) {
+							var = Variant();
+							return;
 						}
+						Object *obj = *((Object **)ud);
+						var = obj;
+						// Object *obj = *((Object **)ud);
+						// if (obj->is_class_ptr(Reference::get_class_ptr_static())) {
+						// 	Reference *ref = Object::cast_to<Reference>(obj);
+						// 	var = Ref<Reference>(ref);
+						// } else {
+						// 	var = obj;
+						// }
 						return;
 					}
 					lua_pop(L, 1);
@@ -339,30 +374,63 @@ void LuaBindingHelper::unbind_script_function(const char *name) {
 
 int LuaBindingHelper::create_user_data(lua_State *L) {
 	const ClassDB::ClassInfo *cls = (ClassDB::ClassInfo *)lua_touserdata(L, lua_upvalueindex(1));
-	Object **ud = NULL;
-	ud = (Object **)lua_newuserdata(L, sizeof(Object *));
 	Object *object = cls->creation_func();
-	*ud = object;
-	luaL_getmetatable(L, "LuaObject");
-	lua_setmetatable(L, -2);
 #ifdef LUA_SCRIPT_DEBUG_ENABLED
 	print_format("Name %s call new object_ptr:%d ", object->get_class().ascii().get_data(), object);
 #endif
-	lua_pushstring(L, "gdlua_ubox");
-	lua_rawget(L, LUA_REGISTRYINDEX);
-	lua_pushnumber(L, object->get_instance_id());
-	lua_pushvalue(L, -3);
-	lua_rawset(L, -3);
-	lua_pop(L, 1);
-
-	//const StringName *key = cls->method_map.next(NULL);
-	//    while (key) {
-	//        print_format("-- methods:%s", String(*key).ascii().get_data() );
-	//        key = cls->method_map.next(key);
-	//    }
+	script_pushobject(L, object);
 	return 1;
 }
-
+int LuaBindingHelper::script_pushobject(lua_State *L, Object *object) {
+	Object **ud;
+	lua_pushstring(L, "gdlua_ubox");
+	lua_rawget(L, LUA_REGISTRYINDEX);
+	lua_rawgetp(L, -1, object);
+	if (lua_type(L, -1) == LUA_TUSERDATA) {
+		ud = (Object **)lua_touserdata(L, -1);
+		if (*ud == object) {
+			lua_replace(L, -2);
+			return 0;
+		}
+		// C 对象指针被释放后，有可能地址被重用。
+		// 这个时候，可能取到曾经保存起来的 userdata ，里面的指针必然为空。
+		ERR_FAIL_COND(*ud != NULL);
+	}
+	ud = (Object **)lua_newuserdata(L, sizeof(Object *));
+	*ud = object;
+	luaL_getmetatable(L, "LuaObject");
+	lua_setmetatable(L, -2);
+	lua_pushvalue(L, -1);
+	lua_rawsetp(L, -4, object);
+	lua_replace(L, -3);
+	lua_pop(L, 1);
+	return 1;
+}
+// void *LuaBindingHelper::script_toobject(lua_State *L, int index) {
+// 	void **ud = (void **)lua_touserdata(L, index);
+// 	if (ud == NULL)
+// 		return NULL;
+// 	// 如果 object 已在 C 代码中销毁，*ud 为 NULL 。
+// 	return *ud;
+// }
+void LuaBindingHelper::script_deleteobject(lua_State *L, Object *object) {
+	lua_pushstring(L, "gdlua_ubox");
+	lua_rawget(L, LUA_REGISTRYINDEX);
+	// if (lua_istable(L, -1)) {
+	lua_rawgetp(L, -1, object);
+	if (lua_type(L, -1) == LUA_TUSERDATA) {
+		void **ud = (void **)lua_touserdata(L, -1);
+		// 这个 assert 防止 deleteobject 被重复调用。
+		ERR_FAIL_COND(*ud != object);
+		// 销毁一个被 Lua 引用住的对象，只需要把 *ud 置为 NULL 。
+		*ud = NULL;
+	}
+	// 	lua_pop(L, 2);
+	// } else {
+	// 	// 有可能从未调用过 pushobject ，此时注册表中 script 项尚未建立。
+	// 	lua_pop(L, 1);
+	// }
+}
 int LuaBindingHelper::meta__gc(lua_State *L) {
 	Object **ud = (Object **)lua_touserdata(L, 1);
 	if (ud == NULL) {
@@ -375,23 +443,13 @@ int LuaBindingHelper::meta__gc(lua_State *L) {
 #ifdef LUA_SCRIPT_DEBUG_ENABLED
 		print_format("meta__gc");
 #endif
-		printf("meta__gc obj\n");
+		printf("meta__gc obj ==null\n");
 		return 0;
 	}
 
 #ifdef LUA_SCRIPT_DEBUG_ENABLED
 	print_format("free");
 #endif
-	printf("free\n");
-
-	//free process;
-	lua_pushstring(L, "gdlua_ubox");
-	lua_rawget(L, LUA_REGISTRYINDEX);
-	lua_pushnumber(L, obj->get_instance_id());
-	lua_pushnil(L);
-	lua_rawset(L, -3);
-	*ud = NULL;
-
 	// 	if (obj->is_class_ptr(Reference::get_class_ptr_static())) {
 	// 		Reference *ref = Object::cast_to<Reference>(obj);
 	// #ifdef LUA_SCRIPT_DEBUG_ENABLED
@@ -420,7 +478,7 @@ int LuaBindingHelper::meta__gc(lua_State *L) {
 	// 		// printf("%s NO DELETED! handle by engine", String(Variant(obj)).ascii().get_data());
 	// 		return 0;
 	// 	}
-
+	memdelete(obj);
 	return 0;
 }
 
@@ -456,7 +514,7 @@ int LuaBindingHelper::meta__index(lua_State *L) {
 	}
 	//3.free方法
 	if (strncmp(methodname, "free", 4) == 0) {
-		lua_pushcclosure(L, meta__gc, 0);
+		lua_pushcclosure(L, l_object_free, 0);
 		return 1;
 	}
 	return 0;
@@ -480,13 +538,20 @@ int LuaBindingHelper::meta__newindex(lua_State *L) {
 		luaL_error(L, "Unable to set field: '%s'", ((String)key).ascii().get_data());
 	return 0;
 }
+int LuaBindingHelper::l_object_free(lua_State *L) {
+	Object **ud = (Object **)lua_touserdata(L, 1);
+	Object *obj = *ud;
 
+	script_deleteobject(L, obj);
+	return 0;
+}
 void LuaBindingHelper::l_add_reference(Reference *p_reference) {
 	printf("l_add_reference ref:%s", String(Variant(p_reference)).ascii().get_data());
+	script_pushobject(L, p_reference);
 }
 bool LuaBindingHelper::l_del_reference(Reference *p_reference) {
 	printf("l_del_reference ref:%s", String(Variant(p_reference)).ascii().get_data());
-
+	script_deleteobject(L, p_reference);
 	return true;
 }
 
