@@ -32,25 +32,6 @@ static int lua_isinteger(lua_State *L, int index) {
 	return 0;
 }
 
-int lua_absindex(lua_State *L, int i) {
-	if (i < 0 && i > LUA_REGISTRYINDEX)
-		i += lua_gettop(L) + 1;
-	return i;
-}
-static int lua_rawgetp(lua_State *L, int i, const void *p) {
-	int abs_i = lua_absindex(L, i);
-	lua_pushlightuserdata(L, (void *)p);
-	lua_rawget(L, abs_i);
-	return lua_type(L, -1);
-}
-
-void lua_rawsetp(lua_State *L, int i, const void *p) {
-	int abs_i = lua_absindex(L, i);
-	luaL_checkstack(L, 1, "not enough stack slots");
-	lua_pushlightuserdata(L, (void *)p);
-	lua_insert(L, -2);
-	lua_rawset(L, abs_i);
-}
 
 #endif
 
