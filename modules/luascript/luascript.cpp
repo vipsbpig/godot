@@ -46,10 +46,11 @@ ScriptInstance *LuaScript::_create_instance(const Variant **p_args, int p_argcou
 }
 
 bool LuaScript::can_instance() const {
-#ifdef LUA_SCRIPT_DEBUG_ENABLED
-	print_debug("LuaScript::can_instance");
-#endif
+#ifdef TOOLS_ENABLED
+	return valid && (tool || ScriptServer::is_scripting_enabled());
+#else
 	return valid;
+#endif
 }
 StringName LuaScript::get_instance_base_type() const {
 	if (native.is_valid())
