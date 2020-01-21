@@ -5,7 +5,6 @@
 #include "luabuiltin.h"
 #include "scene/main/node.h"
 
-
 static Variant *luaL_checkvariant(lua_State *L, int idx) {
 	void *ptr = luaL_checkudata(L, idx, "LuaVariant");
 	return *((Variant **)ptr);
@@ -1064,6 +1063,8 @@ void LuaBindingHelper::godotbind() {
 	lua_pushcfunction(L, l_load);
 	lua_setfield(L, -2, "load");
 
+	lua_pushcfunction(L, meta_bultins__pairs);
+	lua_setfield(L, -2, "pairs");
 	lua_pop(L, 1);
 }
 
