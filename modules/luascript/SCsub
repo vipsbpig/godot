@@ -5,16 +5,18 @@ Import('env_modules')
 
 env_luascript = env_modules.Clone()
 
-lib_include_path = './lib'
+lua_include_path = "#modules/luascript/lib/lua51"
 
 #env_luascript.Append(CXXFLAGS=['-O0', '-std=c++17'])
 env_luascript.Append(CXXFLAGS=['-O0', '-std=c++14'])
-env_luascript.Append(CPPPATH=lib_include_path)
+env_luascript.Append(CPPPATH=[lua_include_path])
 
 env_luascript.add_source_files(env.modules_sources,'*.cpp')
 env_luascript.add_source_files(env.modules_sources,'lib/*.cpp')
 
 SConscript('lib/lua51/SCsub')
+SConscript('cmodule/compat53/SCsub')
+
 
 if env['tools']:
 	env_luascript.add_source_files(env.modules_sources, './editor/*.cpp')

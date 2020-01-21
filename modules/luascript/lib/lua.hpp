@@ -2,9 +2,13 @@
 #define LUAHEADER_H
 
 extern "C" {
-#include "lua51/lauxlib.h"
-#include "lua51/lua.h"
-#include "lua51/lualib.h"
+#if !defined LUA_VERSION_NUM || LUA_VERSION_NUM == 501
+#include "../cmodule/compat53/lprefix.h"
+#else
+#include <lauxlib.h>
+#include <lua.h>
+#include <lualib.h>
+#endif
 }
 
 #endif // LUAHEADER_H

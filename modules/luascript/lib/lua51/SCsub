@@ -42,6 +42,4 @@ lua_sources = [
 	"lzio.c",
 	]
 
-env.add_source_files(env.modules_sources, lua_sources)
-
-Export('env')
+env_lua.add_source_files(env.modules_sources, lua_sources)
