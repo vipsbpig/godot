@@ -983,8 +983,6 @@ int LuaBindingHelper::pcall_callback_err_fun(lua_State *L) {
 	lua_pushstring(L, msg.utf8().get_data());
 	return 1;
 }
-// Variant LuaBindingHelper::initialize_call(ScriptInstance *p_instance,  const Variant **p_args, int p_argcount, Variant::CallError &r_error) {
-// }
 
 Variant LuaBindingHelper::instance_call(ScriptInstance *p_instance, const StringName &p_method, const Variant **p_args, int p_argcount, Variant::CallError &r_error) {
 	LuaScriptInstance *p_si = (LuaScriptInstance *)p_instance;
