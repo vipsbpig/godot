@@ -212,9 +212,7 @@ void l_get_variant(lua_State *L, int idx, Variant &var) {
 			break;
 
 		case LUA_TSTRING: {
-			String str;
-			str.parse_utf8(lua_tostring(L, idx));
-			var = Variant(str);
+			var = Variant(lua_tostring(L, idx));
 		} break;
 
 		case LUA_TUSERDATA: {
@@ -254,6 +252,10 @@ void l_get_variant(lua_State *L, int idx, Variant &var) {
 			}
 		} break;
 	}
+}
+
+const char *l_get_key(lua_State *L, int idx) {
+	return lua_tostring(L, idx);
 }
 
 LuaBindingHelper::LuaBindingHelper() :
@@ -424,14 +426,18 @@ int LuaBindingHelper::meta__tostring(lua_State *L) {
 	if (obj != NULL)
 		lua_pushstring(L, String(Variant(obj)).ascii().get_data());
 	else
+#ifdef DEBUG_ENABLED
 		lua_pushstring(L, "[DELETED Object]");
+#else
+		return 0;
+#endif
 	return 1;
 }
 
 int LuaBindingHelper::meta__index(lua_State *L) {
 	Object **ud = (Object **)lua_touserdata(L, 1);
 	Object *obj = *ud;
-	const char *index_name = lua_tostring(L, 2);
+	const char *index_name = l_get_key(L, 2);
 	if (obj == NULL) {
 		luaL_error(L, "Faild To Get %s Form NULL Object", index_name);
 		return 0;
@@ -474,14 +480,14 @@ int LuaBindingHelper::meta__newindex(lua_State *L) {
 		luaL_error(L, "Failed To Set Field :'%s' To NULL Object", index_name);
 		return 0;
 	}
-	Variant key, value;
-	l_get_variant(L, 2, key);
+	Variant value;
+	//l_get_variant(L, 2, key);
 	l_get_variant(L, 3, value);
 
 	bool valid = false;
-	obj->set(key, value, &valid);
+	obj->set(l_get_key(L, 2), value, &valid);
 	if (!valid)
-		luaL_error(L, "Unable to set field: '%s'", ((String)key).ascii().get_data());
+		luaL_error(L, "Unable to set field: '%s'", lua_tostring(L, 2));
 	return 0;
 }
 int LuaBindingHelper::l_object_free(lua_State *L) {
@@ -542,11 +548,8 @@ int LuaBindingHelper::meta_bultins__tostring(lua_State *L) {
 int LuaBindingHelper::meta_bultins__index(lua_State *L) {
 	Variant *var = luaL_checkvariant(L, 1);
 
-	Variant key;
-	l_get_variant(L, 2, key);
-
 	bool valid = false;
-	Variant value = var->get(key, &valid);
+	Variant value = var->get(l_get_key(L, 2), &valid);
 	if (valid) {
 		l_push_variant(L, value);
 		return 1;
@@ -562,14 +565,14 @@ int LuaBindingHelper::meta_bultins__index(lua_State *L) {
 int LuaBindingHelper::meta_bultins__newindex(lua_State *L) {
 	Variant *var = luaL_checkvariant(L, 1);
 
-	Variant key, value;
-	l_get_variant(L, 2, key);
+	Variant value;
+
 	l_get_variant(L, 3, value);
 
 	bool valid = false;
-	var->set(key, value, &valid);
+	var->set(l_get_key(L, 2), value, &valid);
 	if (!valid)
-		luaL_error(L, "Unable to set field: '%s'", ((String)key).ascii().get_data());
+		luaL_error(L, "Unable to set field: '%s'", lua_tostring(L, 2));
 
 	return 0;
 }
@@ -703,7 +706,7 @@ int LuaBindingHelper::meta_script__index(lua_State *L) {
 
 int LuaBindingHelper::meta_script__newindex(lua_State *L) {
 	LuaScript *p_script = luaL_getscript(L, 1);
-	const char *index_name = lua_tostring(L, 2);
+	const char *index_name = l_get_key(L, 2);
 	int idx = 3;
 	int t = lua_type(L, idx);
 #ifdef LUA_SCRIPT_DEBUG_ENABLED
@@ -772,7 +775,7 @@ int LuaBindingHelper::meta_instance__tostring(lua_State *L) {
 }
 int LuaBindingHelper::meta_instance__index(lua_State *L) {
 	LuaScriptInstance *p_instance = luaL_getinstance(L, 1);
-	const char *index_name = lua_tostring(L, 2);
+	const char *index_name = l_get_key(L, 2);
 	//print_format("meta_instance__index:%s instance:%s", lua_tostring(L, 2), String(Variant(p_instance->get_owner())).ascii().get_data());
 	//1.如果是变量，压入
 	bool success = false;
@@ -806,7 +809,7 @@ int LuaBindingHelper::meta_instance__index(lua_State *L) {
 }
 int LuaBindingHelper::meta_instance__newindex(lua_State *L) {
 	LuaScriptInstance *p_instance = luaL_getinstance(L, 1);
-	const char *index_name = lua_tostring(L, 2);
+	const char *index_name = l_get_key(L, 2);
 	int idx = 3;
 	int t = lua_type(L, idx);
 #ifdef LUA_SCRIPT_DEBUG_ENABLED
@@ -988,9 +991,12 @@ Variant LuaBindingHelper::instance_call(ScriptInstance *p_instance, const String
 #ifdef LUA_SCRIPT_DEBUG_ENABLED
 	print_format("instance_call: script:%d argc:%d", p_si->script.ptr(), p_argcount);
 #endif
+
+#ifdef DEBUG_ENABLED
 	//error
 	lua_pushcfunction(L, pcall_callback_err_fun);
 	int pos_err = lua_gettop(L);
+#endif
 
 	Variant var;
 	//get class
@@ -1007,12 +1013,17 @@ Variant LuaBindingHelper::instance_call(ScriptInstance *p_instance, const String
 		}
 		//pcall
 		//5.3可以换成pcallk
+#ifdef DEBUG_ENABLED
 		if (lua_pcall(L, p_argcount + 1, 1, pos_err) == 0) {
 			r_error.error = Variant::CallError::CALL_OK;
 			l_get_variant(L, -1, var);
 		} else {
 			r_error.error = Variant::CallError::CALL_ERROR_INVALID_METHOD;
 		}
+#else
+		lua_call(L, p_argcount + 1, 1);
+#endif
+
 	} else {
 #ifdef LUA_SCRIPT_DEBUG_ENABLED
 		print_format("script cannot get function:%s", String(p_method).ascii().get_data());
