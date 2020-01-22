@@ -357,8 +357,10 @@ int LuaBindingHelper::script_pushobject(lua_State *L, Object *object) {
 	}
 	ud = (Object **)lua_newuserdata(L, sizeof(Object *));
 	*ud = object;
+	///----object
 	luaL_getmetatable(L, "LuaObject");
 	lua_setmetatable(L, -2);
+	///---------
 	lua_pushnumber(L, object->get_instance_id());
 	lua_pushvalue(L, -2);
 	lua_rawset(L, -5);
@@ -1089,7 +1091,7 @@ void LuaBindingHelper::register_class(lua_State *L, const ClassDB::ClassInfo *cl
 
 	CharString s = String(cls->name).ascii();
 	const char *typeName = s.get_data();
-
+	//原生调用
 	lua_getfield(L, LUA_GLOBALSINDEX, "GD");
 
 	lua_newtable(L);
@@ -1104,6 +1106,60 @@ void LuaBindingHelper::register_class(lua_State *L, const ClassDB::ClassInfo *cl
 	lua_setfield(L, -2, ".clsinfo");
 
 	lua_pop(L, 2);
+
+	//需要遍历
+	lua_getfield(L, LUA_REGISTRYINDEX, "gd");
+	{
+		//当前的子类
+		const ClassDB::ClassInfo *child = cls;
+		const char *childName = String(cls->name).ascii().get_data();
+		//继承的父类
+		const ClassDB::ClassInfo *parent = cls->inherits_ptr;
+		const char *parentName = parent ? String(parent->name).ascii().get_data() : NULL;
+
+		while (child) {
+			//创建当前的可以调用的 __index ,__newindex,__tostring,__gc
+			lua_getfield(L, -1, childName);
+			if (lua_isnil(L, -1)) {
+				lua_pop(L, 1);
+				lua_newtable(L);
+				lua_pushvalue(L, -1);
+				lua_setfield(L, -3, childName);
+
+				// luaL_Reg meta_object_methods[] = {
+				// 	{ "__gc", meta_object__gc },
+				// 	{ "__index", meta_object__index },
+				// 	{ "__newindex", meta_object__newindex },
+				// 	{ "__tostring", meta_object__tostring },
+				// 	{ NULL, NULL },
+				// };
+				// luaL_setfuncs(L, meta_object_methods, 0);
+				
+				// const StringName *key = child->method_map.next(NULL);
+				// while (key) {
+				// 	MethodBind *mb = child->method_map.get(*key);
+				// 	lua_pushlightuserdata(L, (void *)mb);
+				// 	lua_pushcclosure(L, l_methodbind_wrapper, 1);
+				// 	lua_setfield(L, -2, String(*key).ascii().get_data());
+				// 	key = child->method_map.next(key);
+				// }
+			}
+
+			lua_getfield(L, -2, parentName);
+			if (!lua_isnil(L, -1)) {
+				//如果已经构筑了parent,则跳出
+				lua_setmetatable(L, -2);
+				break;
+			} else {
+				lua_pop(L, 1);
+			}
+
+			lua_pop(L, 1);
+			child = parent;
+			if (child != NULL) parent = child->inherits_ptr;
+		}
+	}
+	lua_pop(L, 1);
 }
 
 void LuaBindingHelper::regitser_builtins(lua_State *L) {
@@ -1121,6 +1177,10 @@ void LuaBindingHelper::initialize() {
 	//GD namespace
 	lua_newtable(L);
 	lua_setfield(L, LUA_GLOBALSINDEX, "GD");
+
+	//GD namespace
+	lua_newtable(L);
+	lua_setfield(L, LUA_REGISTRYINDEX, "gd");
 
 	//godot function
 	godotbind();
