@@ -6,7 +6,8 @@
 #include "scene/main/node.h"
 
 static Variant *luaL_checkvariant(lua_State *L, int idx) {
-	void *ptr = luaL_checkudata(L, idx, "LuaVariant");
+	//void *ptr = luaL_checkudata(L, idx, "LuaVariant");
+	void *ptr = lua_touserdata(L, idx);
 	return *((Variant **)ptr);
 }
 
@@ -430,12 +431,11 @@ int LuaBindingHelper::meta__tostring(lua_State *L) {
 int LuaBindingHelper::meta__index(lua_State *L) {
 	Object **ud = (Object **)lua_touserdata(L, 1);
 	Object *obj = *ud;
-	const char *methodname = lua_tostring(L, 2);
+	const char *index_name = lua_tostring(L, 2);
 	if (obj == NULL) {
-		luaL_error(L, "Faild To Get %s Form NULL Object", methodname);
+		luaL_error(L, "Faild To Get %s Form NULL Object", index_name);
 		return 0;
 	}
-	StringName index_name = methodname;
 #ifdef LUA_SCRIPT_DEBUG_ENABLED
 	print_format("meta__index: %s call %s", obj->get_class().ascii().get_data(), String(index_name).ascii().get_data());
 #endif
@@ -455,7 +455,7 @@ int LuaBindingHelper::meta__index(lua_State *L) {
 		return 1;
 	}
 	//3.free方法
-	if (strncmp(methodname, "free", 4) == 0) {
+	if (strncmp(index_name, "free", 4) == 0) {
 		lua_pushcclosure(L, l_object_free, 0);
 		return 1;
 	}
@@ -470,8 +470,8 @@ int LuaBindingHelper::meta__newindex(lua_State *L) {
 	Object **ud = (Object **)lua_touserdata(L, 1);
 	Object *obj = *ud;
 	if (obj == NULL) {
-		const char *methodname = lua_tostring(L, 2);
-		luaL_error(L, "Failed To Set Field :'%s' To NULL Object", methodname);
+		const char *index_name = lua_tostring(L, 2);
+		luaL_error(L, "Failed To Set Field :'%s' To NULL Object", index_name);
 		return 0;
 	}
 	Variant key, value;
@@ -686,7 +686,7 @@ int LuaBindingHelper::meta_script__tostring(lua_State *L) {
 
 int LuaBindingHelper::meta_script__index(lua_State *L) {
 	LuaScript *p_script = luaL_getscript(L, 1);
-	StringName index_name = lua_tostring(L, 2);
+	const char *index_name = lua_tostring(L, 2);
 #ifdef LUA_SCRIPT_DEBUG_ENABLED
 	const char *base = String(p_script->cls->name).ascii().get_data();
 	print_format("meta_script__index:%s base:%s %d script:%d", lua_tostring(L, 2), base, p_script->cls, p_script);
@@ -703,7 +703,7 @@ int LuaBindingHelper::meta_script__index(lua_State *L) {
 
 int LuaBindingHelper::meta_script__newindex(lua_State *L) {
 	LuaScript *p_script = luaL_getscript(L, 1);
-	StringName index_name = lua_tostring(L, 2);
+	const char *index_name = lua_tostring(L, 2);
 	int idx = 3;
 	int t = lua_type(L, idx);
 #ifdef LUA_SCRIPT_DEBUG_ENABLED
@@ -772,7 +772,7 @@ int LuaBindingHelper::meta_instance__tostring(lua_State *L) {
 }
 int LuaBindingHelper::meta_instance__index(lua_State *L) {
 	LuaScriptInstance *p_instance = luaL_getinstance(L, 1);
-	StringName index_name = lua_tostring(L, 2);
+	const char *index_name = lua_tostring(L, 2);
 	//print_format("meta_instance__index:%s instance:%s", lua_tostring(L, 2), String(Variant(p_instance->get_owner())).ascii().get_data());
 	//1.如果是变量，压入
 	bool success = false;
@@ -806,7 +806,7 @@ int LuaBindingHelper::meta_instance__index(lua_State *L) {
 }
 int LuaBindingHelper::meta_instance__newindex(lua_State *L) {
 	LuaScriptInstance *p_instance = luaL_getinstance(L, 1);
-	StringName index_name = lua_tostring(L, 2);
+	const char *index_name = lua_tostring(L, 2);
 	int idx = 3;
 	int t = lua_type(L, idx);
 #ifdef LUA_SCRIPT_DEBUG_ENABLED
@@ -870,7 +870,7 @@ int meta_base_cls__index(lua_State *L) {
 	StringName *class_name = (StringName *)lua_touserdata(L, lua_upvalueindex(1));
 	//Object *pushobj = (Object *)lua_touserdata(L, lua_upvalueindex(2));
 
-	StringName index_name = lua_tostring(L, 2);
+	const char *index_name = lua_tostring(L, 2);
 	MethodBind *mb = ClassDB::get_method(*class_name, index_name);
 	if (mb != NULL) {
 		lua_pushlightuserdata(L, mb);
@@ -1032,7 +1032,7 @@ void LuaBindingHelper::openLibs(lua_State *L) {
 		//{LUA_IOLIBNAME, luaopen_io},
 		//{LUA_OSLIBNAME, luaopen_os},
 		//{LUA_STRLIBNAME, luaopen_string},
-		//{LUA_MATHLIBNAME, luaopen_math},
+		//{ LUA_MATHLIBNAME, luaopen_math },
 		{ LUA_DBLIBNAME, luaopen_debug },
 		//{"lua-utf8", luaopen_utf8},
 		{ NULL, NULL }
@@ -1063,6 +1063,7 @@ void LuaBindingHelper::godotbind() {
 	lua_pushcfunction(L, l_load);
 	lua_setfield(L, -2, "load");
 
+	//pairs
 	lua_pushcfunction(L, meta_bultins__pairs);
 	lua_setfield(L, -2, "pairs");
 	lua_pop(L, 1);
@@ -1102,6 +1103,7 @@ void LuaBindingHelper::initialize() {
 	L = luaL_newstate();
 	luaopen_base(L);
 	luaopen_table(L);
+	luaopen_math(L);
 	luaopen_debug(L);
 	lua_settop(L, 0);
 
