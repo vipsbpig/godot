@@ -219,7 +219,7 @@ void l_get_variant(lua_State *L, int idx, Variant &var) {
 			void *ud = lua_touserdata(L, idx);
 			if (ud != NULL) {
 				if (lua_getmetatable(L, idx)) {
-					lua_getfield(L, -1, "props");
+					lua_getfield(L, -1, "LuaObject");
 					if (!lua_isnil(L, -1)) {
 						lua_pop(L, 2);
 						if (ud == NULL) {
@@ -384,9 +384,12 @@ int LuaBindingHelper::script_pushobject(lua_State *L, Object *object) {
 
 		lua_setfield(L, -2, "props");
 	}
+	//luaObject
+	lua_pushboolean(L, 1);
+	lua_setfield(L, -2, "LuaObject");
+
 	//meta func
 	{
-		lua_pushlightuserdata(L, object);
 		luaL_Reg meta_methods[] = {
 			{ "__gc", meta_object__gc },
 			{ "__index", meta_object__index },
@@ -394,7 +397,7 @@ int LuaBindingHelper::script_pushobject(lua_State *L, Object *object) {
 			{ "__tostring", meta_object__tostring },
 			{ NULL, NULL },
 		};
-		luaL_setfuncs(L, meta_methods, 1);
+		luaL_setfuncs(L, meta_methods, 0);
 	}
 
 	lua_setmetatable(L, -2);
@@ -424,112 +427,6 @@ void LuaBindingHelper::del_strong_ref(lua_State *L, Object *object) {
 	lua_rawset(L, -3);
 	lua_pop(L, 1);
 };
-// void *LuaBindingHelper::script_toobject(lua_State *L, int index) {
-// 	void **ud = (void **)lua_touserdata(L, index);
-// 	if (ud == NULL)
-// 		return NULL;
-// 	// 如果 object 已在 C 代码中销毁，*ud 为 NULL 。
-// 	return *ud;
-// }
-// void LuaBindingHelper::script_deleteobject(lua_State *L, Object *object) {
-// 	lua_pushstring(L, "weak_ubox");
-// 	lua_rawget(L, LUA_REGISTRYINDEX);
-
-// 	lua_pushnil(L);
-// 	lua_pushnumber(L, object->get_instance_id());
-// 	lua_rawset(L, -3);
-// 	printf("weak_ubox delete object:%d\n", object);
-// }
-int LuaBindingHelper::meta__gc(lua_State *L) {
-	Object **ud = (Object **)lua_touserdata(L, 1);
-	if (ud == NULL) {
-		return 0;
-	}
-	Object *obj = *ud;
-	if (obj == NULL) {
-		return 0;
-	}
-	if (obj->is_class_ptr(Reference::get_class_ptr_static())) {
-		Reference *ref = Object::cast_to<Reference>(obj);
-		//printf("__gc ref:%s count:%d\n", String(Variant(ref)).ascii().get_data(), ref->reference_get_count());
-		if (ref->unreference()) {
-			//printf("memdelete\n");
-			memdelete(ref);
-		}
-	}
-	return 0;
-}
-
-int LuaBindingHelper::meta__tostring(lua_State *L) {
-	Object **ud = (Object **)lua_touserdata(L, 1);
-	Object *obj = *ud;
-	if (obj != NULL)
-		lua_pushstring(L, String(Variant(obj)).ascii().get_data());
-	else
-#ifdef DEBUG_ENABLED
-		lua_pushstring(L, "[DELETED Object]");
-#else
-		return 0;
-#endif
-	return 1;
-}
-
-int LuaBindingHelper::meta__index(lua_State *L) {
-	Object **ud = (Object **)lua_touserdata(L, 1);
-	Object *obj = *ud;
-	const char *index_name = l_get_key(L, 2);
-	if (obj == NULL) {
-		luaL_error(L, "Faild To Get %s Form NULL Object", index_name);
-		return 0;
-	}
-#ifdef LUA_SCRIPT_DEBUG_ENABLED
-	print_format("meta__index: %s call %s", obj->get_class().ascii().get_data(), String(index_name).ascii().get_data());
-#endif
-
-	//1.如果是变量，压入
-	bool success = false;
-	Variant variant = obj->get(index_name, &success);
-	if (success) {
-		l_push_variant(L, variant);
-		return 1;
-	}
-	//2.如果是方法，压入
-	MethodBind *mb = ClassDB::get_method(obj->get_class_name(), index_name);
-	if (mb != NULL) {
-		lua_pushlightuserdata(L, mb);
-		lua_pushcclosure(L, l_methodbind_wrapper, 1);
-		return 1;
-	}
-	//3.free方法
-	if (strncmp(index_name, "free", 4) == 0) {
-		lua_pushcclosure(L, l_object_free, 0);
-		return 1;
-	}
-	return 0;
-}
-
-int LuaBindingHelper::meta__newindex(lua_State *L) {
-#ifdef LUA_SCRIPT_DEBUG_ENABLED
-	print_format("call %s", "meta__newindex");
-#endif
-	//TODO:: scriptinstance
-	Object **ud = (Object **)lua_touserdata(L, 1);
-	Object *obj = *ud;
-	if (obj == NULL) {
-		const char *index_name = lua_tostring(L, 2);
-		luaL_error(L, "Failed To Set Field :'%s' To NULL Object", index_name);
-		return 0;
-	}
-	Variant value;
-	//l_get_variant(L, 2, key);
-	l_get_variant(L, 3, value);
-
-	bool valid = false;
-	obj->set(l_get_key(L, 2), value, &valid);
-	if (!valid)
-		luaL_error(L, "Unable to set field: '%s'", lua_tostring(L, 2));
-	return 0;
-}
 
 int LuaBindingHelper::meta_object__gc(lua_State *L) {
 	Object **ud = (Object **)lua_touserdata(L, 1);
@@ -553,9 +450,10 @@ int LuaBindingHelper::meta_object__gc(lua_State *L) {
 int LuaBindingHelper::meta_object__tostring(lua_State *L) {
 	Object **ud = (Object **)lua_touserdata(L, 1);
 	Object *obj = *ud;
-	if (obj != NULL)
-		lua_pushstring(L, String(Variant(obj)).ascii().get_data());
-	else
+	if (obj != NULL) {
+		String toString = "[" + obj->get_class() + ":" + itos(obj->get_instance_id()) + "]";
+		lua_pushstring(L, toString.ascii().get_data());
+	} else
 #ifdef DEBUG_ENABLED
 		lua_pushstring(L, "[DELETED Object]");
 #else
@@ -1399,20 +1297,6 @@ void LuaBindingHelper::initialize() {
 	lua_pushstring(L, "ref_ubox");
 	lua_newtable(L);
 	lua_rawset(L, LUA_REGISTRYINDEX);
-
-	//Object binding
-	luaL_newmetatable(L, "LuaObject");
-	{
-		luaL_Reg meta_methods[] = {
-			{ "__gc", meta__gc },
-			{ "__index", meta__index },
-			{ "__newindex", meta__newindex },
-			{ "__tostring", meta__tostring },
-			{ NULL, NULL },
-		};
-		luaL_setfuncs(L, meta_methods, 0);
-	}
-	lua_pop(L, 1);
 
 	//Variant binding
 	luaL_newmetatable(L, "LuaVariant");
