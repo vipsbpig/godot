@@ -39,6 +39,11 @@ private:
 	static int meta__tostring(lua_State *L);
 	static int meta__index(lua_State *L);
 	static int meta__newindex(lua_State *L);
+
+	static int meta_object__gc(lua_State *L);
+	static int meta_object__tostring(lua_State *L);
+	static int meta_object__index(lua_State *L);
+	static int meta_object__newindex(lua_State *L);
 	static int l_object_free(lua_State *L);
 
 	//==Reference add and remove by engine
