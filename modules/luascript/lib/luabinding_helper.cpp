@@ -537,13 +537,11 @@ int LuaBindingHelper::meta_object__newindex(lua_State *L) {
 		lua_getfield(L, -1, index_name);
 
 		if (lua_isuserdata(L, -1)) {
-			bool r_valid;
 			Variant p_value;
 			l_get_variant(L, 3, p_value);
 
 			const ClassDB::PropertySetGet *psg = (const ClassDB::PropertySetGet *)lua_touserdata(L, -1);
 			if (!psg->setter) {
-				r_valid = false;
 				return 0;
 			}
 
@@ -567,9 +565,6 @@ int LuaBindingHelper::meta_object__newindex(lua_State *L) {
 					obj->call(psg->setter, arg, 1, ce);
 				}
 			}
-
-			if (r_valid)
-				r_valid = ce.error == Variant::CallError::CALL_OK;
 		}
 	}
 	return 0;
@@ -648,13 +643,25 @@ int LuaBindingHelper::meta_bultins__index(lua_State *L) {
 		l_push_variant(L, value);
 		return 1;
 	}
-
-	if (lua_type(L, 2) == LUA_TSTRING) {
-		lua_pushvalue(L, 2);
-		lua_pushcclosure(L, l_bultins_caller_wrapper, 1);
-		return 1;
+	//方法
+	lua_getfield(L, LUA_REGISTRYINDEX, "VariantMethods");
+	if (lua_isnil(L, -1)) {
+		lua_newtable(L);
+		lua_pushvalue(L, -1);
+		lua_replace(L, -3);
+		lua_setfield(L, LUA_REGISTRYINDEX, "VariantMethods");
 	}
-	return 0;
+	lua_getfield(L, -1, index_name);
+	if (lua_isnil(L, -1)) {
+		StringName *method = new StringName(index_name);
+		lua_pushlightuserdata(L, method);
+		lua_pushvalue(L, -1);
+		lua_replace(L, -3);
+		lua_setfield(L, -3, index_name);
+	}
+	lua_pushcclosure(L, l_bultins_caller_wrapper, 1);
+
+	return 1;
 }
 int LuaBindingHelper::meta_bultins__newindex(lua_State *L) {
 	Variant *var = luaL_checkvariant(L, 1);
@@ -705,14 +712,15 @@ int LuaBindingHelper::l_bultins_caller_wrapper(lua_State *L) {
 #ifdef LUA_SCRIPT_DEBUG_ENABLED
 	print_format("l_bultins_caller_wrapper");
 #endif
-	const char *key = luaL_checkstring(L, lua_upvalueindex(1));
+	//const char *key = luaL_checkstring(L, lua_upvalueindex(1));
+	const StringName *key = (StringName *)lua_touserdata(L, lua_upvalueindex(1));
 	int top = lua_gettop(L);
 
 	Variant *var = luaL_checkvariant(L, 1);
 	Variant::CallError err;
 
 	if (top == 1) {
-		Variant &&ret = var->call(key, NULL, 0, err);
+		Variant &&ret = var->call(*key, NULL, 0, err);
 		if (Variant::CallError::CALL_OK == err.error) {
 			l_push_variant(L, ret);
 			return 1;
@@ -725,7 +733,7 @@ int LuaBindingHelper::l_bultins_caller_wrapper(lua_State *L) {
 			args[idx - 2] = &var;
 			l_get_variant(L, idx, var);
 		}
-		Variant &&ret = var->call(key, (const Variant **)(args), top - 1, err);
+		Variant &&ret = var->call(*key, (const Variant **)(args), top - 1, err);
 		memdelete_arr(vars);
 		if (Variant::CallError::CALL_OK == err.error) {
 			l_push_variant(L, ret);
