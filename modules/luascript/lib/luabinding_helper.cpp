@@ -653,8 +653,7 @@ int LuaBindingHelper::meta_bultins__index(lua_State *L) {
 	}
 	lua_getfield(L, -1, index_name);
 	if (lua_isnil(L, -1)) {
-		StringName *method = new StringName(index_name);
-		lua_pushlightuserdata(L, method);
+		l_push_stringname(L, index_name);
 		lua_pushvalue(L, -1);
 		lua_replace(L, -3);
 		lua_setfield(L, -3, index_name);
@@ -713,7 +712,7 @@ int LuaBindingHelper::l_bultins_caller_wrapper(lua_State *L) {
 	print_format("l_bultins_caller_wrapper");
 #endif
 	//const char *key = luaL_checkstring(L, lua_upvalueindex(1));
-	const StringName *key = (StringName *)lua_touserdata(L, lua_upvalueindex(1));
+	const StringName *key = *(StringName **)lua_touserdata(L, lua_upvalueindex(1));
 	int top = lua_gettop(L);
 
 	Variant *var = luaL_checkvariant(L, 1);
@@ -895,12 +894,16 @@ int LuaBindingHelper::meta_instance__index(lua_State *L) {
 		return 1;
 	}
 	//2.如果是方法，压入
-	MethodBind *mb = ClassDB::get_method(p_instance->owner->get_class_name(), index_name);
-	if (mb != NULL) {
-		lua_pushlightuserdata(L, mb);
-		lua_pushcclosure(L, l_methodbind_wrapper, 1);
-		return 1;
+	lua_getfield(L, LUA_REGISTRYINDEX, "gd");
+	{
+		lua_getfield(L, -1, p_instance->owner->get_class().ascii().get_data());
+		lua_getfield(L, -1, index_name);
+		if (!lua_isnil(L, -1)) {
+			return 1;
+		}
 	}
+	lua_pop(L, 1);
+
 	//3.类方法获取
 	Variant var;
 	//get class
@@ -1078,6 +1081,21 @@ bool LuaBindingHelper::l_instance_get(const ScriptInstance *object, const String
 	l_get_variant(L, -1, r_ret);
 	lua_pop(L, 2);
 	return true;
+}
+
+int LuaBindingHelper::meta_stringname__gc(lua_State *L) {
+	void *ptr = lua_touserdata(L, 1);
+	StringName *name = *((StringName **)ptr);
+	delete name;
+	return 0;
+}
+void LuaBindingHelper::l_push_stringname(lua_State *L, const char *name) {
+	StringName **pp_stringName = (StringName **)lua_newuserdata(L, sizeof(StringName *));
+	*pp_stringName = new StringName(name);
+	lua_newtable(L);
+	lua_pushcclosure(L, meta_stringname__gc, 0);
+	lua_setfield(L, -2, "__gc");
+	lua_setmetatable(L, -2);
 }
 int LuaBindingHelper::pcall_callback_err_fun(lua_State *L) {
 	lua_Debug debug = {};

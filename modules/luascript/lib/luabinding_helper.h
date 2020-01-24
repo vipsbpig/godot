@@ -97,6 +97,11 @@ public:
 	bool l_instance_get(const ScriptInstance *p_instance, const StringName &p_name, Variant &r_ret);
 
 private:
+	//stringNameCache
+	static int meta_stringname__gc(lua_State *L);
+	static void l_push_stringname(lua_State *L, const char *name);
+
+private:
 	static int pcall_callback_err_fun(lua_State *L);
 
 public:
