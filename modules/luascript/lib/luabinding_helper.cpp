@@ -1209,8 +1209,7 @@ void LuaBindingHelper::godotbind() {
 
 void LuaBindingHelper::register_class(lua_State *L, const ClassDB::ClassInfo *cls) {
 	//if (!(String(cls->name) == "Object" || String(cls->name) == "Node" || String(cls->name) == "_OS" || String(cls->name) == "Node2D"))
-	if (String(cls->name) != "_OS")
-		return;
+	// return;
 #ifdef LUA_SCRIPT_DEBUG_ENABLED
 	printf("regist:[%s:%s]\n", String(cls->name).ascii().get_data(), String(cls->inherits).ascii().get_data());
 #endif
