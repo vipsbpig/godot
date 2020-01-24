@@ -632,9 +632,18 @@ int LuaBindingHelper::meta_bultins__tostring(lua_State *L) {
 }
 int LuaBindingHelper::meta_bultins__index(lua_State *L) {
 	Variant *var = luaL_checkvariant(L, 1);
+	Variant value;
+
+	const char *index_name = l_get_key(L, 2);
+	lua_getfield(L, LUA_REGISTRYINDEX, "VariantProps");
+	lua_getfield(L, -1, index_name);
 
 	bool valid = false;
-	Variant value = var->get(l_get_key(L, 2), &valid);
+
+	if (lua_isuserdata(L, -1)) {
+		value = var->get(*(StringName *)lua_touserdata(L, -1), &valid);
+	} else
+		value = var->get(index_name, &valid);
 	if (valid) {
 		l_push_variant(L, value);
 		return 1;
@@ -651,11 +660,18 @@ int LuaBindingHelper::meta_bultins__newindex(lua_State *L) {
 	Variant *var = luaL_checkvariant(L, 1);
 
 	Variant value;
+	const char *index_name = l_get_key(L, 2);
+	lua_getfield(L, LUA_REGISTRYINDEX, "VariantProps");
+	lua_getfield(L, -1, index_name);
 
 	l_get_variant(L, 3, value);
 
 	bool valid = false;
-	var->set(l_get_key(L, 2), value, &valid);
+	if (lua_isuserdata(L, -1))
+		var->set(*(StringName *)lua_touserdata(L, -1), value, &valid);
+	else
+		var->set(index_name, value, &valid);
+
 	if (!valid)
 		luaL_error(L, "Unable to set field: '%s'", lua_tostring(L, 2));
 
@@ -774,7 +790,7 @@ int LuaBindingHelper::meta_script__tostring(lua_State *L) {
 
 int LuaBindingHelper::meta_script__index(lua_State *L) {
 	LuaScript *p_script = luaL_getscript(L, 1);
-	const char *index_name = lua_tostring(L, 2);
+	const char *index_name = l_get_key(L, 2);
 #ifdef LUA_SCRIPT_DEBUG_ENABLED
 	const char *base = String(p_script->cls->name).ascii().get_data();
 	print_format("meta_script__index:%s base:%s %d script:%d", lua_tostring(L, 2), base, p_script->cls, p_script);
@@ -958,7 +974,7 @@ int meta_base_cls__index(lua_State *L) {
 	StringName *class_name = (StringName *)lua_touserdata(L, lua_upvalueindex(1));
 	//Object *pushobj = (Object *)lua_touserdata(L, lua_upvalueindex(2));
 
-	const char *index_name = lua_tostring(L, 2);
+	const char *index_name = l_get_key(L, 2);
 	MethodBind *mb = ClassDB::get_method(*class_name, index_name);
 	if (mb != NULL) {
 		lua_pushlightuserdata(L, mb);
