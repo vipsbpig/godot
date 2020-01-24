@@ -35,10 +35,10 @@ public:
 private:
 	//===LuaObject lua meta methods
 
-	static int meta__gc(lua_State *L);
-	static int meta__tostring(lua_State *L);
-	static int meta__index(lua_State *L);
-	static int meta__newindex(lua_State *L);
+	// static int meta__gc(lua_State *L);
+	// static int meta__tostring(lua_State *L);
+	// static int meta__index(lua_State *L);
+	// static int meta__newindex(lua_State *L);
 
 	static int meta_object__gc(lua_State *L);
 	static int meta_object__tostring(lua_State *L);
@@ -114,6 +114,8 @@ private:
 	void openLibs(lua_State *L);
 	void godotbind();
 	void register_class(lua_State *L, const ClassDB::ClassInfo *cls);
+	void link__index_class(lua_State *L, const ClassDB::ClassInfo *cls);
+
 	void regitser_builtins(lua_State *L);
 
 public:

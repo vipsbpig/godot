@@ -219,8 +219,8 @@ void l_get_variant(lua_State *L, int idx, Variant &var) {
 			void *ud = lua_touserdata(L, idx);
 			if (ud != NULL) {
 				if (lua_getmetatable(L, idx)) {
-					lua_getfield(L, -1, "LuaObject");
-					if (!lua_isnil(L, -1)) {
+					lua_getfield(L, LUA_REGISTRYINDEX, "LuaObject");
+					if (lua_rawequal(L, -1, -2)) {
 						lua_pop(L, 2);
 						if (ud == NULL) {
 							var = Variant();
@@ -358,48 +358,48 @@ int LuaBindingHelper::script_pushobject(lua_State *L, Object *object) {
 	ud = (Object **)lua_newuserdata(L, sizeof(Object *));
 	*ud = object;
 	///----object---
-	lua_newtable(L);
+	//lua_newtable(L);
 	//props
-	{
-		lua_newtable(L);
+	// {
+	// 	lua_newtable(L);
 
-		const ClassDB::ClassInfo *top = ClassDB::classes.getptr(object->get_class_name());
-		while (top) {
-			const List<PropertyInfo> *props_list = &top->property_list;
-			for (auto E = props_list->front(); E != props_list->back(); E = E->next()) {
-				const ClassDB::PropertySetGet *psg = top->property_setget.getptr(E->get().name);
-				if (psg) {
-					lua_pushlightuserdata(L, (void *)psg);
-					lua_setfield(L, -2, E->get().name.ascii().get_data());
-				}
+	// 	const ClassDB::ClassInfo *top = ClassDB::classes.getptr(object->get_class_name());
+	// 	while (top) {
+	// 		const List<PropertyInfo> *props_list = &top->property_list;
+	// 		for (auto E = props_list->front(); E != props_list->back(); E = E->next()) {
+	// 			const ClassDB::PropertySetGet *psg = top->property_setget.getptr(E->get().name);
+	// 			if (psg) {
+	// 				lua_pushlightuserdata(L, (void *)psg);
+	// 				lua_setfield(L, -2, E->get().name.ascii().get_data());
+	// 			}
 
-				const int *c = top->constant_map.getptr(E->get().name);
-				if (c) {
-					lua_pushinteger(L, *c);
-					lua_setfield(L, -2, E->get().name.ascii().get_data());
-				}
-			}
-			top = top->inherits_ptr;
-		}
+	// 			const int *c = top->constant_map.getptr(E->get().name);
+	// 			if (c) {
+	// 				lua_pushinteger(L, *c);
+	// 				lua_setfield(L, -2, E->get().name.ascii().get_data());
+	// 			}
+	// 		}
+	// 		top = top->inherits_ptr;
+	// 	}
 
-		lua_setfield(L, -2, "props");
-	}
+	// 	lua_setfield(L, -2, "props");
+	// }
 	//luaObject
-	lua_pushboolean(L, 1);
-	lua_setfield(L, -2, "LuaObject");
+	// lua_pushboolean(L, 1);
+	// lua_setfield(L, -2, "LuaObject");
 
-	//meta func
-	{
-		luaL_Reg meta_methods[] = {
-			{ "__gc", meta_object__gc },
-			{ "__index", meta_object__index },
-			{ "__newindex", meta_object__newindex },
-			{ "__tostring", meta_object__tostring },
-			{ NULL, NULL },
-		};
-		luaL_setfuncs(L, meta_methods, 0);
-	}
-
+	// //meta func
+	// {
+	// 	luaL_Reg meta_methods[] = {
+	// 		{ "__gc", meta_object__gc },
+	// 		{ "__index", meta_object__index },
+	// 		{ "__newindex", meta_object__newindex },
+	// 		{ "__tostring", meta_object__tostring },
+	// 		{ NULL, NULL },
+	// 	};
+	// 	luaL_setfuncs(L, meta_methods, 0);
+	// }
+	lua_getfield(L, LUA_REGISTRYINDEX, "LuaObject");
 	lua_setmetatable(L, -2);
 	///---------
 	lua_pushnumber(L, object->get_instance_id());
@@ -474,33 +474,11 @@ int LuaBindingHelper::meta_object__index(lua_State *L) {
 #endif
 	//1.如果拥有变量，压入
 	//
-	if (lua_getmetatable(L, 1)) {
-		lua_getfield(L, -1, "props");
-		lua_getfield(L, -1, index_name);
-		if (lua_isuserdata(L, -1)) {
-			const ClassDB::PropertySetGet *psg = (const ClassDB::PropertySetGet *)lua_touserdata(L, -1);
-			if (psg->getter) {
-				Variant r_value = Variant();
-				if (psg->index >= 0) {
-					Variant index = psg->index;
-					const Variant *arg[1] = { &index };
-					Variant::CallError ce;
-					r_value = obj->call(psg->getter, arg, 1, ce);
-				} else {
-					Variant::CallError ce;
-					if (psg->_getptr) {
-
-						r_value = psg->_getptr->call(obj, NULL, 0, ce);
-					} else {
-						r_value = obj->call(psg->getter, NULL, 0, ce);
-					}
-				}
-				l_push_variant(L, r_value);
-				return 1;
-			}
-		} else if (lua_isnumber(L, -1)) {
-			return 1;
-		}
+	bool success = false;
+	Variant variant = obj->get(index_name, &success);
+	if (success) {
+		l_push_variant(L, variant);
+		return 1;
 	}
 
 	//2.如果是方法，压入
@@ -525,48 +503,20 @@ int LuaBindingHelper::meta_object__newindex(lua_State *L) {
 #ifdef LUA_SCRIPT_DEBUG_ENABLED
 	print_format("call %s", "meta__newindex");
 #endif
-	//TODO:: scriptinstance
 	Object **ud = (Object **)lua_touserdata(L, 1);
 	Object *obj = *ud;
-	const char *index_name = l_get_key(L, 2);
-
-	//1.如果拥有变量，压入
-
-	if (lua_getmetatable(L, 1)) {
-		lua_getfield(L, -1, "props");
-		lua_getfield(L, -1, index_name);
-
-		if (lua_isuserdata(L, -1)) {
-			Variant p_value;
-			l_get_variant(L, 3, p_value);
-
-			const ClassDB::PropertySetGet *psg = (const ClassDB::PropertySetGet *)lua_touserdata(L, -1);
-			if (!psg->setter) {
-				return 0;
-			}
-
-			Variant::CallError ce;
-
-			if (psg->index >= 0) {
-				Variant index = psg->index;
-				const Variant *arg[2] = { &index, &p_value };
-				//p_object->call(psg->setter,arg,2,ce);
-				if (psg->_setptr) {
-					psg->_setptr->call(obj, arg, 2, ce);
-				} else {
-					obj->call(psg->setter, arg, 2, ce);
-				}
-
-			} else {
-				const Variant *arg[1] = { &p_value };
-				if (psg->_setptr) {
-					psg->_setptr->call(obj, arg, 1, ce);
-				} else {
-					obj->call(psg->setter, arg, 1, ce);
-				}
-			}
-		}
+	if (obj == NULL) {
+		const char *index_name = lua_tostring(L, 2);
+		luaL_error(L, "Failed To Set Field :'%s' To NULL Object", index_name);
+		return 0;
 	}
+	Variant value;
+	//l_get_variant(L, 2, key);
+	l_get_variant(L, 3, value);
+	bool valid = false;
+	obj->set(l_get_key(L, 2), value, &valid);
+	if (!valid)
+		luaL_error(L, "Unable to set field: '%s'", lua_tostring(L, 2));
 	return 0;
 }
 
@@ -904,6 +854,13 @@ int LuaBindingHelper::meta_instance__index(lua_State *L) {
 	}
 	lua_pop(L, 1);
 
+	// MethodBind *mb = ClassDB::get_method(p_instance->owner->get_class_name(), index_name);
+	// if (mb != NULL) {
+	// 	lua_pushlightuserdata(L, mb);
+	// 	lua_pushcclosure(L, l_methodbind_wrapper, 1);
+	// 	return 1;
+	// }
+
 	//3.类方法获取
 	Variant var;
 	//get class
@@ -1213,6 +1170,7 @@ void LuaBindingHelper::register_class(lua_State *L, const ClassDB::ClassInfo *cl
 #ifdef LUA_SCRIPT_DEBUG_ENABLED
 	printf("regist:[%s:%s]\n", String(cls->name).ascii().get_data(), String(cls->inherits).ascii().get_data());
 #endif
+
 	CharString s = String(cls->name).ascii();
 	const char *typeName = s.get_data();
 	//原生调用
@@ -1235,56 +1193,28 @@ void LuaBindingHelper::register_class(lua_State *L, const ClassDB::ClassInfo *cl
 	//
 	lua_getfield(L, LUA_REGISTRYINDEX, "gd");
 	{
-		//当前的子类
+		if (String(cls->name) == "CanvasItem") {
+			printf("regist:[%s:%s]\n", String(cls->name).ascii().get_data(), String(cls->inherits).ascii().get_data());
+		}
 		//
-		const ClassDB::ClassInfo *top = cls;
-		while (top) {
-			//创建当前的类可以调用的 函数
-			//
-			const char *topName = String(top->name).ascii().get_data();
-			lua_getfield(L, -1, topName);
-			if (lua_isnil(L, -1)) {
-				lua_pop(L, 1);
-				lua_newtable(L);
-				lua_pushvalue(L, -1);
-				lua_setfield(L, -3, topName);
-
-				const StringName *key = top->method_map.next(NULL);
-				while (key) {
-					MethodBind *mb = top->method_map.get(*key);
-					lua_pushlightuserdata(L, (void *)mb);
-					lua_pushcclosure(L, l_methodbind_wrapper, 1);
-					lua_setfield(L, -2, String(*key).ascii().get_data());
-					key = top->method_map.next(key);
-				}
-			}
+		//const char *typeName = String(cls->name).ascii().get_data();
+		lua_getfield(L, -1, String(cls->name).ascii().get_data());
+		if (lua_isnil(L, -1)) {
 			lua_pop(L, 1);
+			lua_newtable(L);
+			lua_pushvalue(L, -1);
+			lua_setfield(L, -3, String(cls->name).ascii().get_data());
 
-			top = top->inherits_ptr;
-		}
-		//顺序绑定metatable，跳过已经绑好的类
-		top = cls;
-		while (top) {
-			if (top->inherits_ptr == NULL) {
-				break;
+			const StringName *key = cls->method_map.next(NULL);
+			while (key) {
+				MethodBind *mb = cls->method_map.get(*key);
+				lua_pushlightuserdata(L, (void *)mb);
+				lua_pushcclosure(L, l_methodbind_wrapper, 1);
+				lua_setfield(L, -2, String(*key).ascii().get_data());
+				key = cls->method_map.next(key);
 			}
-			const char *topName = String(top->name).ascii().get_data();
-			lua_getfield(L, -1, topName);
-			{
-				if (lua_getmetatable(L, -1) == 0) {
-					const char *inheritsName = String(top->inherits_ptr->name).ascii().get_data();
-					lua_newtable(L);
-					lua_getfield(L, -3, inheritsName);
-					lua_setfield(L, -2, "__index");
-					lua_setmetatable(L, -2);
-				} else {
-					lua_pop(L, 2);
-					break;
-				}
-			}
-			lua_pop(L, 1);
-			top = top->inherits_ptr;
 		}
+		lua_pop(L, 1);
 	}
 	lua_pop(L, 1);
 }
@@ -1338,6 +1268,20 @@ void LuaBindingHelper::initialize() {
 	lua_pushstring(L, "ref_ubox");
 	lua_newtable(L);
 	lua_rawset(L, LUA_REGISTRYINDEX);
+
+	//Object binding
+	luaL_newmetatable(L, "LuaObject");
+	{
+		luaL_Reg meta_methods[] = {
+			{ "__gc", meta_object__gc },
+			{ "__index", meta_object__index },
+			{ "__newindex", meta_object__newindex },
+			{ "__tostring", meta_object__tostring },
+			{ NULL, NULL },
+		};
+		luaL_setfuncs(L, meta_methods, 0);
+	}
+	lua_pop(L, 1);
 
 	//Variant binding
 	luaL_newmetatable(L, "LuaVariant");
@@ -1416,10 +1360,42 @@ void LuaBindingHelper::initialize() {
 		}
 	}
 
+	{
+		const StringName *key = ClassDB::classes.next(NULL);
+		while (key) {
+			const ClassDB::ClassInfo *cls = ClassDB::classes.getptr(*key);
+			link__index_class(L, cls);
+			key = ClassDB::classes.next(key);
+		}
+	}
 	//regise builtin
 	regitser_builtins(L);
 }
-
+void LuaBindingHelper::link__index_class(lua_State *L, const ClassDB::ClassInfo *cls) {
+	lua_getfield(L, LUA_REGISTRYINDEX, "gd");
+	{
+		const ClassDB::ClassInfo *top = cls;
+		while (top) {
+			const char *topname = String(top->name).ascii().get_data();
+			if (top->inherits_ptr == NULL) {
+				break;
+			}
+			lua_getfield(L, -1, topname);
+			if (lua_getmetatable(L, -1) == 0) {
+				lua_newtable(L);
+				lua_getfield(L, -3, String(top->inherits_ptr->name).ascii().get_data());
+				lua_setfield(L, -2, "__index");
+				lua_setmetatable(L, -2);
+			} else {
+				lua_pop(L, 2);
+				break;
+			}
+			lua_pop(L, 1);
+			top = top->inherits_ptr;
+		}
+	}
+	lua_pop(L, 1);
+}
 void LuaBindingHelper::uninitialize() {
 	lua_close(L);
 	L = NULL;
