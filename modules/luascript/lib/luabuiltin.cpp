@@ -3,6 +3,42 @@
 #include "core/core_string_names.h"
 #include "luabinding_helper.h"
 
+LuaBuiltin::Char_Psn LuaBuiltin::quickSearch[] = {
+	{ "x", &CoreStringNames::get_singleton()->x }, //0
+	{ "y", &CoreStringNames::get_singleton()->y }, //0
+	{ "z", &CoreStringNames::get_singleton()->z }, //0
+	{ "w", &CoreStringNames::get_singleton()->w }, //0
+	{ "r", &CoreStringNames::get_singleton()->r }, //0
+	{ "g", &CoreStringNames::get_singleton()->g }, //0
+	{ "b", &CoreStringNames::get_singleton()->b }, //0
+	{ "a", &CoreStringNames::get_singleton()->a }, //0
+	{ "position", &CoreStringNames::get_singleton()->position }, //0
+	{ "size", &CoreStringNames::get_singleton()->size }, //0
+	{ "end", &CoreStringNames::get_singleton()->end }, //0
+	{ "basis", &CoreStringNames::get_singleton()->basis }, //0
+	{ "origin", &CoreStringNames::get_singleton()->origin }, //0
+	{ "normal", &CoreStringNames::get_singleton()->normal }, //0
+	{ "d", &CoreStringNames::get_singleton()->d }, //0
+	{ "h", &CoreStringNames::get_singleton()->h }, //0
+	{ "s", &CoreStringNames::get_singleton()->s }, //0
+	{ "v", &CoreStringNames::get_singleton()->v }, //0
+	{ "r8", &CoreStringNames::get_singleton()->r8 }, //0
+	{ "g8", &CoreStringNames::get_singleton()->g8 }, //0
+	{ "b8", &CoreStringNames::get_singleton()->b8 }, //0
+	{ "a8", &CoreStringNames::get_singleton()->a8 }, //0
+};
+
+const StringName *LuaBuiltin::GetVariantPropStringName(const char *p_input, bool &founded) {
+	int len = sizeof(quickSearch) / sizeof(Char_Psn);
+	for (int i = 0; i < len; i++) {
+		if (strcmp(p_input, quickSearch[i].c_char) == 0) {
+			founded = true;
+			return quickSearch[i].p_sn;
+		}
+	}
+	return NULL;
+}
+
 void LuaBuiltin::regitser_builtins(lua_State *L) {
 	typedef struct {
 		const char *type;
@@ -48,11 +84,7 @@ void LuaBuiltin::regitser_builtins(lua_State *L) {
 	}
 	lua_pop(L, 1);
 
-	typedef struct {
-		const char *c_char;
-		const StringName *p_sn;
-	} Char_Psn;
-	const Char_Psn quickSearch[] = {
+	const Char_Psn tmp[] = {
 		{ "x", &CoreStringNames::get_singleton()->x }, //0
 		{ "y", &CoreStringNames::get_singleton()->y }, //0
 		{ "z", &CoreStringNames::get_singleton()->z }, //0
@@ -76,14 +108,45 @@ void LuaBuiltin::regitser_builtins(lua_State *L) {
 		{ "b8", &CoreStringNames::get_singleton()->b8 }, //0
 		{ "a8", &CoreStringNames::get_singleton()->a8 }, //0
 	};
+
+	memcpy(quickSearch, tmp, sizeof(tmp));
+
+	// typedef struct {
+	// 	const char *c_char;
+	// 	const StringName *p_sn;
+	// } Char_Psn;
+	// const Char_Psn quickSearch[] = {
+	// 	{ "x", &CoreStringNames::get_singleton()->x }, //0
+	// 	{ "y", &CoreStringNames::get_singleton()->y }, //0
+	// 	{ "z", &CoreStringNames::get_singleton()->z }, //0
+	// 	{ "w", &CoreStringNames::get_singleton()->w }, //0
+	// 	{ "r", &CoreStringNames::get_singleton()->r }, //0
+	// 	{ "g", &CoreStringNames::get_singleton()->g }, //0
+	// 	{ "b", &CoreStringNames::get_singleton()->b }, //0
+	// 	{ "a", &CoreStringNames::get_singleton()->a }, //0
+	// 	{ "position", &CoreStringNames::get_singleton()->position }, //0
+	// 	{ "size", &CoreStringNames::get_singleton()->size }, //0
+	// 	{ "end", &CoreStringNames::get_singleton()->end }, //0
+	// 	{ "basis", &CoreStringNames::get_singleton()->basis }, //0
+	// 	{ "origin", &CoreStringNames::get_singleton()->origin }, //0
+	// 	{ "normal", &CoreStringNames::get_singleton()->normal }, //0
+	// 	{ "d", &CoreStringNames::get_singleton()->d }, //0
+	// 	{ "h", &CoreStringNames::get_singleton()->h }, //0
+	// 	{ "s", &CoreStringNames::get_singleton()->s }, //0
+	// 	{ "v", &CoreStringNames::get_singleton()->v }, //0
+	// 	{ "r8", &CoreStringNames::get_singleton()->r8 }, //0
+	// 	{ "g8", &CoreStringNames::get_singleton()->g8 }, //0
+	// 	{ "b8", &CoreStringNames::get_singleton()->b8 }, //0
+	// 	{ "a8", &CoreStringNames::get_singleton()->a8 }, //0
+	// };
 	//Vaiant property to string
-	lua_newtable(L);
-	len = sizeof(quickSearch) / sizeof(Char_Psn);
-	for (int i = 0; i < len; i++) {
-		lua_pushlightuserdata(L, (void *)quickSearch[i].p_sn);
-		lua_setfield(L, -2, quickSearch[i].c_char);
-	}
-	lua_setfield(L, LUA_REGISTRYINDEX, "VariantProps");
+	// lua_newtable(L);
+	// len = sizeof(quickSearch) / sizeof(Char_Psn);
+	// for (int i = 0; i < len; i++) {
+	// 	lua_pushlightuserdata(L, (void *)quickSearch[i].p_sn);
+	// 	lua_setfield(L, -2, quickSearch[i].c_char);
+	// }
+	// lua_setfield(L, LUA_REGISTRYINDEX, "VariantProps");
 }
 
 int LuaBuiltin::meta_bultins__call(lua_State *L) {

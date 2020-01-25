@@ -580,14 +580,13 @@ int LuaBindingHelper::meta_bultins__index(lua_State *L) {
 	Variant value;
 
 	const char *index_name = l_get_key(L, 2);
-	lua_getfield(L, LUA_REGISTRYINDEX, "VariantProps");
-	lua_getfield(L, -1, index_name);
 
 	bool valid = false;
-
-	if (lua_isuserdata(L, -1)) {
-		value = var->get(*(StringName *)lua_touserdata(L, -1), &valid);
-	} else
+	bool founded = false;
+	const StringName *sn = LuaBuiltin::GetVariantPropStringName(index_name, founded);
+	if (founded)
+		value = var->get(*sn, &valid);
+	else
 		value = var->get(index_name, &valid);
 	if (valid) {
 		l_push_variant(L, value);
@@ -617,14 +616,13 @@ int LuaBindingHelper::meta_bultins__newindex(lua_State *L) {
 
 	Variant value;
 	const char *index_name = l_get_key(L, 2);
-	lua_getfield(L, LUA_REGISTRYINDEX, "VariantProps");
-	lua_getfield(L, -1, index_name);
-
 	l_get_variant(L, 3, value);
 
 	bool valid = false;
-	if (lua_isuserdata(L, -1))
-		var->set(*(StringName *)lua_touserdata(L, -1), value, &valid);
+	bool founded = false;
+	const StringName *sn = LuaBuiltin::GetVariantPropStringName(index_name, founded);
+	if (founded)
+		var->set(*sn, value, &valid);
 	else
 		var->set(index_name, value, &valid);
 
@@ -1404,6 +1402,7 @@ void LuaBindingHelper::uninitialize() {
 Error LuaBindingHelper::script(const String &p_source) {
 	ERR_FAIL_NULL_V(L, ERR_DOES_NOT_EXIST);
 	luaL_loadstring(L, p_source.utf8());
+#ifdef DEBUG_ENABLED
 	if (lua_pcall(L, 0, LUA_MULTRET, 0)) {
 		lua_getfield(L, LUA_GLOBALSINDEX, "debug");
 		if (!lua_istable(L, -1)) {
@@ -1421,6 +1420,9 @@ Error LuaBindingHelper::script(const String &p_source) {
 		print_line(lua_tostring(L, -1));
 		return ERR_SCRIPT_FAILED;
 	}
+#else
+	lua_pcall(L, 0, LUA_MULTRET);
+#endif
 
 	return OK;
 }
