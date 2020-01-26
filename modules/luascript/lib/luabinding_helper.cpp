@@ -97,7 +97,34 @@ int l_methodbind_wrapper(lua_State *L) {
 	l_method_error(L, err);
 	return 0;
 }
-
+void l_push_vector2_type(lua_State *L, const Vector2 &var) {
+	lua_newtable(L);
+	lua_pushnumber(L, var.x);
+	lua_setfield(L, -2, "x");
+	lua_pushnumber(L, var.y);
+	lua_setfield(L, -2, "y");
+	lua_pushstring(L, "vector2");
+	lua_setfield(L, -2, "VT");
+}
+// void l_push_point2_type(lua_State *L, const Point2 &var) {
+// 	l_push_vector2_type(L, var);
+// 	lua_pushstring(L, "point2");
+// 	lua_setfield(L, -2, "VT");
+// }
+// void l_push_size2_type(lua_State *L, const Size2 &var) {
+// 	l_push_vector2_type(L, var);
+// 	lua_pushstring(L, "size2");
+// 	lua_setfield(L, -2, "VT");
+// }
+void l_push_rect2_type(lua_State *L, const Rect2 &var) {
+	lua_newtable(L);
+	l_push_vector2_type(L, var.position);
+	lua_setfield(L, -2, "position");
+	l_push_vector2_type(L, var.size);
+	lua_setfield(L, -2, "size");
+	lua_pushstring(L, "rect2");
+	lua_setfield(L, -2, "VT");
+}
 void l_push_variant(lua_State *L, const Variant &var) {
 	switch (var.get_type()) {
 		case Variant::NIL:
@@ -137,8 +164,14 @@ void l_push_variant(lua_State *L, const Variant &var) {
 				ref->reference();
 			}
 		} break;
-		case Variant::VECTOR2:
-		case Variant::RECT2:
+		case Variant::VECTOR2: {
+			l_push_vector2_type(L, (Vector2)var);
+			break;
+		}
+		case Variant::RECT2: {
+			l_push_rect2_type(L, (Rect2)var);
+			break;
+		}
 		case Variant::VECTOR3:
 		case Variant::TRANSFORM2D:
 		case Variant::PLANE:
@@ -178,6 +211,24 @@ void l_push_bulltins_type(lua_State *L, const Variant &var) {
 	lua_setmetatable(L, -2);
 }
 
+Vector2 l_get_vector2(lua_State *L, int idx) {
+	lua_getfield(L, idx, "x");
+	auto x = lua_tonumber(L, -1);
+	lua_pop(L, 1);
+	lua_getfield(L, idx, "y");
+	auto y = lua_tonumber(L, -1);
+	lua_pop(L, 1);
+	return Vector2(x, y);
+}
+Rect2 l_get_rect2(lua_State *L, int idx) {
+	lua_getfield(L, idx, "position");
+	auto x = l_get_vector2(L, -1);
+	lua_pop(L, 1);
+	lua_getfield(L, idx, "size");
+	auto y = l_get_vector2(L, -1);
+	lua_pop(L, 1);
+	return Rect2(x, y);
+}
 void l_get_variant(lua_State *L, int idx, Variant &var) {
 	switch (lua_type(L, idx)) {
 		case LUA_TNONE:
@@ -188,7 +239,19 @@ void l_get_variant(lua_State *L, int idx, Variant &var) {
 			var = Variant();
 			break;
 
-		case LUA_TTABLE:
+		case LUA_TTABLE: {
+			lua_pushliteral(L, "VT");
+			lua_rawget(L, idx);
+			if (lua_isstring(L, -1)) {
+				const char *vt = lua_tostring(L, -1);
+				if (strncmp(vt, "vector2", 7) == 0) {
+					var = l_get_vector2(L, idx);
+				} else if (strncmp(vt, "rect2", 5) == 0) {
+					var = l_get_rect2(L, idx);
+				}
+				return;
+			}
+			lua_pop(L, 1);
 			if (lua_getmetatable(L, 1)) {
 				luaL_getmetatable(L, "LuaInstance");
 				if (lua_rawequal(L, -1, -2)) {
@@ -199,7 +262,7 @@ void l_get_variant(lua_State *L, int idx, Variant &var) {
 			}
 			lua_pop(L, 1);
 			break;
-
+		}
 		case LUA_TBOOLEAN:
 			var = (lua_toboolean(L, idx) != 0);
 			break;
@@ -472,21 +535,28 @@ int LuaBindingHelper::meta_object__index(lua_State *L) {
 #ifdef LUA_SCRIPT_DEBUG_ENABLED
 	print_format("meta__index: %s call %s", obj->get_class().ascii().get_data(), String(index_name).ascii().get_data());
 #endif
-	//1.如果拥有变量，压入
-	//
-	bool success = false;
-	Variant variant = obj->get(index_name, &success);
-	if (success) {
-		l_push_variant(L, variant);
-		return 1;
-	}
-
-	//2.如果是方法，压入
 	lua_getfield(L, LUA_REGISTRYINDEX, "gd");
 	{
+
 		lua_getfield(L, -1, obj->get_class().ascii().get_data());
 		lua_getfield(L, -1, index_name);
+
 		if (!lua_isnil(L, -1)) {
+			//1.如果拥有变量，压入
+			const ClassDB::PropertySetGet *setget = (const ClassDB::PropertySetGet *)lua_touserdata(L, -1);
+			if (setget && setget->_getptr) {
+				MethodBind *mb = setget->_getptr;
+				Variant::CallError err;
+				Variant variant = mb->call(obj, NULL, 0, err);
+				if (err.error == Variant::CallError::CALL_OK) {
+					l_push_variant(L, variant);
+					return 1;
+				} else {
+					l_method_error(L, err);
+				}
+			}
+
+			//2.如果是方法，压入
 			return 1;
 		}
 	}
@@ -510,13 +580,37 @@ int LuaBindingHelper::meta_object__newindex(lua_State *L) {
 		luaL_error(L, "Failed To Set Field :'%s' To NULL Object", index_name);
 		return 0;
 	}
-	Variant value;
-	//l_get_variant(L, 2, key);
-	l_get_variant(L, 3, value);
-	bool valid = false;
-	obj->set(l_get_key(L, 2), value, &valid);
-	if (!valid)
-		luaL_error(L, "Unable to set field: '%s'", lua_tostring(L, 2));
+
+	// bool valid = false;
+	// obj->set(l_get_key(L, 2), value, &valid);
+	// if (!valid)
+	// 	luaL_error(L, "Unable to set field: '%s'", lua_tostring(L, 2));
+
+	lua_getfield(L, LUA_REGISTRYINDEX, "gd");
+	{
+
+		lua_getfield(L, -1, obj->get_class().ascii().get_data());
+		lua_getfield(L, -1, l_get_key(L, 2));
+
+		if (!lua_isnil(L, -1)) {
+			//1.如果拥有变量，压入
+			ClassDB::PropertySetGet *setget = (ClassDB::PropertySetGet *)lua_touserdata(L, -1);
+			if (setget && setget->_setptr) {
+				MethodBind *mb = setget->_setptr;
+				Variant::CallError err;
+				Variant value;
+				l_get_variant(L, 3, value);
+				const Variant *arg[1] = { &value };
+				Variant variant = mb->call(obj, arg, 1, err);
+				if (err.error == Variant::CallError::CALL_OK) {
+					return 0;
+				} else {
+					l_method_error(L, err);
+				}
+			}
+		}
+	}
+	lua_pop(L, 1);
 	return 0;
 }
 
@@ -834,19 +928,34 @@ int LuaBindingHelper::meta_instance__index(lua_State *L) {
 	const char *index_name = l_get_key(L, 2);
 	//print_format("meta_instance__index:%s instance:%s", lua_tostring(L, 2), String(Variant(p_instance->get_owner())).ascii().get_data());
 	//1.如果是变量，压入
-	bool success = false;
-	Variant variant;
-	success = p_instance->get(index_name, variant);
-	if (success) {
-		l_push_variant(L, variant);
-		return 1;
-	}
-	//2.如果是方法，压入
+	// bool success = false;
+	// Variant variant;
+	// success = p_instance->get(index_name, variant);
+	// if (success) {
+	// 	l_push_variant(L, variant);
+	// 	return 1;
+	// }
 	lua_getfield(L, LUA_REGISTRYINDEX, "gd");
 	{
 		lua_getfield(L, -1, p_instance->owner->get_class().ascii().get_data());
 		lua_getfield(L, -1, index_name);
 		if (!lua_isnil(L, -1)) {
+
+			//1.如果拥有变量，压入
+			const ClassDB::PropertySetGet *setget = (const ClassDB::PropertySetGet *)lua_touserdata(L, -1);
+			if (setget && setget->_getptr) {
+				MethodBind *mb = setget->_getptr;
+				Variant::CallError err;
+				Variant variant = mb->call(p_instance->owner, NULL, 0, err);
+				if (err.error == Variant::CallError::CALL_OK) {
+					l_push_variant(L, variant);
+					return 1;
+				} else {
+					l_method_error(L, err);
+				}
+			}
+			//2.如果是方法，压入
+
 			return 1;
 		}
 	}
@@ -1163,8 +1272,8 @@ void LuaBindingHelper::godotbind() {
 }
 
 void LuaBindingHelper::register_class(lua_State *L, const ClassDB::ClassInfo *cls) {
-	//if (!(String(cls->name) == "Object" || String(cls->name) == "Node" || String(cls->name) == "_OS" || String(cls->name) == "Node2D"))
-	// return;
+	// if (!(String(cls->name) == "Object" || String(cls->name) == "Node" || String(cls->name) == "_OS" || String(cls->name) == "Node2D"))
+	// 	return;
 #ifdef LUA_SCRIPT_DEBUG_ENABLED
 	printf("regist:[%s:%s]\n", String(cls->name).ascii().get_data(), String(cls->inherits).ascii().get_data());
 #endif
@@ -1210,6 +1319,14 @@ void LuaBindingHelper::register_class(lua_State *L, const ClassDB::ClassInfo *cl
 				lua_pushcclosure(L, l_methodbind_wrapper, 1);
 				lua_setfield(L, -2, String(*key).ascii().get_data());
 				key = cls->method_map.next(key);
+			}
+
+			const StringName *prop = cls->property_setget.next(NULL);
+			while (prop) {
+				const ClassDB::PropertySetGet *setget = cls->property_setget.getptr(*prop);
+				lua_pushlightuserdata(L, (void *)setget);
+				lua_setfield(L, -2, String(*prop).ascii().get_data());
+				prop = cls->property_setget.next(prop);
 			}
 		}
 		lua_pop(L, 1);
