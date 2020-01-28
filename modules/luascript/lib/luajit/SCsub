@@ -44,11 +44,34 @@ DASM_DASC = "vm_"+TARGET_LJARCH+".dasc"
 
 lua_include_path = "#modules/luascript/lib/luajit/src"
 
+
+#
+ljlib_c = [
+	"src/lib_base.c",
+	"src/lib_math.c",
+	"src/lib_bit.c",
+	"src/lib_string.c",
+	"src/lib_table.c",
+	"src/lib_io.c",
+	"src/lib_os.c",
+	"src/lib_package.c",
+	"src/lib_debug.c",
+	"src/lib_jit.c",
+	"src/lib_ffi.c"
+]
 ##do dynasm
 
 dynasm_bld = Builder(action='modules\luascript\lib\luajit\src\host\minilua.exe modules\luascript\lib\luajit\dynasm\dynasm.lua -o $TARGET $SOURCE')
-env_dynasm = Environment(BUILDERS={'Dynasm':dynasm_bld})
-dynasm = env_dynasm.Dynasm('src/host/buildvm_arch.h', 'src/vm_x86.dasc')
+ljvm_bout = Builder(action='modules\luascript\lib\luajit\src\host\\buildvm.exe -m peobj -o $TARGET $SOURCES')
+lj_bcdef = Builder(action='modules\luascript\lib\luajit\src\host\\buildvm.exe -m bcdef -o $TARGET $SOURCES')
+lj_ffdef = Builder(action='modules\luascript\lib\luajit\src\host\\buildvm.exe -m ffdef -o $TARGET $SOURCES')
+lj_libdef = Builder(action='modules\luascript\lib\luajit\src\host\\buildvm.exe -m libdef -o $TARGET $SOURCES')
+lj_recdef = Builder(action='modules\luascript\lib\luajit\src\host\\buildvm.exe -m recdef -o $TARGET $SOURCES')
+lib_vmdef = Builder(action='modules\luascript\lib\luajit\src\host\\buildvm.exe -m vmdef -o $TARGET $SOURCE')
+lj_folddef = Builder(action='modules\luascript\lib\luajit\src\host\\buildvm.exe -m folddef -o $TARGET $SOURCES')
+
+env_dynasm = Environment(BUILDERS={'Dynasm':dynasm_bld,"LJVM_BOUT":ljvm_bout,"LJ_BCDEF":lj_bcdef,"LJ_FFDEF":lj_ffdef,"LJ_LIBDEF":lj_libdef,"LJ_RECDEF":lj_recdef,"LIB_VMDEF":lib_vmdef,"LJ_FOLDDEF":lj_folddef})
+dynasm = env_dynasm.Dynasm('src/buildvm_arch.h', 'src/vm_x86.dasc')
 Depends(dynasm,minilua)
 
 ##buildvm build
@@ -62,8 +85,25 @@ buildvm = env_builvm.Program('src/host/buildvm',[
 ])
 Depends(buildvm,dynasm)
 
+ljvm_bout = env_dynasm.LJVM_BOUT('src/lj_vm.o',ljlib_c)
+lj_bcdef_bout = env_dynasm.LJ_BCDEF('src/lj_bcdef.h',ljlib_c)
+lj_ffdef_bout = env_dynasm.LJ_FFDEF('src/lj_ffdef.h',ljlib_c)
+lj_libdef_bout = env_dynasm.LJ_LIBDEF('src/lj_libdef.h',ljlib_c)
+lj_recdef_bout = env_dynasm.LJ_RECDEF('src/lj_recdef.h',ljlib_c)
+# vmdef_bout = env_dynasm.LIB_VMDEF('src/jit/vmdef.lua',ljlib_c)
+# lj_folddef_bout = env_dynasm.LJ_FOLDDEF('src/lj_folddef.h',ljlib_c)
+
+Depends(ljvm_bout,buildvm)
+Depends(lj_bcdef_bout,buildvm)
+Depends(lj_ffdef_bout,lj_bcdef_bout)
+Depends(lj_libdef_bout,lj_ffdef_bout)
+Depends(lj_recdef_bout,lj_libdef_bout)
+# Depends(vmdef_bout,lj_recdef_bout)
+# Depends(lj_folddef_bout,vmdef_bout)
+
+
 ##do header
-##buildvm build
+##buildvm build 
 
 # luajit_sources = [
 # 	"src/lib_aux.c",
