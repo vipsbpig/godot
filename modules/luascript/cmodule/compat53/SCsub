@@ -4,10 +4,10 @@ Import('env')
 Import('env_modules')
 
 env_compat53 = env_modules.Clone()
-lua_include_path = "#modules/luascript/lib/lua51"
+lua_include_path = "#modules/luascript/lib/luajit/src"
 
 if env["platform"] == "windows" or env["platform"] == "uwp":
-    env_compat53.Append(CFLAGS=['/O0', '/std=c99'])
+    env_compat53.Append(CFLAGS=[])
 else:
     env_compat53.Append(CFLAGS=['-O0', '-std=c99'])
 
