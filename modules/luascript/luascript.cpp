@@ -1,4 +1,5 @@
 #include "luascript.h"
+#include "core/io/file_access_encrypted.h"
 #include "core/os/file_access.h"
 #include "luascript_instance.h"
 #include "luascript_language.h"
@@ -8,6 +9,7 @@ LuaScript::LuaScript() {
 	cls = NULL;
 	valid = false;
 	tool = false;
+	byte = false;
 	lua_ref = 0;
 }
 
@@ -121,22 +123,24 @@ Error LuaScript::reload(bool p_keep_state) {
 #ifdef LUA_SCRIPT_DEBUG_ENABLED
 	print_debug("LuaScript::reload");
 #endif
+	if (!byte) {
+		bool has_instances = instances.size();
+		ERR_FAIL_COND_V(!p_keep_state && has_instances, ERR_ALREADY_IN_USE);
+		String basedir = path;
 
-	bool has_instances = instances.size();
-	ERR_FAIL_COND_V(!p_keep_state && has_instances, ERR_ALREADY_IN_USE);
-	String basedir = path;
+		if (basedir == "")
+			basedir = get_path();
 
-	if (basedir == "")
-		basedir = get_path();
+		if (basedir != "")
+			basedir = basedir.get_base_dir();
 
-	if (basedir != "")
-		basedir = basedir.get_base_dir();
-
-	LuaScriptLanguage::get_singleton()->binding->bind_script_function("extends", this, LuaBindingHelper::l_extends);
-	Error err = LuaScriptLanguage::get_singleton()->binding->script(source);
-	LuaScriptLanguage::get_singleton()->binding->unbind_script_function("extends");
-	valid = (err == OK);
-	return err;
+		LuaScriptLanguage::get_singleton()->binding->bind_script_function("extends", this, LuaBindingHelper::l_extends);
+		Error err = LuaScriptLanguage::get_singleton()->binding->script(source);
+		LuaScriptLanguage::get_singleton()->binding->unbind_script_function("extends");
+		valid = (err == OK);
+		return err;
+	}
+	return Error::OK;
 }
 
 void LuaScript::add_lua_method(const StringName &method_name) {
@@ -210,9 +214,86 @@ Error LuaScript::load_source_code(const String &p_path) {
 	return OK;
 }
 
+Error LuaScript::load_byte_code(const String &p_path) {
+	//把脚本传进来加载内容
+	Vector<uint8_t> bytecode;
+
+	if (p_path.ends_with("luace")) {
+
+		FileAccess *fa = FileAccess::open(p_path, FileAccess::READ);
+		ERR_FAIL_COND_V(!fa, ERR_CANT_OPEN);
+
+		FileAccessEncrypted *fae = memnew(FileAccessEncrypted);
+		ERR_FAIL_COND_V(!fae, ERR_CANT_OPEN);
+
+		Vector<uint8_t> key;
+		key.resize(32);
+		for (int i = 0; i < key.size(); i++) {
+			key.write[i] = script_encryption_key[i];
+		}
+
+		Error err = fae->open_and_parse(fa, key, FileAccessEncrypted::MODE_READ);
+
+		if (err) {
+			fa->close();
+			memdelete(fa);
+			memdelete(fae);
+
+			ERR_FAIL_COND_V(err, err);
+		}
+
+		bytecode.resize(fae->get_len());
+		fae->get_buffer(bytecode.ptrw(), bytecode.size());
+		fae->close();
+		memdelete(fae);
+
+	} else {
+
+		bytecode = FileAccess::get_file_as_array(p_path);
+	}
+
+	ERR_FAIL_COND_V(bytecode.size() == 0, ERR_PARSE_ERROR);
+	path = p_path;
+
+	String basedir = path;
+
+	if (basedir == "")
+		basedir = get_path();
+
+	if (basedir != "")
+		basedir = basedir.get_base_dir();
+
+	valid = false;
+	// GDScriptParser parser;
+	// Error err = parser.parse_bytecode(bytecode, basedir, get_path());
+	// if (err) {
+	// 	_err_print_error("GDScript::load_byte_code", path.empty() ? "built-in" : (const char *)path.utf8().get_data(), parser.get_error_line(), ("Parse Error: " + parser.get_error()).utf8().get_data(), ERR_HANDLER_SCRIPT);
+	// 	ERR_FAIL_V(ERR_PARSE_ERROR);
+	// }
+
+	// GDScriptCompiler compiler;
+	// err = compiler.compile(&parser, this);
+
+	// if (err) {
+	// 	_err_print_error("GDScript::load_byte_code", path.empty() ? "built-in" : (const char *)path.utf8().get_data(), compiler.get_error_line(), ("Compile Error: " + compiler.get_error()).utf8().get_data(), ERR_HANDLER_SCRIPT);
+	// 	ERR_FAIL_V(ERR_COMPILATION_FAILED);
+	// }
+	byte = true;
+	LuaScriptLanguage::get_singleton()->binding->bind_script_function("extends", this, LuaBindingHelper::l_extends);
+	Error err = LuaScriptLanguage::get_singleton()->binding->bytecode(bytecode);
+	LuaScriptLanguage::get_singleton()->binding->unbind_script_function("extends");
+	valid = (err == OK);
+	return err;
+	// for (Map<StringName, Ref<GDScript> >::Element *E = subclasses.front(); E; E = E->next()) {
+
+	// 	_set_subclass_path(E->get(), path);
+	// }
+}
+
 //========luascript loader=========
 
-Ref<Resource> LuaScriptResourceFormatLoader::load(const String &p_path, const String &p_original_path, Error *r_error) {
+Ref<Resource>
+LuaScriptResourceFormatLoader::load(const String &p_path, const String &p_original_path, Error *r_error) {
 
 #ifdef LUA_SCRIPT_DEBUG_ENABLED
 	print_debug("LuaScriptResourceFormatLoader::load( p_path = " + p_path + ", p_original_path = " + p_original_path + " )");
@@ -227,17 +308,15 @@ Ref<Resource> LuaScriptResourceFormatLoader::load(const String &p_path, const St
 #ifdef LUA_SCRIPT_DEBUG_ENABLED
 		print_debug("LuaScriptResourceFormatLoader::load luajit");
 #endif
-		ERR_FAIL_V(RES());
-		//TODO:: luajit
-		//Error err = script->load_byte_code(p_path);
-		//ERR_FAIL_COND_V(err != OK, RES());
-		//script->set_path(p_original_path);
-		//script->reload();
+		//TODO:: luajit or lua byte code
+		Error err = script->load_byte_code(p_path);
+		ERR_FAIL_COND_V(err != OK, RES());
+		script->set_path(p_original_path);
+		script->reload();
 	} else {
 		Error err = script->load_source_code(p_path);
 		ERR_FAIL_COND_V(err != OK, RES());
 		script->set_path(p_original_path);
-
 		script->reload();
 	}
 	if (r_error)
@@ -250,7 +329,7 @@ void LuaScriptResourceFormatLoader::get_recognized_extensions(List<String> *p_ex
 
 	p_extensions->push_back("lua");
 	//TODO::luajit
-	//p_extensions->push_back("luac");
+	p_extensions->push_back("luac");
 }
 
 bool LuaScriptResourceFormatLoader::handles_type(const String &p_type) const {

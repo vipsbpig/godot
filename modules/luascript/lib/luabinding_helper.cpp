@@ -1543,3 +1543,31 @@ Error LuaBindingHelper::script(const String &p_source) {
 
 	return OK;
 }
+
+Error LuaBindingHelper::bytecode(const Vector<uint8_t> &p_bytecode) {
+
+	luaL_loadbuffer(L, (const char *)p_bytecode.ptr(), p_bytecode.size(), "");
+#ifdef DEBUG_ENABLED
+	if (lua_pcall(L, 0, LUA_MULTRET, 0)) {
+		lua_getfield(L, LUA_GLOBALSINDEX, "debug");
+		if (!lua_istable(L, -1)) {
+			lua_pop(L, 1);
+			return ERR_SCRIPT_FAILED;
+		}
+		lua_getfield(L, -1, "traceback");
+		if (!lua_isfunction(L, -1)) {
+			lua_pop(L, 2);
+			return ERR_SCRIPT_FAILED;
+		}
+		lua_pushvalue(L, 1); /* pass error message */
+		lua_pushinteger(L, 2); /* skip this function and traceback */
+		lua_call(L, 2, 1); /* call debug.traceback */
+		print_line(lua_tostring(L, -1));
+		return ERR_SCRIPT_FAILED;
+	}
+#else
+	lua_pcall(L, 0, LUA_MULTRET);
+#endif
+
+	return OK;
+}

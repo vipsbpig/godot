@@ -27,6 +27,7 @@ class LuaScript : public Script {
 	GDCLASS(LuaScript, Script)
 	bool tool;
 	bool valid;
+	bool byte;
 	Ref<LuaScript> base;
 	LuaScript *_base;
 	//--unknown
@@ -128,6 +129,7 @@ public:
 	}
 	void add_lua_property_type(const StringName &name, int idx);
 	Error load_source_code(const String &p_path);
+	Error load_byte_code(const String &p_path);
 };
 
 class LuaScriptResourceFormatLoader : public ResourceFormatLoader {

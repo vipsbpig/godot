@@ -125,6 +125,7 @@ public:
 	void uninitialize();
 
 	Error script(const String &p_source);
+	Error bytecode(const Vector<uint8_t> &p_source);
 
 public:
 	static void stackDump(lua_State *L) {
