@@ -4,6 +4,7 @@
 #include "../luascript_instance.h"
 #include "luabuiltin.h"
 #include "scene/main/node.h"
+#include <lualib.h>
 
 static Variant *luaL_checkvariant(lua_State *L, int idx) {
 	//void *ptr = luaL_checkudata(L, idx, "LuaVariant");
@@ -1340,10 +1341,12 @@ void LuaBindingHelper::regitser_builtins(lua_State *L) {
 
 void LuaBindingHelper::initialize() {
 	L = luaL_newstate();
-	luaopen_base(L);
-	luaopen_table(L);
-	luaopen_math(L);
-	luaopen_debug(L);
+	// luaopen_base(L);
+	// luaopen_table(L);
+	// luaopen_math(L);
+	// luaopen_debug(L);
+	// luaopen_jit(L);
+	luaL_openlibs(L);
 	lua_settop(L, 0);
 
 	//GD namespace
@@ -1485,6 +1488,7 @@ void LuaBindingHelper::initialize() {
 	}
 	//regise builtin
 	regitser_builtins(L);
+	
 }
 void LuaBindingHelper::link__index_class(lua_State *L, const ClassDB::ClassInfo *cls) {
 	lua_getfield(L, LUA_REGISTRYINDEX, "gd");
@@ -1545,8 +1549,7 @@ Error LuaBindingHelper::script(const String &p_source) {
 }
 
 Error LuaBindingHelper::bytecode(const Vector<uint8_t> &p_bytecode) {
-
-	luaL_loadbuffer(L, (const char *)p_bytecode.ptr(), p_bytecode.size(), "");
+	luaL_loadbufferx(L, (const char *)p_bytecode.ptr(), p_bytecode.size(), "", "b");
 #ifdef DEBUG_ENABLED
 	if (lua_pcall(L, 0, LUA_MULTRET, 0)) {
 		lua_getfield(L, LUA_GLOBALSINDEX, "debug");
