@@ -1165,16 +1165,18 @@ void LuaBindingHelper::l_push_stringname(lua_State *L, const char *name) {
 int LuaBindingHelper::pcall_callback_err_fun(lua_State *L) {
 	lua_Debug debug = {};
 	int ret = lua_getstack(L, 2, &debug); // 0是pcall_callback_err_fun自己, 1是error函数, 2是真正出错的函数.
-	lua_getinfo(L, "Sln", &debug);
-
-	String errmsg = lua_tostring(L, -1);
-	lua_pop(L, 1);
-	String msg = debug.short_src + String(":line ") + itos(debug.currentline) + "\n";
-	if (debug.name != 0) {
-		msg += String("(") + debug.namewhat + " " + debug.name + ")";
+	if (&debug != NULL) {
+		// lua_getinfo(L, "Sln", &debug);
+		// lua_pop(L, 1);
+		// String msg = debug.short_src + String(":line ") + itos(debug.currentline) + "\n";
+		// if (debug.name != 0) {
+		// 	msg += String("(") + debug.namewhat + " " + debug.name + ")";
+		// }
+		// lua_pushstring(L, msg.utf8().get_data());
 	}
+	String errmsg = lua_tostring(L, -1);
 	ERR_PRINT_ONCE(errmsg.utf8().get_data());
-	lua_pushstring(L, msg.utf8().get_data());
+
 	return 1;
 }
 
@@ -1488,7 +1490,6 @@ void LuaBindingHelper::initialize() {
 	}
 	//regise builtin
 	regitser_builtins(L);
-	
 }
 void LuaBindingHelper::link__index_class(lua_State *L, const ClassDB::ClassInfo *cls) {
 	lua_getfield(L, LUA_REGISTRYINDEX, "gd");

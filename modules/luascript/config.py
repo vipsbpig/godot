@@ -6,16 +6,20 @@ def can_build(env, platform):
     return True
 
 def configure(env):
+    luajit = True
     #pass
     bits = env['bits']
-    lua_include_path = "#modules/luascript/lib/luajit/src"
-
-    if env['platform'] == 'windows':
-        env.Append(LIBPATH=['#modules/luascript/lib/luajit'])
-        if bits == '32':
-            env.Append(LINKFLAGS=['lua51_x86.lib'])
-        else:
-            env.Append(LINKFLAGS=['lua51_x64.lib'])
+    
+    if luajit:
+        env['luajit'] = True
+        if env['platform'] == 'windows':
+            env.Append(LIBPATH=['#modules/luascript/lib/luajit'])
+            if bits == '32':
+                env.Append(LINKFLAGS=['lua51_x86.lib'])
+            else:
+                env.Append(LINKFLAGS=['lua51_x64.lib'])
+    else:
+        env['luajit'] = False
 
 
 
