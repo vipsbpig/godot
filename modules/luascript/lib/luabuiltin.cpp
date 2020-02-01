@@ -28,8 +28,9 @@ LuaBuiltin::Char_Psn LuaBuiltin::quickSearch[] = {
 	{ "a8", &CoreStringNames::get_singleton()->a8 }, //0
 };
 
-
 const char LuaBuiltin::GD_ARRAY = 0;
+const char LuaBuiltin::GD_VECTOR2 = 0;
+const char LuaBuiltin::GD_RECT2 = 0;
 
 const StringName *LuaBuiltin::GetVariantPropStringName(const char *p_input, bool &founded) {
 	int len = sizeof(quickSearch) / sizeof(Char_Psn);
@@ -119,6 +120,15 @@ void LuaBuiltin::regitser_builtins(lua_State *L) {
 	lua_newtable(L);
 	lua_rawset(L, LUA_REGISTRYINDEX);
 
+	//Vector2 binding
+	lua_pushlightuserdata(L, (void *)&LuaBuiltin::GD_VECTOR2);
+	lua_newtable(L);
+	lua_rawset(L, LUA_REGISTRYINDEX);
+	
+	//GD_RECT2 binding
+	lua_pushlightuserdata(L, (void *)&LuaBuiltin::GD_RECT2);
+	lua_newtable(L);
+	lua_rawset(L, LUA_REGISTRYINDEX);
 }
 
 int LuaBuiltin::meta_bultins__call(lua_State *L) {

@@ -14,7 +14,9 @@ class LuaBuiltin {
 public:
 	//====
 	static const char GD_ARRAY;
-	
+	static const char GD_VECTOR2;
+	static const char GD_RECT2;
+
 	static const StringName *GetVariantPropStringName(const char *p_input, bool &founded);
 	static void regitser_builtins(lua_State *L);
 	static int meta_bultins__call(lua_State *L);

@@ -104,27 +104,20 @@ void l_push_vector2_type(lua_State *L, const Vector2 &var) {
 	lua_setfield(L, -2, "x");
 	lua_pushnumber(L, var.y);
 	lua_setfield(L, -2, "y");
-	lua_pushstring(L, "vector2");
-	lua_setfield(L, -2, "VT");
+	lua_pushlightuserdata(L, (void *)&LuaBuiltin::GD_VECTOR2);
+	lua_rawget(L, LUA_REGISTRYINDEX);
+	lua_setmetatable(L, -2);
 }
-// void l_push_point2_type(lua_State *L, const Point2 &var) {
-// 	l_push_vector2_type(L, var);
-// 	lua_pushstring(L, "point2");
-// 	lua_setfield(L, -2, "VT");
-// }
-// void l_push_size2_type(lua_State *L, const Size2 &var) {
-// 	l_push_vector2_type(L, var);
-// 	lua_pushstring(L, "size2");
-// 	lua_setfield(L, -2, "VT");
-// }
+
 void l_push_rect2_type(lua_State *L, const Rect2 &var) {
 	lua_newtable(L);
 	l_push_vector2_type(L, var.position);
 	lua_setfield(L, -2, "position");
 	l_push_vector2_type(L, var.size);
 	lua_setfield(L, -2, "size");
-	lua_pushstring(L, "rect2");
-	lua_setfield(L, -2, "VT");
+	lua_pushlightuserdata(L, (void *)&LuaBuiltin::GD_RECT2);
+	lua_rawget(L, LUA_REGISTRYINDEX);
+	lua_setmetatable(L, -2);
 }
 void l_push_variant(lua_State *L, const Variant &var) {
 	switch (var.get_type()) {
@@ -264,19 +257,25 @@ void l_get_variant(lua_State *L, int idx, Variant &var) {
 			break;
 
 		case LUA_TTABLE: {
-			lua_pushliteral(L, "VT");
-			lua_rawget(L, idx);
-			if (lua_isstring(L, -1)) {
-				const char *vt = lua_tostring(L, -1);
-				if (strncmp(vt, "vector2", 7) == 0) {
+
+			if (lua_getmetatable(L, idx)) {
+				lua_pushlightuserdata(L, (void *)&LuaBuiltin::GD_VECTOR2);
+				lua_rawget(L, LUA_REGISTRYINDEX);
+				if (lua_rawequal(L, -1, -2)) {
 					var = l_get_vector2(L, idx);
-				} else if (strncmp(vt, "rect2", 5) == 0) {
-					var = l_get_rect2(L, idx);
+					//lua_pop(L, 1);
+					return;
 				}
-				return;
-			}
-			lua_pop(L, 1);
-			if (lua_getmetatable(L, 1)) {
+				lua_pop(L, 1);
+				lua_pushlightuserdata(L, (void *)&LuaBuiltin::GD_RECT2);
+				lua_rawget(L, LUA_REGISTRYINDEX);
+				if (lua_rawequal(L, -1, -2)) {
+					var = l_get_rect2(L, idx);
+					//lua_pop(L, 1);
+					return;
+				}
+				lua_pop(L, 1);
+
 				lua_pushlightuserdata(L, (void *)&LuaBuiltin::GD_ARRAY);
 				lua_rawget(L, LUA_REGISTRYINDEX);
 				if (lua_rawequal(L, -1, -2)) {
