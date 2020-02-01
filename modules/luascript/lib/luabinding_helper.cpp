@@ -599,8 +599,8 @@ int LuaBindingHelper::meta_object__index(lua_State *L) {
 	lua_pushlightuserdata(L, (void *)&GD_CLASS);
 	lua_rawget(L, LUA_REGISTRYINDEX);
 	{
-
-		lua_getfield(L, -1, obj->get_class().ascii().get_data());
+		lua_pushlightuserdata(L, ClassDB::classes.getptr(obj->get_class_name()));
+		lua_rawget(L, -2);
 		lua_getfield(L, -1, index_name);
 
 		if (!lua_isnil(L, -1)) {
@@ -652,7 +652,8 @@ int LuaBindingHelper::meta_object__newindex(lua_State *L) {
 	lua_rawget(L, LUA_REGISTRYINDEX);
 	{
 
-		lua_getfield(L, -1, obj->get_class().ascii().get_data());
+		lua_pushlightuserdata(L, ClassDB::classes.getptr(obj->get_class_name()));
+		lua_rawget(L, -2);
 		lua_getfield(L, -1, l_get_key(L, 2));
 
 		if (!lua_isnil(L, -1)) {
@@ -1001,7 +1002,8 @@ int LuaBindingHelper::meta_instance__index(lua_State *L) {
 	lua_pushlightuserdata(L, (void *)&GD_CLASS);
 	lua_rawget(L, LUA_REGISTRYINDEX);
 	{
-		lua_getfield(L, -1, p_instance->owner->get_class().ascii().get_data());
+		lua_pushlightuserdata(L, ClassDB::classes.getptr(p_instance->owner->get_class_name()));
+		lua_rawget(L, -2);
 		lua_getfield(L, -1, index_name);
 		if (!lua_isnil(L, -1)) {
 
@@ -1368,13 +1370,14 @@ void LuaBindingHelper::register_class(lua_State *L, const ClassDB::ClassInfo *cl
 	lua_pushlightuserdata(L, (void *)&GD_CLASS);
 	lua_rawget(L, LUA_REGISTRYINDEX);
 	{
-		stackDump(L);
-		lua_getfield(L, -1, String(cls->name).ascii().get_data());
+		lua_pushlightuserdata(L, (void *)cls);
+		lua_rawget(L, -2);
 		if (lua_isnil(L, -1)) {
 			lua_pop(L, 1);
 			lua_newtable(L);
-			lua_pushvalue(L, -1);
-			lua_setfield(L, -3, String(cls->name).ascii().get_data());
+			lua_pushlightuserdata(L, (void *)cls);
+			lua_pushvalue(L, -2);
+			lua_rawset(L, -4);
 
 			const StringName *key = cls->method_map.next(NULL);
 			while (key) {
@@ -1570,14 +1573,17 @@ void LuaBindingHelper::link__index_class(lua_State *L, const ClassDB::ClassInfo 
 	{
 		const ClassDB::ClassInfo *top = cls;
 		while (top) {
-			const char *topname = String(top->name).ascii().get_data();
+			// const char *topname = String(top->name).ascii().get_data();
 			if (top->inherits_ptr == NULL) {
 				break;
 			}
-			lua_getfield(L, -1, topname);
+			lua_pushlightuserdata(L, (void *)top);
+			lua_rawget(L, -2);
 			if (lua_getmetatable(L, -1) == 0) {
 				lua_newtable(L);
-				lua_getfield(L, -3, String(top->inherits_ptr->name).ascii().get_data());
+				lua_pushlightuserdata(L, (void *)top->inherits_ptr);
+				lua_rawget(L, -4);
+				//lua_getfield(L, -3, String(top->inherits_ptr->name).ascii().get_data());
 				lua_setfield(L, -2, "__index");
 				lua_setmetatable(L, -2);
 			} else {
