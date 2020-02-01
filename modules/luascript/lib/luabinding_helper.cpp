@@ -7,7 +7,6 @@
 #include <lualib.h>
 
 static Variant *luaL_checkvariant(lua_State *L, int idx) {
-	//void *ptr = luaL_checkudata(L, idx, "LuaVariant");
 	void *ptr = lua_touserdata(L, idx);
 	return *((Variant **)ptr);
 }
@@ -229,7 +228,8 @@ void l_push_bulltins_type(lua_State *L, const Variant &var) {
 	Variant **ptr = (Variant **)lua_newuserdata(L, sizeof(Variant *));
 	*ptr = memnew(Variant);
 	**ptr = var;
-	luaL_getmetatable(L, "LuaVariant");
+	lua_pushlightuserdata(L, (void *)&LuaBindingHelper::LUAVARIANT);
+	lua_rawget(L, LUA_REGISTRYINDEX);
 	lua_setmetatable(L, -2);
 }
 
@@ -346,7 +346,8 @@ void l_get_variant(lua_State *L, int idx, Variant &var) {
 					}
 					lua_pop(L, 1);
 
-					lua_getfield(L, LUA_REGISTRYINDEX, "LuaVariant");
+					lua_pushlightuserdata(L, (void *)&LuaBindingHelper::LUAVARIANT);
+					lua_rawget(L, LUA_REGISTRYINDEX);
 					if (lua_rawequal(L, -1, -2)) {
 
 						lua_pop(L, 2);
@@ -366,15 +367,15 @@ const char *l_get_key(lua_State *L, int idx) {
 }
 
 const char LuaBindingHelper::LUAOBJECT = 0;
-const char LuaBindingHelper::LUAVARIANT = 0;
-const char LuaBindingHelper::LUASCRIPT = 0;
-const char LuaBindingHelper::LUAINSTANCE = 0;
+const char LuaBindingHelper::LUAVARIANT = 1;
+const char LuaBindingHelper::LUASCRIPT = 2;
+const char LuaBindingHelper::LUAINSTANCE = 3;
 
-const char LuaBindingHelper::GDCLASS = 0;
-const char LuaBindingHelper::WEAK_UBOX = 0;
-const char LuaBindingHelper::REF_UBOX = 0;
-const char LuaBindingHelper::LUA_SCRIPT_REF = 0;
-const char LuaBindingHelper::LUA_INSTANCE_REF = 0;
+const char LuaBindingHelper::GDCLASS = 4;
+const char LuaBindingHelper::WEAK_UBOX = 5;
+const char LuaBindingHelper::REF_UBOX = 6;
+const char LuaBindingHelper::LUA_SCRIPT_REF = 7;
+const char LuaBindingHelper::LUA_INSTANCE_REF = 8;
 
 LuaBindingHelper::LuaBindingHelper() :
 		L(NULL) {
@@ -1462,7 +1463,8 @@ void LuaBindingHelper::initialize() {
 	lua_rawset(L, LUA_REGISTRYINDEX);
 
 	//Variant binding
-	luaL_newmetatable(L, "LuaVariant");
+	lua_pushlightuserdata(L, (void *)&LUAVARIANT);
+	lua_newtable(L);
 	{
 		typedef struct {
 			const char *meta;
@@ -1498,7 +1500,7 @@ void LuaBindingHelper::initialize() {
 		};
 		luaL_setfuncs(L, meta_methods, 0);
 	}
-	lua_pop(L, 1);
+	lua_rawset(L, LUA_REGISTRYINDEX);
 
 	//LuaScript binding
 	luaL_newmetatable(L, "LuaScript");

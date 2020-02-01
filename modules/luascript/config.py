@@ -6,7 +6,7 @@ def can_build(env, platform):
     return True
 
 def configure(env):
-    luajit = True
+    luajit = False
     #pass
     bits = env['bits']
     
