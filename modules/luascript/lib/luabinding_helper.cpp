@@ -366,6 +366,15 @@ const char *l_get_key(lua_State *L, int idx) {
 }
 
 const char LuaBindingHelper::LUAOBJECT = 0;
+const char LuaBindingHelper::LUAVARIANT = 0;
+const char LuaBindingHelper::LUASCRIPT = 0;
+const char LuaBindingHelper::LUAINSTANCE = 0;
+
+const char LuaBindingHelper::GDCLASS = 0;
+const char LuaBindingHelper::WEAK_UBOX = 0;
+const char LuaBindingHelper::REF_UBOX = 0;
+const char LuaBindingHelper::LUA_SCRIPT_REF = 0;
+const char LuaBindingHelper::LUA_INSTANCE_REF = 0;
 
 LuaBindingHelper::LuaBindingHelper() :
 		L(NULL) {
