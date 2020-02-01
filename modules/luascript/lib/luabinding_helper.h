@@ -23,8 +23,9 @@ public:
 	static const char GD_CLASS;
 	static const char WEAK_UBOX;
 	static const char REF_UBOX;
-	static const char LUA_SCRIPT_REF;
-	static const char LUA_INSTANCE_REF;
+	static const char GD_SCRIPT_REF;
+	static const char GD_INSTANCE_REF;
+
 
 	static int l_print(lua_State *L);
 

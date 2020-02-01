@@ -218,7 +218,8 @@ void l_push_array_type(lua_State *L, const Variant &var) {
 		lua_rawset(L, -3);
 		idx++;
 	} while (r_valid);
-	luaL_getmetatable(L, "LuaArray");
+	lua_pushlightuserdata(L, (void *)&LuaBuiltin::GD_ARRAY);
+	lua_rawget(L, LUA_REGISTRYINDEX);
 	lua_setmetatable(L, -2);
 }
 
@@ -276,7 +277,8 @@ void l_get_variant(lua_State *L, int idx, Variant &var) {
 			}
 			lua_pop(L, 1);
 			if (lua_getmetatable(L, 1)) {
-				luaL_getmetatable(L, "LuaArray");
+				lua_pushlightuserdata(L, (void *)&LuaBuiltin::GD_ARRAY);
+				lua_rawget(L, LUA_REGISTRYINDEX);
 				if (lua_rawequal(L, -1, -2)) {
 					Array arr;
 					if (idx < 0) {
@@ -375,8 +377,8 @@ const char LuaBindingHelper::LUAINSTANCE = 3;
 const char LuaBindingHelper::GD_CLASS = 4;
 const char LuaBindingHelper::WEAK_UBOX = 5;
 const char LuaBindingHelper::REF_UBOX = 6;
-const char LuaBindingHelper::LUA_SCRIPT_REF = 7;
-const char LuaBindingHelper::LUA_INSTANCE_REF = 8;
+const char LuaBindingHelper::GD_SCRIPT_REF = 7;
+const char LuaBindingHelper::GD_INSTANCE_REF = 8;
 
 LuaBindingHelper::LuaBindingHelper() :
 		L(NULL) {
@@ -944,7 +946,7 @@ int LuaBindingHelper::meta_script__newindex(lua_State *L) {
 
 void LuaBindingHelper::l_ref_luascript(lua_State *L, void *object) {
 	LuaScript *p_script = (LuaScript *)object;
-	lua_pushlightuserdata(L, (void *)&LUA_SCRIPT_REF);
+	lua_pushlightuserdata(L, (void *)&GD_SCRIPT_REF);
 	lua_rawget(L, LUA_REGISTRYINDEX);
 	lua_pushvalue(L, -2);
 	p_script->lua_ref = luaL_ref(L, -2);
@@ -955,7 +957,7 @@ void LuaBindingHelper::l_ref_luascript(lua_State *L, void *object) {
 }
 
 void LuaBindingHelper::l_push_luascript_ref(lua_State *L, int ref) {
-	lua_pushlightuserdata(L, (void *)&LUA_SCRIPT_REF);
+	lua_pushlightuserdata(L, (void *)&GD_SCRIPT_REF);
 	lua_rawget(L, LUA_REGISTRYINDEX);
 	lua_rawgeti(L, -1, ref);
 	lua_remove(L, -2);
@@ -967,7 +969,7 @@ void LuaBindingHelper::l_unref_luascript(void *object) {
 	printf("l_unref_luascript:%d s:%d\n", p_script->lua_ref, p_script);
 #endif
 
-	lua_pushlightuserdata(L, (void *)&LUA_SCRIPT_REF);
+	lua_pushlightuserdata(L, (void *)&GD_SCRIPT_REF);
 	lua_rawget(L, LUA_REGISTRYINDEX);
 	luaL_unref(L, -1, p_script->lua_ref);
 	lua_pop(L, 1);
@@ -1165,7 +1167,7 @@ void LuaBindingHelper::helper_push_instance(void *object) {
 
 void LuaBindingHelper::l_ref_instance(lua_State *L, void *object) {
 	LuaScriptInstance *p_instance = (LuaScriptInstance *)object;
-	lua_pushlightuserdata(L, (void *)&LUA_INSTANCE_REF);
+	lua_pushlightuserdata(L, (void *)&GD_INSTANCE_REF);
 	lua_rawget(L, LUA_REGISTRYINDEX);
 	lua_pushvalue(L, -2);
 	p_instance->lua_ref = luaL_ref(L, -2);
@@ -1179,7 +1181,7 @@ void LuaBindingHelper::l_push_instance_ref(lua_State *L, int ref) {
 #ifdef LUA_SCRIPT_DEBUG_ENABLED
 	print_format("l_push_instance_ref :%d ", ref);
 #endif
-	lua_pushlightuserdata(L, (void *)&LUA_INSTANCE_REF);
+	lua_pushlightuserdata(L, (void *)&GD_INSTANCE_REF);
 	lua_rawget(L, LUA_REGISTRYINDEX);
 	lua_rawgeti(L, -1, ref);
 	lua_remove(L, -2);
@@ -1190,7 +1192,7 @@ void LuaBindingHelper::l_unref_instance(void *object) {
 #ifdef LUA_SCRIPT_DEBUG_ENABLED
 	print_format("l_unref_instance:%d s:%s", p_instance->lua_ref, String(Variant(p_instance->get_owner())).ascii().get_data());
 #endif
-	lua_pushlightuserdata(L, (void *)&LUA_INSTANCE_REF);
+	lua_pushlightuserdata(L, (void *)&GD_INSTANCE_REF);
 	lua_rawget(L, LUA_REGISTRYINDEX);
 	luaL_unref(L, -1, p_instance->lua_ref);
 	lua_pop(L, 1);
@@ -1428,12 +1430,12 @@ void LuaBindingHelper::initialize() {
 	godotbind();
 
 	//hidden script space
-	lua_pushlightuserdata(L, (void *)&LUA_SCRIPT_REF);
+	lua_pushlightuserdata(L, (void *)&GD_SCRIPT_REF);
 	lua_newtable(L);
 	lua_rawset(L, LUA_REGISTRYINDEX);
 
 	//hidden instance space
-	lua_pushlightuserdata(L, (void *)&LUA_INSTANCE_REF);
+	lua_pushlightuserdata(L, (void *)&GD_INSTANCE_REF);
 	lua_newtable(L);
 	lua_rawset(L, LUA_REGISTRYINDEX);
 
@@ -1539,12 +1541,6 @@ void LuaBindingHelper::initialize() {
 		luaL_setfuncs(L, meta_methods, 0);
 	}
 	lua_rawset(L, LUA_REGISTRYINDEX);
-
-	//LuaArray binding
-	luaL_newmetatable(L, "LuaArray");
-	{
-	}
-	lua_pop(L, 1);
 
 	// register class
 	{
