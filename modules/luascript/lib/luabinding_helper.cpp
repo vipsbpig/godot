@@ -371,7 +371,7 @@ const char LuaBindingHelper::LUAVARIANT = 1;
 const char LuaBindingHelper::LUASCRIPT = 2;
 const char LuaBindingHelper::LUAINSTANCE = 3;
 
-const char LuaBindingHelper::GDCLASS = 4;
+const char LuaBindingHelper::GD_CLASS = 4;
 const char LuaBindingHelper::WEAK_UBOX = 5;
 const char LuaBindingHelper::REF_UBOX = 6;
 const char LuaBindingHelper::LUA_SCRIPT_REF = 7;
@@ -593,7 +593,8 @@ int LuaBindingHelper::meta_object__index(lua_State *L) {
 #ifdef LUA_SCRIPT_DEBUG_ENABLED
 	print_format("meta__index: %s call %s", obj->get_class().ascii().get_data(), String(index_name).ascii().get_data());
 #endif
-	lua_getfield(L, LUA_REGISTRYINDEX, "gd");
+	lua_pushlightuserdata(L, (void *)&GD_CLASS);
+	lua_rawget(L, LUA_REGISTRYINDEX);
 	{
 
 		lua_getfield(L, -1, obj->get_class().ascii().get_data());
@@ -644,7 +645,8 @@ int LuaBindingHelper::meta_object__newindex(lua_State *L) {
 	// if (!valid)
 	// 	luaL_error(L, "Unable to set field: '%s'", lua_tostring(L, 2));
 
-	lua_getfield(L, LUA_REGISTRYINDEX, "gd");
+	lua_pushlightuserdata(L, (void *)&GD_CLASS);
+	lua_rawget(L, LUA_REGISTRYINDEX);
 	{
 
 		lua_getfield(L, -1, obj->get_class().ascii().get_data());
@@ -993,7 +995,8 @@ int LuaBindingHelper::meta_instance__index(lua_State *L) {
 	// 	l_push_variant(L, variant);
 	// 	return 1;
 	// }
-	lua_getfield(L, LUA_REGISTRYINDEX, "gd");
+	lua_pushlightuserdata(L, (void *)&GD_CLASS);
+	lua_rawget(L, LUA_REGISTRYINDEX);
 	{
 		lua_getfield(L, -1, p_instance->owner->get_class().ascii().get_data());
 		lua_getfield(L, -1, index_name);
@@ -1358,13 +1361,10 @@ void LuaBindingHelper::register_class(lua_State *L, const ClassDB::ClassInfo *cl
 
 	//需要遍历
 	//
-	lua_getfield(L, LUA_REGISTRYINDEX, "gd");
+	lua_pushlightuserdata(L, (void *)&GD_CLASS);
+	lua_rawget(L, LUA_REGISTRYINDEX);
 	{
-		if (String(cls->name) == "CanvasItem") {
-			printf("regist:[%s:%s]\n", String(cls->name).ascii().get_data(), String(cls->inherits).ascii().get_data());
-		}
-		//
-		//const char *typeName = String(cls->name).ascii().get_data();
+		stackDump(L);
 		lua_getfield(L, -1, String(cls->name).ascii().get_data());
 		if (lua_isnil(L, -1)) {
 			lua_pop(L, 1);
@@ -1412,9 +1412,10 @@ void LuaBindingHelper::initialize() {
 	lua_newtable(L);
 	lua_setfield(L, LUA_GLOBALSINDEX, "GD");
 
-	//GD namespace
+	//GD class
+	lua_pushlightuserdata(L, (void *)&GD_CLASS);
 	lua_newtable(L);
-	lua_setfield(L, LUA_REGISTRYINDEX, "gd");
+	lua_rawset(L, LUA_REGISTRYINDEX);
 
 	//godot function
 	godotbind();
@@ -1558,7 +1559,8 @@ void LuaBindingHelper::initialize() {
 	regitser_builtins(L);
 }
 void LuaBindingHelper::link__index_class(lua_State *L, const ClassDB::ClassInfo *cls) {
-	lua_getfield(L, LUA_REGISTRYINDEX, "gd");
+	lua_pushlightuserdata(L, (void *)&GD_CLASS);
+	lua_rawget(L, LUA_REGISTRYINDEX);
 	{
 		const ClassDB::ClassInfo *top = cls;
 		while (top) {

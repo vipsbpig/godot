@@ -20,7 +20,7 @@ public:
 	static const char LUASCRIPT;
 	static const char LUAINSTANCE;
 	//=====
-	static const char GDCLASS;
+	static const char GD_CLASS;
 	static const char WEAK_UBOX;
 	static const char REF_UBOX;
 	static const char LUA_SCRIPT_REF;
