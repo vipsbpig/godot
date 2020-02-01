@@ -183,9 +183,13 @@ void l_push_variant(lua_State *L, const Variant &var) {
 		case Variant::COLOR:
 		case Variant::NODE_PATH:
 		case Variant::_RID:
-		case Variant::DICTIONARY:
-		case Variant::ARRAY:
-
+		case Variant::DICTIONARY: {
+			l_push_bulltins_type(L, var);
+		} break;
+		case Variant::ARRAY: {
+			l_push_array_type(L, var);
+			break;
+		}
 		case Variant::POOL_BYTE_ARRAY:
 		case Variant::POOL_INT_ARRAY:
 		case Variant::POOL_REAL_ARRAY:
@@ -194,11 +198,28 @@ void l_push_variant(lua_State *L, const Variant &var) {
 		case Variant::POOL_VECTOR3_ARRAY:
 		case Variant::POOL_COLOR_ARRAY: {
 			l_push_bulltins_type(L, var);
-		} break;
+			break;
+		}
 		default:
 			luaL_error(L, "unknow Type:%s", Variant::get_type_name(var.get_type()).ascii().get_data());
 			break;
 	}
+}
+
+void l_push_array_type(lua_State *L, const Variant &var) {
+	lua_newtable(L);
+	int idx = 0;
+	bool r_valid = false;
+	do {
+		Variant value = var.get(idx, &r_valid);
+		if (!r_valid) break;
+		lua_pushinteger(L, idx);
+		l_push_variant(L, value);
+		lua_rawset(L, -3);
+		idx++;
+	} while (r_valid);
+	luaL_getmetatable(L, "LuaArray");
+	lua_setmetatable(L, -2);
 }
 
 void l_push_bulltins_type(lua_State *L, const Variant &var) {
@@ -254,6 +275,27 @@ void l_get_variant(lua_State *L, int idx, Variant &var) {
 			}
 			lua_pop(L, 1);
 			if (lua_getmetatable(L, 1)) {
+				luaL_getmetatable(L, "LuaArray");
+				if (lua_rawequal(L, -1, -2)) {
+					Array arr;
+					if (idx < 0) {
+						idx = lua_gettop(L) + idx + 1;
+					}
+					/* table 放在索引 't' 处 */
+					lua_pushnil(L); /* 第一个 key */
+					while (lua_next(L, idx) != 0) {
+						/* 用一下 'key' （在索引 -2 处） 和 'value' （在索引 -1 处） */
+						Variant tmp;
+						l_get_variant(L, -2, tmp);
+						arr.push_back(tmp);
+						/* 移除 'value' ；保留 'key' 做下一次迭代 */
+						lua_pop(L, 1);
+					}
+					lua_pop(L, 1);
+					return;
+				}
+				lua_pop(L, 1);
+
 				luaL_getmetatable(L, "LuaInstance");
 				if (lua_rawequal(L, -1, -2)) {
 					LuaScriptInstance *p_instance = luaL_getinstance(L, 1);
@@ -261,7 +303,6 @@ void l_get_variant(lua_State *L, int idx, Variant &var) {
 				}
 				lua_pop(L, 1);
 			}
-			lua_pop(L, 1);
 			break;
 		}
 		case LUA_TBOOLEAN:
@@ -283,7 +324,9 @@ void l_get_variant(lua_State *L, int idx, Variant &var) {
 			void *ud = lua_touserdata(L, idx);
 			if (ud != NULL) {
 				if (lua_getmetatable(L, idx)) {
-					lua_getfield(L, LUA_REGISTRYINDEX, "LuaObject");
+					lua_pushlightuserdata(L, (void *)&LuaBindingHelper::LUAOBJECT);
+					lua_rawget(L, LUA_REGISTRYINDEX);
+					//lua_getfield(L, LUA_REGISTRYINDEX, "LuaObject");
 					if (lua_rawequal(L, -1, -2)) {
 						lua_pop(L, 2);
 						if (ud == NULL) {
@@ -321,6 +364,8 @@ void l_get_variant(lua_State *L, int idx, Variant &var) {
 const char *l_get_key(lua_State *L, int idx) {
 	return lua_tostring(L, idx);
 }
+
+const char LuaBindingHelper::LUAOBJECT = 0;
 
 LuaBindingHelper::LuaBindingHelper() :
 		L(NULL) {
@@ -463,7 +508,9 @@ int LuaBindingHelper::script_pushobject(lua_State *L, Object *object) {
 	// 	};
 	// 	luaL_setfuncs(L, meta_methods, 0);
 	// }
-	lua_getfield(L, LUA_REGISTRYINDEX, "LuaObject");
+	lua_pushlightuserdata(L, (void *)&LUAOBJECT);
+	lua_rawget(L, LUA_REGISTRYINDEX);
+	//lua_getfield(L, LUA_REGISTRYINDEX, "LuaObject");
 	lua_setmetatable(L, -2);
 	///---------
 	lua_pushnumber(L, object->get_instance_id());
@@ -1390,7 +1437,9 @@ void LuaBindingHelper::initialize() {
 	lua_rawset(L, LUA_REGISTRYINDEX);
 
 	//Object binding
-	luaL_newmetatable(L, "LuaObject");
+	//luaL_newmetatable(L, "LuaObject");
+	lua_pushlightuserdata(L, (void *)&LUAOBJECT);
+	lua_newtable(L);
 	{
 		luaL_Reg meta_methods[] = {
 			{ "__gc", meta_object__gc },
@@ -1401,7 +1450,7 @@ void LuaBindingHelper::initialize() {
 		};
 		luaL_setfuncs(L, meta_methods, 0);
 	}
-	lua_pop(L, 1);
+	lua_rawset(L, LUA_REGISTRYINDEX);
 
 	//Variant binding
 	luaL_newmetatable(L, "LuaVariant");
@@ -1435,7 +1484,7 @@ void LuaBindingHelper::initialize() {
 			{ "__index", meta_bultins__index },
 			{ "__newindex", meta_bultins__newindex },
 			{ "__tostring", meta_bultins__tostring },
-			{ "__pairs", meta_bultins__pairs },
+			// { "__pairs", meta_bultins__pairs },
 			{ NULL, NULL },
 		};
 		luaL_setfuncs(L, meta_methods, 0);
@@ -1467,6 +1516,12 @@ void LuaBindingHelper::initialize() {
 			{ NULL, NULL },
 		};
 		luaL_setfuncs(L, meta_methods, 0);
+	}
+	lua_pop(L, 1);
+
+	//LuaArray binding
+	luaL_newmetatable(L, "LuaArray");
+	{
 	}
 	lua_pop(L, 1);
 
