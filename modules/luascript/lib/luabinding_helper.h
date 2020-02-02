@@ -27,13 +27,13 @@ public:
 
 	static int l_print(lua_State *L);
 
+private:
 	//===lua methods
 	static int l_extends(lua_State *L);
 
 	void bind_script_function(const char *name, void *p_script, lua_CFunction fn);
 	void unbind_script_function(const char *name);
 
-private:
 	//===native binding
 	static int create_user_data(lua_State *L);
 
@@ -41,7 +41,6 @@ public:
 	static int script_pushobject(lua_State *L, Object *object);
 	static void push_strong_ref(lua_State *L, Object *object);
 	static void del_strong_ref(lua_State *L, Object *Object);
-
 
 private:
 	//===LuaObject lua meta methods
@@ -129,7 +128,8 @@ public:
 	void uninitialize();
 
 	Error script(const String &p_source);
-	Error bytecode(const Vector<uint8_t> &p_source);
+	Error script(void *p_script, const String &p_source);
+	Error bytecode(void *p_script, const Vector<uint8_t> &p_source);
 	Error luacall();
 
 public:

@@ -110,7 +110,7 @@ Error LuaScript::reload(bool p_keep_state) {
 		if (basedir != "")
 			basedir = basedir.get_base_dir();
 
-		Error err = LuaScriptLanguage::get_singleton()->binding->script(source);
+		Error err = LuaScriptLanguage::get_singleton()->binding->script(this, source);
 		valid = (err == OK);
 		return err;
 	}
@@ -221,7 +221,7 @@ Error LuaScript::load_byte_code(const String &p_path) {
 	valid = false;
 
 	byte = true;
-	Error err = LuaScriptLanguage::get_singleton()->binding->bytecode(bytecode);
+	Error err = LuaScriptLanguage::get_singleton()->binding->bytecode(this, bytecode);
 	valid = (err == OK);
 	return err;
 }

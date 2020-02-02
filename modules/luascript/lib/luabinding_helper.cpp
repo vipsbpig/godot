@@ -1331,16 +1331,23 @@ void LuaBindingHelper::uninitialize() {
 
 Error LuaBindingHelper::script(const String &p_source) {
 	ERR_FAIL_NULL_V(L, ERR_DOES_NOT_EXIST);
-	bind_script_function("extends", this, LuaBindingHelper::l_extends);
+	luaL_loadstring(L, p_source.utf8());
+	Error err = luacall();
+	return err;
+}
+
+Error LuaBindingHelper::script(void *p_script, const String &p_source) {
+	ERR_FAIL_NULL_V(L, ERR_DOES_NOT_EXIST);
+	bind_script_function("extends", p_script, LuaBindingHelper::l_extends);
 	luaL_loadstring(L, p_source.utf8());
 	Error err = luacall();
 	unbind_script_function("extends");
 	return err;
 }
 
-Error LuaBindingHelper::bytecode(const Vector<uint8_t> &p_bytecode) {
+Error LuaBindingHelper::bytecode(void *p_script, const Vector<uint8_t> &p_bytecode) {
 	ERR_FAIL_NULL_V(L, ERR_DOES_NOT_EXIST);
-	bind_script_function("extends", this, LuaBindingHelper::l_extends);
+	bind_script_function("extends", p_script, LuaBindingHelper::l_extends);
 	luaL_loadbufferx(L, (const char *)p_bytecode.ptr(), p_bytecode.size(), "", "b");
 	Error err = luacall();
 	unbind_script_function("extends");
