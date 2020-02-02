@@ -1,4 +1,4 @@
-#include "luabuiltin.h"
+﻿#include "luabuiltin.h"
 #include "core/core_string_names.h"
 #include "core/variant_call.cpp"
 #include "luabinding_helper.h"
@@ -28,18 +28,31 @@ LuaBuiltin::Char_Psn LuaBuiltin::quickSearch[] = {
 	{ "a8", &CoreStringNames::get_singleton()->a8 }, //0
 };
 
+void shallow_copy(lua_State *L, int index) {
+	if (index < 0) {
+		index = lua_gettop(L) + index + 1;
+	}
+	lua_newtable(L);
+	lua_pushnil(L);
+	while (lua_next(L, index) != 0) {
+		lua_pushvalue(L, -2);
+		lua_insert(L, -2);
+		lua_settable(L, -4);
+	}
+}
+
 const char LuaBuiltin::GD_VECTOR2 = 0;
-const char LuaBuiltin::GD_RECT2 = 0;
-const char LuaBuiltin::GD_VECTOR3 = 0;
-const char LuaBuiltin::GD_TRANSFORM2D = 0;
-const char LuaBuiltin::GD_PLANE = 0;
-const char LuaBuiltin::GD_QUAT = 0;
-const char LuaBuiltin::GD_AABB = 0;
-const char LuaBuiltin::GD_BASIS = 0;
-const char LuaBuiltin::GD_TRANSFORM = 0;
-const char LuaBuiltin::GD_COLOR = 0;
-const char LuaBuiltin::GD_DICTIONARY = 0;
-const char LuaBuiltin::GD_ARRAY = 0;
+const char LuaBuiltin::GD_RECT2 = 1;
+const char LuaBuiltin::GD_VECTOR3 = 2;
+const char LuaBuiltin::GD_TRANSFORM2D = 3;
+const char LuaBuiltin::GD_PLANE = 4;
+const char LuaBuiltin::GD_QUAT = 5;
+const char LuaBuiltin::GD_AABB = 6;
+const char LuaBuiltin::GD_BASIS = 7;
+const char LuaBuiltin::GD_TRANSFORM = 8;
+const char LuaBuiltin::GD_COLOR = 9;
+const char LuaBuiltin::GD_DICTIONARY = 10;
+const char LuaBuiltin::GD_ARRAY = 11;
 
 const StringName *LuaBuiltin::GetVariantPropStringName(const char *p_input, bool &founded) {
 	int len = sizeof(quickSearch) / sizeof(Char_Psn);
@@ -151,51 +164,51 @@ void LuaBuiltin::regitser_builtins(lua_State *L) {
 
 	//GD_VECTOR2 binding
 	lua_pushlightuserdata(L, (void *)&LuaBuiltin::GD_VECTOR2);
-	lua_pushvalue(L, -2);
+	shallow_copy(L, -2);
 	lua_rawset(L, LUA_REGISTRYINDEX);
 	//GD_RECT2 binding
 	lua_pushlightuserdata(L, (void *)&LuaBuiltin::GD_RECT2);
-	lua_pushvalue(L, -2);
+	shallow_copy(L, -2);
 	lua_rawset(L, LUA_REGISTRYINDEX);
 	//GD_VECTOR3 binding
 	lua_pushlightuserdata(L, (void *)&LuaBuiltin::GD_VECTOR3);
-	lua_pushvalue(L, -2);
+	shallow_copy(L, -2);
 	lua_rawset(L, LUA_REGISTRYINDEX);
 	//GD_TRANSFORM2D binding
 	lua_pushlightuserdata(L, (void *)&LuaBuiltin::GD_TRANSFORM2D);
-	lua_pushvalue(L, -2);
+	shallow_copy(L, -2);
 	lua_rawset(L, LUA_REGISTRYINDEX);
 	//GD_PLANE binding
 	lua_pushlightuserdata(L, (void *)&LuaBuiltin::GD_PLANE);
-	lua_pushvalue(L, -2);
+	shallow_copy(L, -2);
 	lua_rawset(L, LUA_REGISTRYINDEX);
 	//GD_QUAT binding
 	lua_pushlightuserdata(L, (void *)&LuaBuiltin::GD_QUAT);
-	lua_pushvalue(L, -2);
+	shallow_copy(L, -2);
 	lua_rawset(L, LUA_REGISTRYINDEX);
 	//GD_AABB binding
 	lua_pushlightuserdata(L, (void *)&LuaBuiltin::GD_AABB);
-	lua_pushvalue(L, -2);
+	shallow_copy(L, -2);
 	lua_rawset(L, LUA_REGISTRYINDEX);
 	//GD_BASIS binding
 	lua_pushlightuserdata(L, (void *)&LuaBuiltin::GD_BASIS);
-	lua_pushvalue(L, -2);
+	shallow_copy(L, -2);
 	lua_rawset(L, LUA_REGISTRYINDEX);
 	//GD_TRANSFORM binding
 	lua_pushlightuserdata(L, (void *)&LuaBuiltin::GD_TRANSFORM);
-	lua_pushvalue(L, -2);
+	shallow_copy(L, -2);
 	lua_rawset(L, LUA_REGISTRYINDEX);
 	//GD_COLOR binding
 	lua_pushlightuserdata(L, (void *)&LuaBuiltin::GD_COLOR);
-	lua_pushvalue(L, -2);
+	shallow_copy(L, -2);
 	lua_rawset(L, LUA_REGISTRYINDEX);
 	//GD_DICTIONARY binding
 	lua_pushlightuserdata(L, (void *)&LuaBuiltin::GD_DICTIONARY);
-	lua_pushvalue(L, -2);
+	shallow_copy(L, -2);
 	lua_rawset(L, LUA_REGISTRYINDEX);
 	//GD_ARRAY binding
 	lua_pushlightuserdata(L, (void *)&LuaBuiltin::GD_ARRAY);
-	lua_pushvalue(L, -2);
+	shallow_copy(L, -2);
 	lua_rawset(L, LUA_REGISTRYINDEX);
 
 	lua_pop(L, 1);

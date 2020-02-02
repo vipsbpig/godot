@@ -61,9 +61,9 @@ int l_methodbind_wrapper(lua_State *L) {
 				LuaScriptInstance *p_instance = luaL_getinstance(L, 1);
 				obj = p_instance->get_owner();
 			}
-			lua_pop(L, 1);
+			lua_pop(L, 2);
 		}
-		lua_pop(L, 1);
+
 	} else if (LUA_TUSERDATA == t) {
 		Object **ud = (Object **)lua_touserdata(L, 1);
 		obj = *ud;
@@ -218,7 +218,7 @@ bool is_registry_gd_built(lua_State *L, int idx, const void *p_builtin, Variant 
 	lua_rawget(L, LUA_REGISTRYINDEX);
 	if (lua_rawequal(L, -1, -2)) {
 		var = func(L, idx);
-		lua_pop(L, 1);
+		lua_pop(L, 2);
 		return true;
 	}
 	lua_pop(L, 1);
@@ -236,7 +236,6 @@ void l_get_variant(lua_State *L, int idx, Variant &var) {
 			break;
 
 		case LUA_TTABLE: {
-
 			if (lua_getmetatable(L, idx)) {
 				if (is_registry_gd_built(L, idx, &LuaBuiltin::GD_VECTOR2, LuaBuiltin::l_get_vector2, var)) return;
 				if (is_registry_gd_built(L, idx, &LuaBuiltin::GD_RECT2, LuaBuiltin::l_get_rect2, var)) return;
@@ -257,7 +256,7 @@ void l_get_variant(lua_State *L, int idx, Variant &var) {
 					LuaScriptInstance *p_instance = luaL_getinstance(L, 1);
 					var = p_instance->get_owner();
 				}
-				lua_pop(L, 1);
+				lua_pop(L, 2);
 			}
 			break;
 		}
