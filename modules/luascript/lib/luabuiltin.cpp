@@ -123,54 +123,92 @@ void LuaBuiltin::regitser_builtins(lua_State *L) {
 
 	memcpy(quickSearch, tmp, sizeof(tmp));
 
+	//Variant binding
+	lua_newtable(L);
+	{
+		typedef struct {
+			const char *meta;
+			Variant::Operator op;
+		} eval;
+		static eval evaluates[] = {
+			{ "__eq", Variant::OP_EQUAL },
+			{ "__add", Variant::OP_ADD },
+			{ "__sub", Variant::OP_SUBTRACT },
+			{ "__mul", Variant::OP_MULTIPLY },
+			{ "__div", Variant::OP_DIVIDE },
+			{ "__mod", Variant::OP_MODULE },
+			{ "__lt", Variant::OP_LESS },
+			{ "__le", Variant::OP_LESS_EQUAL },
+			{ "__unm", Variant::OP_NEGATE }
+		};
+
+		for (int idx = 0; idx < sizeof(evaluates) / sizeof(evaluates[0]); idx++) {
+			eval &ev = evaluates[idx];
+			lua_pushstring(L, ev.meta);
+			lua_pushinteger(L, ev.op);
+			lua_pushcclosure(L, meta_builtins__evaluate, 1);
+			lua_rawset(L, -3);
+		}
+
+		static luaL_Reg meta_methods[] = {
+			{ "__index", meta_builtins__index },
+			{ "__tostring", meta_builtins__tostring },
+			// { "__pairs", meta_bultins__pairs },
+			{ NULL, NULL },
+		};
+		luaL_setfuncs(L, meta_methods, 0);
+	}
+
 	//GD_VECTOR2 binding
 	lua_pushlightuserdata(L, (void *)&LuaBuiltin::GD_VECTOR2);
-	lua_newtable(L);
+	lua_pushvalue(L, -2);
 	lua_rawset(L, LUA_REGISTRYINDEX);
 	//GD_RECT2 binding
 	lua_pushlightuserdata(L, (void *)&LuaBuiltin::GD_RECT2);
-	lua_newtable(L);
+	lua_pushvalue(L, -2);
 	lua_rawset(L, LUA_REGISTRYINDEX);
 	//GD_VECTOR3 binding
 	lua_pushlightuserdata(L, (void *)&LuaBuiltin::GD_VECTOR3);
-	lua_newtable(L);
+	lua_pushvalue(L, -2);
 	lua_rawset(L, LUA_REGISTRYINDEX);
 	//GD_TRANSFORM2D binding
 	lua_pushlightuserdata(L, (void *)&LuaBuiltin::GD_TRANSFORM2D);
-	lua_newtable(L);
+	lua_pushvalue(L, -2);
 	lua_rawset(L, LUA_REGISTRYINDEX);
 	//GD_PLANE binding
 	lua_pushlightuserdata(L, (void *)&LuaBuiltin::GD_PLANE);
-	lua_newtable(L);
+	lua_pushvalue(L, -2);
 	lua_rawset(L, LUA_REGISTRYINDEX);
 	//GD_QUAT binding
 	lua_pushlightuserdata(L, (void *)&LuaBuiltin::GD_QUAT);
-	lua_newtable(L);
+	lua_pushvalue(L, -2);
 	lua_rawset(L, LUA_REGISTRYINDEX);
 	//GD_AABB binding
 	lua_pushlightuserdata(L, (void *)&LuaBuiltin::GD_AABB);
-	lua_newtable(L);
+	lua_pushvalue(L, -2);
 	lua_rawset(L, LUA_REGISTRYINDEX);
 	//GD_BASIS binding
 	lua_pushlightuserdata(L, (void *)&LuaBuiltin::GD_BASIS);
-	lua_newtable(L);
+	lua_pushvalue(L, -2);
 	lua_rawset(L, LUA_REGISTRYINDEX);
 	//GD_TRANSFORM binding
 	lua_pushlightuserdata(L, (void *)&LuaBuiltin::GD_TRANSFORM);
-	lua_newtable(L);
+	lua_pushvalue(L, -2);
 	lua_rawset(L, LUA_REGISTRYINDEX);
 	//GD_COLOR binding
 	lua_pushlightuserdata(L, (void *)&LuaBuiltin::GD_COLOR);
-	lua_newtable(L);
+	lua_pushvalue(L, -2);
 	lua_rawset(L, LUA_REGISTRYINDEX);
 	//GD_DICTIONARY binding
 	lua_pushlightuserdata(L, (void *)&LuaBuiltin::GD_DICTIONARY);
-	lua_newtable(L);
+	lua_pushvalue(L, -2);
 	lua_rawset(L, LUA_REGISTRYINDEX);
 	//GD_ARRAY binding
 	lua_pushlightuserdata(L, (void *)&LuaBuiltin::GD_ARRAY);
-	lua_newtable(L);
+	lua_pushvalue(L, -2);
 	lua_rawset(L, LUA_REGISTRYINDEX);
+
+	lua_pop(L, 1);
 }
 
 int LuaBuiltin::meta_bultins__call(lua_State *L) {
@@ -219,6 +257,92 @@ int LuaBuiltin::meta_bultins__call(lua_State *L) {
 			luaL_error(L, "Instance is null");
 			break;
 	}
+	return 0;
+}
+
+int LuaBuiltin::meta_builtins__evaluate(lua_State *L) {
+	Variant::Operator op = (Variant::Operator)lua_tointeger(L, lua_upvalueindex(1));
+
+	Variant var1;
+	l_get_variant(L, 1, var1);
+
+	Variant var2;
+	l_get_variant(L, 2, var2);
+
+	Variant ret;
+	bool valid = false;
+	Variant::evaluate(op, var1, var2, ret, valid);
+	if (valid) {
+
+		l_push_variant(L, ret);
+		return 1;
+	}
+	return 0;
+}
+
+int LuaBuiltin::meta_builtins__tostring(lua_State *L) {
+	Variant var;
+	l_get_variant(L, 1, var);
+	lua_pushstring(L, (var.operator String()).utf8().get_data());
+	return 1;
+}
+int LuaBuiltin::meta_builtins__index(lua_State *L) {
+	Variant var;
+	l_get_variant(L, 1, var);
+	Variant value;
+
+	const char *index_name = lua_tostring(L, 2);
+
+	//buildins methods
+	lua_getfield(L, LUA_REGISTRYINDEX, "VariantMethods");
+	if (lua_isnil(L, -1)) {
+		lua_newtable(L);
+		lua_pushvalue(L, -1);
+		lua_replace(L, -3);
+		lua_setfield(L, LUA_REGISTRYINDEX, "VariantMethods");
+	}
+	lua_getfield(L, -1, index_name);
+	if (lua_isnil(L, -1)) {
+		LuaBindingHelper::l_push_stringname(L, index_name);
+		lua_pushvalue(L, -1);
+		lua_replace(L, -3);
+		lua_setfield(L, -3, index_name);
+	}
+	lua_pushcclosure(L, l_variants_caller_wrapper, 1);
+
+	return 1;
+}
+
+int LuaBuiltin::l_variants_caller_wrapper(lua_State *L) {
+	const StringName *key = *(StringName **)lua_touserdata(L, lua_upvalueindex(1));
+	int top = lua_gettop(L);
+
+	Variant var;
+	l_get_variant(L, 1, var);
+	Variant::CallError err;
+
+	if (top == 1) {
+		Variant &&ret = var.call(*key, NULL, 0, err);
+		if (Variant::CallError::CALL_OK == err.error) {
+			l_push_variant(L, ret);
+			return 1;
+		}
+	} else {
+		Variant *vars = memnew_arr(Variant, top - 1);
+		Variant *args[128];
+		for (int idx = 2; idx <= top; idx++) {
+			Variant &var = vars[idx - 2];
+			args[idx - 2] = &var;
+			l_get_variant(L, idx, var);
+		}
+		Variant &&ret = var.call(*key, (const Variant **)(args), top - 1, err);
+		memdelete_arr(vars);
+		if (Variant::CallError::CALL_OK == err.error) {
+			l_push_variant(L, ret);
+			return 1;
+		}
+	}
+	l_method_error(L, err);
 	return 0;
 }
 

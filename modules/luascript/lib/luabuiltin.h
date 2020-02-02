@@ -30,6 +30,13 @@ public:
 	static void regitser_builtins(lua_State *L);
 	static int meta_bultins__call(lua_State *L);
 
+	//built in metatable
+
+	static int meta_builtins__evaluate(lua_State *L);
+	static int meta_builtins__tostring(lua_State *L);
+	static int meta_builtins__index(lua_State *L);
+	static int l_variants_caller_wrapper(lua_State *L);
+
 	//===builtin
 	static Vector2 l_get_vector2(lua_State *L, int idx);
 	static Rect2 l_get_rect2(lua_State *L, int idx);

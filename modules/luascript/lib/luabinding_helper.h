@@ -8,7 +8,7 @@
 void l_push_variant(lua_State *L, const Variant &var);
 void l_push_bulltins_type(lua_State *L, const Variant &var);
 void l_get_variant(lua_State *L, int idx, Variant &var);
-
+void l_method_error(lua_State *L, const Variant::CallError &err);
 class LuaBindingHelper {
 
 	lua_State *L;
@@ -103,6 +103,8 @@ public:
 private:
 	//stringNameCache
 	static int meta_stringname__gc(lua_State *L);
+
+public:
 	static void l_push_stringname(lua_State *L, const char *name);
 
 private:

@@ -255,7 +255,6 @@ void l_get_variant(lua_State *L, int idx, Variant &var) {
 				if (lua_getmetatable(L, idx)) {
 					lua_pushlightuserdata(L, (void *)&LuaBindingHelper::LUAOBJECT);
 					lua_rawget(L, LUA_REGISTRYINDEX);
-					//lua_getfield(L, LUA_REGISTRYINDEX, "LuaObject");
 					if (lua_rawequal(L, -1, -2)) {
 						lua_pop(L, 2);
 						if (ud == NULL) {
