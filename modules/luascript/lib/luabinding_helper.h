@@ -7,7 +7,6 @@
 //push a Variant into lua stack
 void l_push_variant(lua_State *L, const Variant &var);
 void l_push_bulltins_type(lua_State *L, const Variant &var);
-void l_push_array_type(lua_State *L, const Variant &var);
 void l_get_variant(lua_State *L, int idx, Variant &var);
 
 class LuaBindingHelper {

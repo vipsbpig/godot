@@ -98,27 +98,7 @@ int l_methodbind_wrapper(lua_State *L) {
 	l_method_error(L, err);
 	return 0;
 }
-void l_push_vector2_type(lua_State *L, const Vector2 &var) {
-	lua_newtable(L);
-	lua_pushnumber(L, var.x);
-	lua_setfield(L, -2, "x");
-	lua_pushnumber(L, var.y);
-	lua_setfield(L, -2, "y");
-	lua_pushlightuserdata(L, (void *)&LuaBuiltin::GD_VECTOR2);
-	lua_rawget(L, LUA_REGISTRYINDEX);
-	lua_setmetatable(L, -2);
-}
 
-void l_push_rect2_type(lua_State *L, const Rect2 &var) {
-	lua_newtable(L);
-	l_push_vector2_type(L, var.position);
-	lua_setfield(L, -2, "position");
-	l_push_vector2_type(L, var.size);
-	lua_setfield(L, -2, "size");
-	lua_pushlightuserdata(L, (void *)&LuaBuiltin::GD_RECT2);
-	lua_rawget(L, LUA_REGISTRYINDEX);
-	lua_setmetatable(L, -2);
-}
 void l_push_variant(lua_State *L, const Variant &var) {
 	switch (var.get_type()) {
 		case Variant::NIL:
@@ -159,11 +139,11 @@ void l_push_variant(lua_State *L, const Variant &var) {
 			}
 		} break;
 		case Variant::VECTOR2: {
-			l_push_vector2_type(L, (Vector2)var);
+			LuaBuiltin::l_push_vector2_type(L, (Vector2)var);
 			break;
 		}
 		case Variant::RECT2: {
-			l_push_rect2_type(L, (Rect2)var);
+			LuaBuiltin::l_push_rect2_type(L, (Rect2)var);
 			break;
 		}
 		case Variant::VECTOR3:
@@ -180,7 +160,7 @@ void l_push_variant(lua_State *L, const Variant &var) {
 			l_push_bulltins_type(L, var);
 		} break;
 		case Variant::ARRAY: {
-			l_push_array_type(L, var);
+			LuaBuiltin::l_push_array_type(L, var);
 			break;
 		}
 		case Variant::POOL_BYTE_ARRAY:
@@ -199,23 +179,6 @@ void l_push_variant(lua_State *L, const Variant &var) {
 	}
 }
 
-void l_push_array_type(lua_State *L, const Variant &var) {
-	lua_newtable(L);
-	int idx = 0;
-	bool r_valid = false;
-	do {
-		Variant value = var.get(idx, &r_valid);
-		if (!r_valid) break;
-		lua_pushinteger(L, idx);
-		l_push_variant(L, value);
-		lua_rawset(L, -3);
-		idx++;
-	} while (r_valid);
-	lua_pushlightuserdata(L, (void *)&LuaBuiltin::GD_ARRAY);
-	lua_rawget(L, LUA_REGISTRYINDEX);
-	lua_setmetatable(L, -2);
-}
-
 void l_push_bulltins_type(lua_State *L, const Variant &var) {
 #ifdef LUA_SCRIPT_DEBUG_ENABLED
 	print_format("builtIn Type:%s", Variant::get_type_name(var.get_type()).ascii().get_data());
@@ -228,24 +191,6 @@ void l_push_bulltins_type(lua_State *L, const Variant &var) {
 	lua_setmetatable(L, -2);
 }
 
-Vector2 l_get_vector2(lua_State *L, int idx) {
-	lua_getfield(L, idx, "x");
-	auto x = lua_tonumber(L, -1);
-	lua_pop(L, 1);
-	lua_getfield(L, idx, "y");
-	auto y = lua_tonumber(L, -1);
-	lua_pop(L, 1);
-	return Vector2(x, y);
-}
-Rect2 l_get_rect2(lua_State *L, int idx) {
-	lua_getfield(L, idx, "position");
-	auto x = l_get_vector2(L, -1);
-	lua_pop(L, 1);
-	lua_getfield(L, idx, "size");
-	auto y = l_get_vector2(L, -1);
-	lua_pop(L, 1);
-	return Rect2(x, y);
-}
 void l_get_variant(lua_State *L, int idx, Variant &var) {
 	switch (lua_type(L, idx)) {
 		case LUA_TNONE:
@@ -262,16 +207,16 @@ void l_get_variant(lua_State *L, int idx, Variant &var) {
 				lua_pushlightuserdata(L, (void *)&LuaBuiltin::GD_VECTOR2);
 				lua_rawget(L, LUA_REGISTRYINDEX);
 				if (lua_rawequal(L, -1, -2)) {
-					var = l_get_vector2(L, idx);
-					//lua_pop(L, 1);
+					var = LuaBuiltin::l_get_vector2(L, idx);
+					lua_pop(L, 1);
 					return;
 				}
 				lua_pop(L, 1);
 				lua_pushlightuserdata(L, (void *)&LuaBuiltin::GD_RECT2);
 				lua_rawget(L, LUA_REGISTRYINDEX);
 				if (lua_rawequal(L, -1, -2)) {
-					var = l_get_rect2(L, idx);
-					//lua_pop(L, 1);
+					var = LuaBuiltin::l_get_rect2(L, idx);
+					lua_pop(L, 1);
 					return;
 				}
 				lua_pop(L, 1);
@@ -279,20 +224,7 @@ void l_get_variant(lua_State *L, int idx, Variant &var) {
 				lua_pushlightuserdata(L, (void *)&LuaBuiltin::GD_ARRAY);
 				lua_rawget(L, LUA_REGISTRYINDEX);
 				if (lua_rawequal(L, -1, -2)) {
-					Array arr;
-					if (idx < 0) {
-						idx = lua_gettop(L) + idx + 1;
-					}
-					/* table 放在索引 't' 处 */
-					lua_pushnil(L); /* 第一个 key */
-					while (lua_next(L, idx) != 0) {
-						/* 用一下 'key' （在索引 -2 处） 和 'value' （在索引 -1 处） */
-						Variant tmp;
-						l_get_variant(L, -2, tmp);
-						arr.push_back(tmp);
-						/* 移除 'value' ；保留 'key' 做下一次迭代 */
-						lua_pop(L, 1);
-					}
+					var = LuaBuiltin::l_get_array(L, idx);
 					lua_pop(L, 1);
 					return;
 				}

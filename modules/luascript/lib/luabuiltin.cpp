@@ -115,18 +115,18 @@ void LuaBuiltin::regitser_builtins(lua_State *L) {
 
 	memcpy(quickSearch, tmp, sizeof(tmp));
 
-	//LuaArray binding
-	lua_pushlightuserdata(L, (void *)&LuaBuiltin::GD_ARRAY);
-	lua_newtable(L);
-	lua_rawset(L, LUA_REGISTRYINDEX);
-
 	//Vector2 binding
 	lua_pushlightuserdata(L, (void *)&LuaBuiltin::GD_VECTOR2);
 	lua_newtable(L);
 	lua_rawset(L, LUA_REGISTRYINDEX);
-	
+
 	//GD_RECT2 binding
 	lua_pushlightuserdata(L, (void *)&LuaBuiltin::GD_RECT2);
+	lua_newtable(L);
+	lua_rawset(L, LUA_REGISTRYINDEX);
+
+	//LuaArray binding
+	lua_pushlightuserdata(L, (void *)&LuaBuiltin::GD_ARRAY);
 	lua_newtable(L);
 	lua_rawset(L, LUA_REGISTRYINDEX);
 }
@@ -178,4 +178,79 @@ int LuaBuiltin::meta_bultins__call(lua_State *L) {
 			break;
 	}
 	return 0;
+}
+
+Vector2 LuaBuiltin::l_get_vector2(lua_State *L, int idx) {
+	lua_getfield(L, idx, "x");
+	auto x = lua_tonumber(L, -1);
+	lua_pop(L, 1);
+	lua_getfield(L, idx, "y");
+	auto y = lua_tonumber(L, -1);
+	lua_pop(L, 1);
+	return Vector2(x, y);
+}
+Rect2 LuaBuiltin::l_get_rect2(lua_State *L, int idx) {
+	lua_getfield(L, idx, "position");
+	auto x = l_get_vector2(L, -1);
+	lua_pop(L, 1);
+	lua_getfield(L, idx, "size");
+	auto y = l_get_vector2(L, -1);
+	lua_pop(L, 1);
+	return Rect2(x, y);
+}
+Array LuaBuiltin::l_get_array(lua_State *L, int idx) {
+	Array arr;
+	if (idx < 0) {
+		idx = lua_gettop(L) + idx + 1;
+	}
+	/* table 放在索引 't' 处 */
+	lua_pushnil(L); /* 第一个 key */
+	while (lua_next(L, idx) != 0) {
+		/* 用一下 'key' （在索引 -2 处） 和 'value' （在索引 -1 处） */
+		Variant tmp;
+		l_get_variant(L, -2, tmp);
+		arr.push_back(tmp);
+		/* 移除 'value' ；保留 'key' 做下一次迭代 */
+		lua_pop(L, 1);
+	}
+	return arr;
+}
+
+void LuaBuiltin::l_push_vector2_type(lua_State *L, const Vector2 &var) {
+	lua_newtable(L);
+	lua_pushnumber(L, var.x);
+	lua_setfield(L, -2, "x");
+	lua_pushnumber(L, var.y);
+	lua_setfield(L, -2, "y");
+	lua_pushlightuserdata(L, (void *)&LuaBuiltin::GD_VECTOR2);
+	lua_rawget(L, LUA_REGISTRYINDEX);
+	lua_setmetatable(L, -2);
+}
+
+void LuaBuiltin::l_push_rect2_type(lua_State *L, const Rect2 &var) {
+	lua_newtable(L);
+	l_push_vector2_type(L, var.position);
+	lua_setfield(L, -2, "position");
+	l_push_vector2_type(L, var.size);
+	lua_setfield(L, -2, "size");
+	lua_pushlightuserdata(L, (void *)&LuaBuiltin::GD_RECT2);
+	lua_rawget(L, LUA_REGISTRYINDEX);
+	lua_setmetatable(L, -2);
+}
+
+void LuaBuiltin::l_push_array_type(lua_State *L, const Variant &var) {
+	lua_newtable(L);
+	int idx = 0;
+	bool r_valid = false;
+	do {
+		Variant value = var.get(idx, &r_valid);
+		if (!r_valid) break;
+		lua_pushinteger(L, idx);
+		l_push_variant(L, value);
+		lua_rawset(L, -3);
+		idx++;
+	} while (r_valid);
+	lua_pushlightuserdata(L, (void *)&LuaBuiltin::GD_ARRAY);
+	lua_rawget(L, LUA_REGISTRYINDEX);
+	lua_setmetatable(L, -2);
 }
