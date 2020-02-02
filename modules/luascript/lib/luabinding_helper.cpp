@@ -544,7 +544,7 @@ bool LuaBindingHelper::l_del_reference(Object *p_reference) {
 	return true;
 }
 
-int LuaBindingHelper::meta_bultins__evaluate(lua_State *L) {
+int LuaBindingHelper::meta_variants__evaluate(lua_State *L) {
 	Variant::Operator op = (Variant::Operator)lua_tointeger(L, lua_upvalueindex(1));
 
 	Variant *var1 = luaL_checkvariant(L, 1);
@@ -563,17 +563,17 @@ int LuaBindingHelper::meta_bultins__evaluate(lua_State *L) {
 	return 0;
 }
 
-int LuaBindingHelper::meta_bultins__gc(lua_State *L) {
+int LuaBindingHelper::meta_variants__gc(lua_State *L) {
 	Variant *var = luaL_checkvariant(L, 1);
 	memdelete(var);
 	return 0;
 }
-int LuaBindingHelper::meta_bultins__tostring(lua_State *L) {
+int LuaBindingHelper::meta_variants__tostring(lua_State *L) {
 	Variant *var = luaL_checkvariant(L, 1);
 	lua_pushstring(L, (var->operator String()).utf8().get_data());
 	return 1;
 }
-int LuaBindingHelper::meta_bultins__index(lua_State *L) {
+int LuaBindingHelper::meta_variants__index(lua_State *L) {
 	Variant *var = luaL_checkvariant(L, 1);
 	Variant value;
 
@@ -605,11 +605,11 @@ int LuaBindingHelper::meta_bultins__index(lua_State *L) {
 		lua_replace(L, -3);
 		lua_setfield(L, -3, index_name);
 	}
-	lua_pushcclosure(L, l_bultins_caller_wrapper, 1);
+	lua_pushcclosure(L, l_variants_caller_wrapper, 1);
 
 	return 1;
 }
-int LuaBindingHelper::meta_bultins__newindex(lua_State *L) {
+int LuaBindingHelper::meta_variants__newindex(lua_State *L) {
 	Variant *var = luaL_checkvariant(L, 1);
 
 	Variant value;
@@ -629,7 +629,7 @@ int LuaBindingHelper::meta_bultins__newindex(lua_State *L) {
 
 	return 0;
 }
-int LuaBindingHelper::meta_bultins__pairs(lua_State *L) {
+int LuaBindingHelper::meta_variants__pairs(lua_State *L) {
 	Variant &var = *luaL_checkvariant(L, 1);
 	Variant::Type vt = var.get_type();
 	switch (vt) {
@@ -642,7 +642,7 @@ int LuaBindingHelper::meta_bultins__pairs(lua_State *L) {
 		case Variant::POOL_VECTOR2_ARRAY:
 		case Variant::POOL_VECTOR3_ARRAY:
 		case Variant::POOL_COLOR_ARRAY:
-			lua_pushcclosure(L, l_builtins_iterator, 0);
+			lua_pushcclosure(L, l_variants_iterator, 0);
 			l_push_bulltins_type(L, var);
 			lua_pushnil(L);
 			return 3;
@@ -653,7 +653,7 @@ int LuaBindingHelper::meta_bultins__pairs(lua_State *L) {
 	return 0;
 }
 
-int LuaBindingHelper::l_bultins_caller_wrapper(lua_State *L) {
+int LuaBindingHelper::l_variants_caller_wrapper(lua_State *L) {
 	const StringName *key = *(StringName **)lua_touserdata(L, lua_upvalueindex(1));
 	int top = lua_gettop(L);
 
@@ -685,7 +685,7 @@ int LuaBindingHelper::l_bultins_caller_wrapper(lua_State *L) {
 	return 0;
 }
 
-int LuaBindingHelper::l_builtins_iterator(lua_State *L) {
+int LuaBindingHelper::l_variants_iterator(lua_State *L) {
 	Variant &var = *luaL_checkvariant(L, 1);
 	if (var.get_type() == Variant::DICTIONARY) {
 
@@ -1082,7 +1082,7 @@ void LuaBindingHelper::godotbind() {
 	lua_setfield(L, -2, "load");
 
 	//pairs
-	lua_pushcfunction(L, meta_bultins__pairs);
+	lua_pushcfunction(L, meta_variants__pairs);
 	lua_setfield(L, -2, "pairs");
 	lua_pop(L, 1);
 
@@ -1230,15 +1230,15 @@ void LuaBindingHelper::initialize() {
 			eval &ev = evaluates[idx];
 			lua_pushstring(L, ev.meta);
 			lua_pushinteger(L, ev.op);
-			lua_pushcclosure(L, meta_bultins__evaluate, 1);
+			lua_pushcclosure(L, meta_variants__evaluate, 1);
 			lua_rawset(L, -3);
 		}
 
 		static luaL_Reg meta_methods[] = {
-			{ "__gc", meta_bultins__gc },
-			{ "__index", meta_bultins__index },
-			{ "__newindex", meta_bultins__newindex },
-			{ "__tostring", meta_bultins__tostring },
+			{ "__gc", meta_variants__gc },
+			{ "__index", meta_variants__index },
+			{ "__newindex", meta_variants__newindex },
+			{ "__tostring", meta_variants__tostring },
 			// { "__pairs", meta_bultins__pairs },
 			{ NULL, NULL },
 		};
