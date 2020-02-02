@@ -1,5 +1,6 @@
 #include "luabuiltin.h"
 #include "core/core_string_names.h"
+#include "core/variant_call.cpp"
 #include "luabinding_helper.h"
 
 LuaBuiltin::Char_Psn LuaBuiltin::quickSearch[] = {
@@ -158,6 +159,9 @@ void LuaBuiltin::regitser_builtins(lua_State *L) {
 		};
 		luaL_setfuncs(L, meta_methods, 0);
 	}
+	//TODO::
+	// (void*)_VariantCall::type_funcs;
+	// (void*)_VariantCall::constant_data;	
 
 	//GD_VECTOR2 binding
 	lua_pushlightuserdata(L, (void *)&LuaBuiltin::GD_VECTOR2);
@@ -309,7 +313,6 @@ int LuaBuiltin::meta_builtins__index(lua_State *L) {
 		lua_setfield(L, -3, index_name);
 	}
 	lua_pushcclosure(L, l_variants_caller_wrapper, 1);
-
 	return 1;
 }
 

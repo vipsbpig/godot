@@ -1118,7 +1118,7 @@ void LuaBindingHelper::register_class(lua_State *L, const ClassDB::ClassInfo *cl
 			lua_pushlightuserdata(L, (void *)cls);
 			lua_pushvalue(L, -2);
 			lua_rawset(L, -4);
-
+			//method
 			const StringName *key = cls->method_map.next(NULL);
 			while (key) {
 				MethodBind *mb = cls->method_map.get(*key);
@@ -1127,13 +1127,37 @@ void LuaBindingHelper::register_class(lua_State *L, const ClassDB::ClassInfo *cl
 				lua_setfield(L, -2, String(*key).ascii().get_data());
 				key = cls->method_map.next(key);
 			}
-
+			//propterty
 			const StringName *prop = cls->property_setget.next(NULL);
 			while (prop) {
 				const ClassDB::PropertySetGet *setget = cls->property_setget.getptr(*prop);
 				lua_pushlightuserdata(L, (void *)setget);
 				lua_setfield(L, -2, String(*prop).ascii().get_data());
 				prop = cls->property_setget.next(prop);
+			}
+
+			//constant
+			const StringName *constant = cls->constant_map.next(NULL);
+			while (constant) {
+				const int value = cls->constant_map.get(*constant);
+				lua_pushinteger(L, value);
+				lua_setfield(L, -2, String(*constant).ascii().get_data());
+				constant = cls->constant_map.next(constant);
+			}
+
+			//enum
+			const StringName *m_enum = cls->enum_map.next(NULL);
+			while (m_enum) {
+				const List<StringName> *m_enums = cls->enum_map.getptr(*m_enum);
+				lua_newtable(L);
+				{
+					for (int i = 0; i < m_enums->size(); i++) {
+						lua_pushinteger(L, i);
+						lua_setfield(L, -2, String((*m_enums)[i]).ascii().get_data());
+					}
+				}
+				lua_setfield(L, -2, String(*m_enum).ascii().get_data());
+				m_enum = cls->enum_map.next(m_enum);
 			}
 		}
 		lua_pop(L, 1);
