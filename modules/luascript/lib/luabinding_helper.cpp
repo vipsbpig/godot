@@ -1380,6 +1380,7 @@ void LuaBindingHelper::link__index_class(lua_State *L, const ClassDB::ClassInfo 
 	lua_pop(L, 1);
 }
 void LuaBindingHelper::uninitialize() {
+	lua_gc(L, LUA_GCCOLLECT, NULL);
 	lua_close(L);
 	L = NULL;
 }
