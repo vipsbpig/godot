@@ -349,7 +349,7 @@ int LuaBuiltin::l_variants_caller_wrapper(lua_State *L) {
 	return 0;
 }
 
-Vector2 LuaBuiltin::l_get_vector2(lua_State *L, int idx) {
+Variant LuaBuiltin::l_get_vector2(lua_State *L, int idx) {
 	lua_getfield(L, idx, "x");
 	auto x = lua_tonumber(L, -1);
 	lua_pop(L, 1);
@@ -358,7 +358,7 @@ Vector2 LuaBuiltin::l_get_vector2(lua_State *L, int idx) {
 	lua_pop(L, 1);
 	return Vector2(x, y);
 }
-Rect2 LuaBuiltin::l_get_rect2(lua_State *L, int idx) {
+Variant LuaBuiltin::l_get_rect2(lua_State *L, int idx) {
 	lua_getfield(L, idx, "position");
 	auto position = l_get_vector2(L, -1);
 	lua_pop(L, 1);
@@ -367,7 +367,7 @@ Rect2 LuaBuiltin::l_get_rect2(lua_State *L, int idx) {
 	lua_pop(L, 1);
 	return Rect2(position, size);
 }
-Vector3 LuaBuiltin::l_get_vector3(lua_State *L, int idx) {
+Variant LuaBuiltin::l_get_vector3(lua_State *L, int idx) {
 	lua_getfield(L, idx, "x");
 	auto x = lua_tonumber(L, -1);
 	lua_pop(L, 1);
@@ -379,7 +379,7 @@ Vector3 LuaBuiltin::l_get_vector3(lua_State *L, int idx) {
 	lua_pop(L, 1);
 	return Vector3(x, y, z);
 }
-Transform2D LuaBuiltin::l_get_transform2d(lua_State *L, int idx) {
+Variant LuaBuiltin::l_get_transform2d(lua_State *L, int idx) {
 	if (idx < 0) {
 		idx = lua_gettop(L) + idx + 1;
 	}
@@ -399,7 +399,7 @@ Transform2D LuaBuiltin::l_get_transform2d(lua_State *L, int idx) {
 	lua_pop(L, 1);
 	return Transform2D(vec0.x, vec0.y, vec1.x, vec1.y, vec2.x, vec2.y);
 }
-Plane LuaBuiltin::l_get_Plane(lua_State *L, int idx) {
+Variant LuaBuiltin::l_get_Plane(lua_State *L, int idx) {
 	lua_getfield(L, idx, "normal");
 	Vector3 normal = l_get_vector3(L, -1);
 	lua_pop(L, 1);
@@ -409,7 +409,7 @@ Plane LuaBuiltin::l_get_Plane(lua_State *L, int idx) {
 	lua_pop(L, 1);
 	return Plane(normal, d);
 }
-Quat LuaBuiltin::l_get_quat(lua_State *L, int idx) {
+Variant LuaBuiltin::l_get_quat(lua_State *L, int idx) {
 	lua_getfield(L, idx, "x");
 	auto x = lua_tonumber(L, -1);
 	lua_pop(L, 1);
@@ -424,7 +424,7 @@ Quat LuaBuiltin::l_get_quat(lua_State *L, int idx) {
 	lua_pop(L, 1);
 	return Quat(x, y, z, w);
 }
-AABB LuaBuiltin::l_get_aabb(lua_State *L, int idx) {
+Variant LuaBuiltin::l_get_aabb(lua_State *L, int idx) {
 	lua_getfield(L, idx, "position");
 	auto position = l_get_vector3(L, -1);
 	lua_pop(L, 1);
@@ -433,7 +433,7 @@ AABB LuaBuiltin::l_get_aabb(lua_State *L, int idx) {
 	lua_pop(L, 1);
 	return AABB(position, size);
 }
-Basis LuaBuiltin::l_get_basis(lua_State *L, int idx) {
+Variant LuaBuiltin::l_get_basis(lua_State *L, int idx) {
 	if (idx < 0) {
 		idx = lua_gettop(L) + idx + 1;
 	}
@@ -453,7 +453,7 @@ Basis LuaBuiltin::l_get_basis(lua_State *L, int idx) {
 	lua_pop(L, 1);
 	return Basis(vec0, vec1, vec2);
 }
-Transform LuaBuiltin::l_get_transform(lua_State *L, int idx) {
+Variant LuaBuiltin::l_get_transform(lua_State *L, int idx) {
 	lua_getfield(L, idx, "position");
 	auto basis = l_get_basis(L, -1);
 	lua_pop(L, 1);
@@ -462,7 +462,7 @@ Transform LuaBuiltin::l_get_transform(lua_State *L, int idx) {
 	lua_pop(L, 1);
 	return Transform(basis, origin);
 }
-Color LuaBuiltin::l_get_color(lua_State *L, int idx) {
+Variant LuaBuiltin::l_get_color(lua_State *L, int idx) {
 	lua_getfield(L, idx, "r");
 	auto r = lua_tonumber(L, -1);
 	lua_pop(L, 1);
@@ -477,7 +477,7 @@ Color LuaBuiltin::l_get_color(lua_State *L, int idx) {
 	lua_pop(L, 1);
 	return Color(r, g, b, a);
 }
-Dictionary LuaBuiltin::l_get_dict(lua_State *L, int idx) {
+Variant LuaBuiltin::l_get_dict(lua_State *L, int idx) {
 	Dictionary dict;
 	if (idx < 0) {
 		idx = lua_gettop(L) + idx + 1;
@@ -496,7 +496,7 @@ Dictionary LuaBuiltin::l_get_dict(lua_State *L, int idx) {
 	}
 	return dict;
 }
-Array LuaBuiltin::l_get_array(lua_State *L, int idx) {
+Variant LuaBuiltin::l_get_array(lua_State *L, int idx) {
 	Array arr;
 	if (idx < 0) {
 		idx = lua_gettop(L) + idx + 1;

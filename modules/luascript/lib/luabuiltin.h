@@ -38,18 +38,18 @@ public:
 	static int l_variants_caller_wrapper(lua_State *L);
 
 	//===builtin
-	static Vector2 l_get_vector2(lua_State *L, int idx);
-	static Rect2 l_get_rect2(lua_State *L, int idx);
-	static Vector3 l_get_vector3(lua_State *L, int idx);
-	static Transform2D l_get_transform2d(lua_State *L, int idx);
-	static Plane l_get_Plane(lua_State *L, int idx);
-	static Quat l_get_quat(lua_State *L, int idx);
-	static AABB l_get_aabb(lua_State *L, int idx);
-	static Basis l_get_basis(lua_State *L, int idx);
-	static Transform l_get_transform(lua_State *L, int idx);
-	static Color l_get_color(lua_State *L, int idx);
-	static Dictionary l_get_dict(lua_State *L, int idx);
-	static Array l_get_array(lua_State *L, int idx);
+	static Variant l_get_vector2(lua_State *L, int idx);
+	static Variant l_get_rect2(lua_State *L, int idx);
+	static Variant l_get_vector3(lua_State *L, int idx);
+	static Variant l_get_transform2d(lua_State *L, int idx);
+	static Variant l_get_Plane(lua_State *L, int idx);
+	static Variant l_get_quat(lua_State *L, int idx);
+	static Variant l_get_aabb(lua_State *L, int idx);
+	static Variant l_get_basis(lua_State *L, int idx);
+	static Variant l_get_transform(lua_State *L, int idx);
+	static Variant l_get_color(lua_State *L, int idx);
+	static Variant l_get_dict(lua_State *L, int idx);
+	static Variant l_get_array(lua_State *L, int idx);
 
 	static void l_push_vector2_type(lua_State *L, const Vector2 &var);
 	static void l_push_rect2_type(lua_State *L, const Rect2 &var);

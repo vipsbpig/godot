@@ -137,26 +137,53 @@ void l_push_variant(lua_State *L, const Variant &var) {
 			}
 		} break;
 		case Variant::VECTOR2: {
-			LuaBuiltin::l_push_vector2_type(L, (Vector2)var);
+			LuaBuiltin::l_push_vector2_type(L, var);
 			break;
 		}
 		case Variant::RECT2: {
-			LuaBuiltin::l_push_rect2_type(L, (Rect2)var);
+			LuaBuiltin::l_push_rect2_type(L, var);
 			break;
 		}
-		case Variant::VECTOR3:
-		case Variant::TRANSFORM2D:
-		case Variant::PLANE:
-		case Variant::QUAT:
-		case Variant::AABB:
-		case Variant::BASIS:
-		case Variant::TRANSFORM:
-		case Variant::COLOR:
+		case Variant::VECTOR3: {
+			LuaBuiltin::l_push_vector3_type(L, var);
+			break;
+		}
+		case Variant::TRANSFORM2D: {
+			LuaBuiltin::l_push_transform2d_type(L, var);
+			break;
+		}
+		case Variant::PLANE: {
+			LuaBuiltin::l_push_plane_type(L, var);
+			break;
+		}
+		case Variant::QUAT: {
+			LuaBuiltin::l_push_quat_type(L, var);
+			break;
+		}
+		case Variant::AABB: {
+			LuaBuiltin::l_push_aabb_type(L, var);
+			break;
+		}
+		case Variant::BASIS: {
+			LuaBuiltin::l_push_basis_type(L, var);
+			break;
+		}
+		case Variant::TRANSFORM: {
+			LuaBuiltin::l_push_transform_type(L, var);
+			break;
+		}
+		case Variant::COLOR: {
+			LuaBuiltin::l_push_color_type(L, var);
+			break;
+		}
 		case Variant::NODE_PATH:
-		case Variant::_RID:
-		case Variant::DICTIONARY: {
+		case Variant::_RID: {
 			l_push_bulltins_type(L, var);
 		} break;
+		case Variant::DICTIONARY: {
+			LuaBuiltin::l_push_dict_type(L, var);
+			break;
+		}
 		case Variant::ARRAY: {
 			LuaBuiltin::l_push_array_type(L, var);
 			break;
@@ -186,6 +213,18 @@ void l_push_bulltins_type(lua_State *L, const Variant &var) {
 	lua_setmetatable(L, -2);
 }
 
+bool is_registry_gd_built(lua_State *L, int idx, const void *p_builtin, Variant (*func)(lua_State *, int), Variant &var) {
+	lua_pushlightuserdata(L, (void *)p_builtin);
+	lua_rawget(L, LUA_REGISTRYINDEX);
+	if (lua_rawequal(L, -1, -2)) {
+		var = func(L, idx);
+		lua_pop(L, 1);
+		return true;
+	}
+	lua_pop(L, 1);
+	return false;
+}
+
 void l_get_variant(lua_State *L, int idx, Variant &var) {
 	switch (lua_type(L, idx)) {
 		case LUA_TNONE:
@@ -199,31 +238,19 @@ void l_get_variant(lua_State *L, int idx, Variant &var) {
 		case LUA_TTABLE: {
 
 			if (lua_getmetatable(L, idx)) {
-				lua_pushlightuserdata(L, (void *)&LuaBuiltin::GD_VECTOR2);
-				lua_rawget(L, LUA_REGISTRYINDEX);
-				if (lua_rawequal(L, -1, -2)) {
-					var = LuaBuiltin::l_get_vector2(L, idx);
-					lua_pop(L, 1);
-					return;
-				}
-				lua_pop(L, 1);
-				lua_pushlightuserdata(L, (void *)&LuaBuiltin::GD_RECT2);
-				lua_rawget(L, LUA_REGISTRYINDEX);
-				if (lua_rawequal(L, -1, -2)) {
-					var = LuaBuiltin::l_get_rect2(L, idx);
-					lua_pop(L, 1);
-					return;
-				}
-				lua_pop(L, 1);
+				if (is_registry_gd_built(L, idx, &LuaBuiltin::GD_VECTOR2, LuaBuiltin::l_get_vector2, var)) return;
+				if (is_registry_gd_built(L, idx, &LuaBuiltin::GD_RECT2, LuaBuiltin::l_get_rect2, var)) return;
+				if (is_registry_gd_built(L, idx, &LuaBuiltin::GD_VECTOR3, LuaBuiltin::l_get_vector3, var)) return;
+				if (is_registry_gd_built(L, idx, &LuaBuiltin::GD_TRANSFORM2D, LuaBuiltin::l_get_transform2d, var)) return;
+				if (is_registry_gd_built(L, idx, &LuaBuiltin::GD_PLANE, LuaBuiltin::l_get_Plane, var)) return;
+				if (is_registry_gd_built(L, idx, &LuaBuiltin::GD_QUAT, LuaBuiltin::l_get_quat, var)) return;
+				if (is_registry_gd_built(L, idx, &LuaBuiltin::GD_AABB, LuaBuiltin::l_get_aabb, var)) return;
+				if (is_registry_gd_built(L, idx, &LuaBuiltin::GD_BASIS, LuaBuiltin::l_get_basis, var)) return;
+				if (is_registry_gd_built(L, idx, &LuaBuiltin::GD_TRANSFORM, LuaBuiltin::l_get_transform, var)) return;
+				if (is_registry_gd_built(L, idx, &LuaBuiltin::GD_COLOR, LuaBuiltin::l_get_color, var)) return;
+				if (is_registry_gd_built(L, idx, &LuaBuiltin::GD_DICTIONARY, LuaBuiltin::l_get_dict, var)) return;
+				if (is_registry_gd_built(L, idx, &LuaBuiltin::GD_ARRAY, LuaBuiltin::l_get_array, var)) return;
 
-				lua_pushlightuserdata(L, (void *)&LuaBuiltin::GD_ARRAY);
-				lua_rawget(L, LUA_REGISTRYINDEX);
-				if (lua_rawequal(L, -1, -2)) {
-					var = LuaBuiltin::l_get_array(L, idx);
-					lua_pop(L, 1);
-					return;
-				}
-				lua_pop(L, 1);
 				lua_pushlightuserdata(L, (void *)&LuaBindingHelper::LUAINSTANCE);
 				lua_rawget(L, LUA_REGISTRYINDEX);
 				if (lua_rawequal(L, -1, -2)) {
