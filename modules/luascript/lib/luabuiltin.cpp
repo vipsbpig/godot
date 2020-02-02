@@ -78,25 +78,6 @@ void LuaBuiltin::regitser_builtins(lua_State *L) {
 		{ "PoolColorArray", Variant::POOL_COLOR_ARRAY }, //17
 	};
 
-	lua_getfield(L, LUA_GLOBALSINDEX, "GD");
-	int len = sizeof(buildIns) / sizeof(BulitinTypes);
-	for (int i = 0; i < len; i++) {
-		lua_newtable(L);
-		char dst[20];
-		snprintf(dst, 20, ".%s", buildIns[i].type);
-		luaL_newmetatable(L, dst);
-		{
-			lua_pushstring(L, "__call");
-			lua_pushinteger(L, buildIns[i].vt);
-			lua_pushstring(L, buildIns[i].type);
-			lua_pushcclosure(L, LuaBuiltin::meta_bultins__call, 2);
-			lua_rawset(L, -3);
-		}
-		lua_setmetatable(L, -2);
-		lua_setfield(L, -2, buildIns[i].type);
-	}
-	lua_pop(L, 1);
-
 	const Char_Psn tmp[] = {
 		{ "x", &CoreStringNames::get_singleton()->x }, //0
 		{ "y", &CoreStringNames::get_singleton()->y }, //0
@@ -161,7 +142,6 @@ void LuaBuiltin::regitser_builtins(lua_State *L) {
 	}
 	//TODO::
 	// (void*)_VariantCall::type_funcs;
-	// (void*)_VariantCall::constant_data;	
 
 	//GD_VECTOR2 binding
 	lua_pushlightuserdata(L, (void *)&LuaBuiltin::GD_VECTOR2);
@@ -212,6 +192,34 @@ void LuaBuiltin::regitser_builtins(lua_State *L) {
 	lua_pushvalue(L, -2);
 	lua_rawset(L, LUA_REGISTRYINDEX);
 
+	lua_pop(L, 1);
+
+	lua_getfield(L, LUA_GLOBALSINDEX, "GD");
+	int len = sizeof(buildIns) / sizeof(BulitinTypes);
+	for (int i = 0; i < len; i++) {
+		lua_newtable(L);
+		lua_newtable(L);
+		{
+			lua_pushstring(L, "__call");
+			lua_pushinteger(L, buildIns[i].vt);
+			lua_pushstring(L, buildIns[i].type);
+			lua_pushcclosure(L, LuaBuiltin::meta_bultins__call, 2);
+			lua_rawset(L, -3);
+		}
+		lua_setmetatable(L, -2);
+
+		//const value
+		for (auto E = _VariantCall::constant_data[buildIns[i].vt].value.front(); E != NULL; E = E->next()) {
+			lua_pushinteger(L, E->value());
+			lua_setfield(L, -2, String(E->key()).ascii().get_data());
+		}
+		//const variant
+		for (auto E = _VariantCall::constant_data[buildIns[i].vt].variant_value.front(); E != NULL; E = E->next()) {
+			l_push_variant(L, E->value());
+			lua_setfield(L, -2, String(E->key()).ascii().get_data());
+		}
+		lua_setfield(L, -2, buildIns[i].type);
+	}
 	lua_pop(L, 1);
 }
 
