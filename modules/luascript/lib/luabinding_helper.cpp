@@ -892,6 +892,7 @@ int LuaBindingHelper::meta_instance__newindex(lua_State *L) {
 }
 
 int l_base_methodbind_wrapper(lua_State *L) {
+	//TODO::fix base speed
 	MethodBind *mb = (MethodBind *)lua_touserdata(L, lua_upvalueindex(1));
 	Object *obj = (Object *)lua_touserdata(L, lua_upvalueindex(2));
 	Variant::CallError err;
@@ -925,19 +926,23 @@ int l_base_methodbind_wrapper(lua_State *L) {
 }
 
 int meta_base_cls__index(lua_State *L) {
+	//TODO::fix base speed
 	StringName *class_name = (StringName *)lua_touserdata(L, lua_upvalueindex(1));
+	Object *obj = (Object *)lua_touserdata(L, lua_upvalueindex(2));
 
 	const char *index_name = l_get_key(L, 2);
 	MethodBind *mb = ClassDB::get_method(*class_name, index_name);
 	if (mb != NULL) {
 		lua_pushlightuserdata(L, mb);
-		lua_pushcclosure(L, l_base_methodbind_wrapper, 1);
+		lua_pushlightuserdata(L, obj);
+		lua_pushcclosure(L, l_base_methodbind_wrapper, 2);
 		return 1;
 	}
 	return 0;
 }
 
 void LuaBindingHelper::helper_push_instance(void *object) {
+	//TODO::fix base speed
 	LuaScriptInstance *p_instance = (LuaScriptInstance *)object;
 
 	lua_newtable(L);
@@ -947,8 +952,8 @@ void LuaBindingHelper::helper_push_instance(void *object) {
 		lua_newtable(L);
 		lua_pushvalue(L, -1);
 		lua_pushlightuserdata(L, (void *)&p_instance->script->cls->name);
-		//lua_pushlightuserdata(L, p_instance->owner);
-		lua_pushcclosure(L, meta_base_cls__index, 1);
+		lua_pushlightuserdata(L, p_instance->owner);
+		lua_pushcclosure(L, meta_base_cls__index, 2);
 		lua_pushstring(L, "__index");
 		lua_rawset(L, -3);
 		lua_setmetatable(L, -2);

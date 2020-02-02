@@ -142,6 +142,12 @@ void LuaBuiltin::regitser_builtins(lua_State *L) {
 	}
 	//TODO::
 	// (void*)_VariantCall::type_funcs;
+	// auto func =_VariantCall::type_funcs[0].functions[""];
+	// func.call()
+	//buildIns 添加缺失的，然后在遍历的时候，创建一个另外的VariantMethods的注册表table，
+	//然后在里面添加对应lightud转为VariantType那个key，值就是对应的func
+	//我们在Variant的直接gettype来取对应func表
+	//
 
 	//GD_VECTOR2 binding
 	lua_pushlightuserdata(L, (void *)&LuaBuiltin::GD_VECTOR2);
