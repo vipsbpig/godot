@@ -233,12 +233,12 @@ Vector2 LuaBuiltin::l_get_vector2(lua_State *L, int idx) {
 }
 Rect2 LuaBuiltin::l_get_rect2(lua_State *L, int idx) {
 	lua_getfield(L, idx, "position");
-	auto x = l_get_vector2(L, -1);
+	auto position = l_get_vector2(L, -1);
 	lua_pop(L, 1);
 	lua_getfield(L, idx, "size");
-	auto y = l_get_vector2(L, -1);
+	auto size = l_get_vector2(L, -1);
 	lua_pop(L, 1);
-	return Rect2(x, y);
+	return Rect2(position, size);
 }
 Vector3 LuaBuiltin::l_get_vector3(lua_State *L, int idx) {
 	lua_getfield(L, idx, "x");
@@ -356,7 +356,7 @@ Dictionary LuaBuiltin::l_get_dict(lua_State *L, int idx) {
 		idx = lua_gettop(L) + idx + 1;
 	}
 	/* table is in the stack at index 't' */
-	lua_pushnil(L); /* 第一个 key */
+	lua_pushnil(L); /* first key */
 	while (lua_next(L, idx) != 0) {
 		/* uses 'key' (at index -2) and 'value' (at index -1) */
 		Variant v;
@@ -375,7 +375,7 @@ Array LuaBuiltin::l_get_array(lua_State *L, int idx) {
 		idx = lua_gettop(L) + idx + 1;
 	}
 	/* table is in the stack at index 't' */
-	lua_pushnil(L); /* 第一个 key */
+	lua_pushnil(L); /* first key */
 	while (lua_next(L, idx) != 0) {
 		/* uses 'key' (at index -2) and 'value' (at index -1) */
 		Variant tmp;
