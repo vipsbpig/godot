@@ -1,5 +1,4 @@
-﻿#include "luabinding_helper.h"
-#include "../debug.h"
+#include "luabinding_helper.h"
 #include "../luascript.h"
 #include "../luascript_instance.h"
 #include "luabuiltin.h"
@@ -134,7 +133,6 @@ void l_push_variant(lua_State *L, const Variant &var) {
 			LuaBindingHelper::script_pushobject(L, obj);
 			if (obj->is_class_ptr(Reference::get_class_ptr_static())) {
 				Reference *ref = Object::cast_to<Reference>(obj);
-				//printf("push ref:%s count:%d\n", String(Variant(ref)).ascii().get_data(), ref->reference_get_count());
 				ref->reference();
 			}
 		} break;
@@ -180,9 +178,6 @@ void l_push_variant(lua_State *L, const Variant &var) {
 }
 
 void l_push_bulltins_type(lua_State *L, const Variant &var) {
-#ifdef LUA_SCRIPT_DEBUG_ENABLED
-	print_format("builtIn Type:%s", Variant::get_type_name(var.get_type()).ascii().get_data());
-#endif
 	Variant **ptr = (Variant **)lua_newuserdata(L, sizeof(Variant *));
 	*ptr = memnew(Variant);
 	**ptr = var;
@@ -271,7 +266,6 @@ void l_get_variant(lua_State *L, int idx, Variant &var) {
 						if (obj->is_class_ptr(Reference::get_class_ptr_static())) {
 							Reference *ref = Object::cast_to<Reference>(obj);
 							var = Ref<Reference>(ref);
-							//printf("Ref %s\n",String(var).ascii().get_data());
 
 						} else {
 							var = obj;
@@ -332,10 +326,7 @@ int LuaBindingHelper::l_extends(lua_State *L) {
 			luaL_error(L, "Extends Wrong Type");
 			return 0;
 		}
-#ifdef LUA_SCRIPT_DEBUG_ENABLED
-		const char *base = String(cls->name).ascii().get_data();
-		print_format("l_extends from:%s %d script:%d", base, cls, p_script);
-#endif
+
 		p_script->cls = cls;
 
 		lua_newtable(L);
@@ -349,27 +340,8 @@ int LuaBindingHelper::l_extends(lua_State *L) {
 		return 1;
 	}
 	if (lua_isstring(L, -1)) {
-
-#ifdef LUA_SCRIPT_DEBUG_ENABLED
-		print_line("Should extends from a res.Now Only extends from Object");
-#endif
-		//TODO::如果是字符串就从路径加载脚本去继承来写
-		//现在临时用Object来代替
-		//
-		const ClassDB::ClassInfo *cls = &ClassDB::classes["Object"];
-#ifdef LUA_SCRIPT_DEBUG_ENABLED
-		const char *base = String(cls->name).ascii().get_data();
-		print_format("l_extends from:%s", base);
-#endif
-		p_script->cls = cls;
-		lua_newtable(L);
-		lua_pushlightuserdata(L, p_script);
-		lua_setfield(L, -2, ".c_script");
-
-		lua_pushlightuserdata(L, (void *)&LUASCRIPT);
-		lua_rawget(L, LUA_REGISTRYINDEX);
-		lua_setmetatable(L, -2);
-		return 1;
+		//TODO:: if extend form ResPath this should hinrate from that luascript
+		return 0;
 	}
 	return 0;
 }
@@ -388,9 +360,6 @@ void LuaBindingHelper::unbind_script_function(const char *name) {
 int LuaBindingHelper::create_user_data(lua_State *L) {
 	const ClassDB::ClassInfo *cls = (ClassDB::ClassInfo *)lua_touserdata(L, lua_upvalueindex(1));
 	Object *object = cls->creation_func();
-#ifdef LUA_SCRIPT_DEBUG_ENABLED
-	print_format("Name %s call new object_ptr:%d ", object->get_class().ascii().get_data(), object);
-#endif
 	script_pushobject(L, object);
 	return 1;
 }
@@ -406,59 +375,14 @@ int LuaBindingHelper::script_pushobject(lua_State *L, Object *object) {
 			lua_replace(L, -2);
 			return 1;
 		}
-		// C 对象指针被释放后，有可能地址被重用。
-		// 这个时候，可能取到曾经保存起来的 userdata ，里面的指针必然为空。
-		//ERR_FAIL_COND_V(*ud != NULL, -1);
 	}
 	ud = (Object **)lua_newuserdata(L, sizeof(Object *));
 	*ud = object;
-	///----object---
-	//lua_newtable(L);
-	//props
-	// {
-	// 	lua_newtable(L);
 
-	// 	const ClassDB::ClassInfo *top = ClassDB::classes.getptr(object->get_class_name());
-	// 	while (top) {
-	// 		const List<PropertyInfo> *props_list = &top->property_list;
-	// 		for (auto E = props_list->front(); E != props_list->back(); E = E->next()) {
-	// 			const ClassDB::PropertySetGet *psg = top->property_setget.getptr(E->get().name);
-	// 			if (psg) {
-	// 				lua_pushlightuserdata(L, (void *)psg);
-	// 				lua_setfield(L, -2, E->get().name.ascii().get_data());
-	// 			}
-
-	// 			const int *c = top->constant_map.getptr(E->get().name);
-	// 			if (c) {
-	// 				lua_pushinteger(L, *c);
-	// 				lua_setfield(L, -2, E->get().name.ascii().get_data());
-	// 			}
-	// 		}
-	// 		top = top->inherits_ptr;
-	// 	}
-
-	// 	lua_setfield(L, -2, "props");
-	// }
-	//luaObject
-	// lua_pushboolean(L, 1);
-	// lua_setfield(L, -2, "LuaObject");
-
-	// //meta func
-	// {
-	// 	luaL_Reg meta_methods[] = {
-	// 		{ "__gc", meta_object__gc },
-	// 		{ "__index", meta_object__index },
-	// 		{ "__newindex", meta_object__newindex },
-	// 		{ "__tostring", meta_object__tostring },
-	// 		{ NULL, NULL },
-	// 	};
-	// 	luaL_setfuncs(L, meta_methods, 0);
-	// }
 	lua_pushlightuserdata(L, (void *)&LUAOBJECT);
 	lua_rawget(L, LUA_REGISTRYINDEX);
-	//lua_getfield(L, LUA_REGISTRYINDEX, "LuaObject");
 	lua_setmetatable(L, -2);
-	///---------
+
 	lua_pushnumber(L, object->get_instance_id());
 	lua_pushvalue(L, -2);
 	lua_rawset(L, -5);
@@ -496,9 +420,7 @@ int LuaBindingHelper::meta_object__gc(lua_State *L) {
 	}
 	if (obj->is_class_ptr(Reference::get_class_ptr_static())) {
 		Reference *ref = Object::cast_to<Reference>(obj);
-		//printf("__gc ref:%s count:%d\n", String(Variant(ref)).ascii().get_data(), ref->reference_get_count());
 		if (ref->unreference()) {
-			//printf("memdelete\n");
 			memdelete(ref);
 		}
 	}
@@ -526,9 +448,7 @@ int LuaBindingHelper::meta_object__index(lua_State *L) {
 		luaL_error(L, "Faild To Get %s Form NULL Object", index_name);
 		return 0;
 	}
-#ifdef LUA_SCRIPT_DEBUG_ENABLED
-	print_format("meta__index: %s call %s", obj->get_class().ascii().get_data(), String(index_name).ascii().get_data());
-#endif
+
 	lua_pushlightuserdata(L, (void *)&GD_CLASS);
 	lua_rawget(L, LUA_REGISTRYINDEX);
 	{
@@ -537,7 +457,7 @@ int LuaBindingHelper::meta_object__index(lua_State *L) {
 		lua_getfield(L, -1, index_name);
 
 		if (!lua_isnil(L, -1)) {
-			//1.如果拥有变量，压入
+			//1.is a variant get form getter
 			const ClassDB::PropertySetGet *setget = (const ClassDB::PropertySetGet *)lua_touserdata(L, -1);
 			if (setget && setget->_getptr) {
 				MethodBind *mb = setget->_getptr;
@@ -551,13 +471,13 @@ int LuaBindingHelper::meta_object__index(lua_State *L) {
 				}
 			}
 
-			//2.如果是方法，压入
+			//2.is a methed just return
 			return 1;
 		}
 	}
 	lua_pop(L, 1);
 
-	//3.free方法
+	//3.call free to delete object
 	if (strncmp(index_name, "free", 4) == 0) {
 		lua_pushcclosure(L, l_object_free, 0);
 		return 1;
@@ -565,9 +485,7 @@ int LuaBindingHelper::meta_object__index(lua_State *L) {
 	return 0;
 }
 int LuaBindingHelper::meta_object__newindex(lua_State *L) {
-#ifdef LUA_SCRIPT_DEBUG_ENABLED
-	print_format("call %s", "meta__newindex");
-#endif
+
 	Object **ud = (Object **)lua_touserdata(L, 1);
 	Object *obj = *ud;
 	if (obj == NULL) {
@@ -575,11 +493,6 @@ int LuaBindingHelper::meta_object__newindex(lua_State *L) {
 		luaL_error(L, "Failed To Set Field :'%s' To NULL Object", index_name);
 		return 0;
 	}
-
-	// bool valid = false;
-	// obj->set(l_get_key(L, 2), value, &valid);
-	// if (!valid)
-	// 	luaL_error(L, "Unable to set field: '%s'", lua_tostring(L, 2));
 
 	lua_pushlightuserdata(L, (void *)&GD_CLASS);
 	lua_rawget(L, LUA_REGISTRYINDEX);
@@ -590,7 +503,7 @@ int LuaBindingHelper::meta_object__newindex(lua_State *L) {
 		lua_getfield(L, -1, l_get_key(L, 2));
 
 		if (!lua_isnil(L, -1)) {
-			//1.如果拥有变量，压入
+			//1.is a variant set form setter
 			ClassDB::PropertySetGet *setget = (ClassDB::PropertySetGet *)lua_touserdata(L, -1);
 			if (setget && setget->_setptr) {
 				MethodBind *mb = setget->_setptr;
@@ -652,13 +565,7 @@ int LuaBindingHelper::meta_bultins__evaluate(lua_State *L) {
 
 int LuaBindingHelper::meta_bultins__gc(lua_State *L) {
 	Variant *var = luaL_checkvariant(L, 1);
-#ifdef LUA_SCRIPT_DEBUG_ENABLED
-	print_format("var:%d gc", var);
-#endif
 	memdelete(var);
-
-	// lua_pushnil(L);
-	// lua_setmetatable(L, 1);
 	return 0;
 }
 int LuaBindingHelper::meta_bultins__tostring(lua_State *L) {
@@ -683,7 +590,7 @@ int LuaBindingHelper::meta_bultins__index(lua_State *L) {
 		l_push_variant(L, value);
 		return 1;
 	}
-	//方法
+	//buildins methods
 	lua_getfield(L, LUA_REGISTRYINDEX, "VariantMethods");
 	if (lua_isnil(L, -1)) {
 		lua_newtable(L);
@@ -747,10 +654,6 @@ int LuaBindingHelper::meta_bultins__pairs(lua_State *L) {
 }
 
 int LuaBindingHelper::l_bultins_caller_wrapper(lua_State *L) {
-#ifdef LUA_SCRIPT_DEBUG_ENABLED
-	print_format("l_bultins_caller_wrapper");
-#endif
-	//const char *key = luaL_checkstring(L, lua_upvalueindex(1));
 	const StringName *key = *(StringName **)lua_touserdata(L, lua_upvalueindex(1));
 	int top = lua_gettop(L);
 
@@ -782,7 +685,6 @@ int LuaBindingHelper::l_bultins_caller_wrapper(lua_State *L) {
 	return 0;
 }
 
-//TO BE CONFIRM
 int LuaBindingHelper::l_builtins_iterator(lua_State *L) {
 	Variant &var = *luaL_checkvariant(L, 1);
 	if (var.get_type() == Variant::DICTIONARY) {
@@ -818,16 +720,11 @@ int LuaBindingHelper::l_builtins_iterator(lua_State *L) {
 }
 
 int LuaBindingHelper::meta_script__gc(lua_State *L) {
-#ifdef LUA_SCRIPT_DEBUG_ENABLED
-	print_format("meta_script__gc nothing to do");
-#endif
+	//NOTHING TODO
 	return 0;
 }
 
 int LuaBindingHelper::meta_script__tostring(lua_State *L) {
-#ifdef LUA_SCRIPT_DEBUG_ENABLED
-	print_format("meta_script__tostring.");
-#endif
 	LuaScript *p_script = luaL_getscript(L, 1);
 	auto var = p_script->get_instance_base_type();
 	l_push_variant(L, var);
@@ -837,10 +734,7 @@ int LuaBindingHelper::meta_script__tostring(lua_State *L) {
 int LuaBindingHelper::meta_script__index(lua_State *L) {
 	LuaScript *p_script = luaL_getscript(L, 1);
 	const char *index_name = l_get_key(L, 2);
-#ifdef LUA_SCRIPT_DEBUG_ENABLED
-	const char *base = String(p_script->cls->name).ascii().get_data();
-	print_format("meta_script__index:%s base:%s %d script:%d", lua_tostring(L, 2), base, p_script->cls, p_script);
-#endif
+
 	if (p_script->properties_default_value.has(index_name)) {
 		l_push_variant(L, p_script->properties_default_value[index_name]);
 		return 1;
@@ -856,10 +750,7 @@ int LuaBindingHelper::meta_script__newindex(lua_State *L) {
 	const char *index_name = l_get_key(L, 2);
 	int idx = 3;
 	int t = lua_type(L, idx);
-#ifdef LUA_SCRIPT_DEBUG_ENABLED
-	const char *base = String(p_script->cls->name).ascii().get_data();
-	print_format("meta_script__newindex:%slua_typ:%d  base:%s script:%d lua_t:%d", lua_tostring(L, 2), t, base, p_script->cls, p_script);
-#endif
+
 	if (LUA_TNONE == t || LUA_TTHREAD == t || LUA_TLIGHTUSERDATA == t || LUA_TTABLE == t) {
 		p_script->add_lua_property_type(index_name, t);
 		lua_rawset(L, 1);
@@ -882,9 +773,6 @@ void LuaBindingHelper::l_ref_luascript(lua_State *L, void *object) {
 	lua_pushvalue(L, -2);
 	p_script->lua_ref = luaL_ref(L, -2);
 	lua_pop(L, 1);
-#ifdef LUA_SCRIPT_DEBUG_ENABLED
-	print_format("l_ref_luascript:%d s:%d", p_script->lua_ref, p_script);
-#endif
 }
 
 void LuaBindingHelper::l_push_luascript_ref(lua_State *L, int ref) {
@@ -896,10 +784,6 @@ void LuaBindingHelper::l_push_luascript_ref(lua_State *L, int ref) {
 
 void LuaBindingHelper::l_unref_luascript(void *object) {
 	LuaScript *p_script = (LuaScript *)object;
-#ifdef LUA_SCRIPT_DEBUG_ENABLED
-	printf("l_unref_luascript:%d s:%d\n", p_script->lua_ref, p_script);
-#endif
-
 	lua_pushlightuserdata(L, (void *)&GD_SCRIPT_REF);
 	lua_rawget(L, LUA_REGISTRYINDEX);
 	luaL_unref(L, -1, p_script->lua_ref);
@@ -907,15 +791,10 @@ void LuaBindingHelper::l_unref_luascript(void *object) {
 }
 
 int LuaBindingHelper::meta_instance__gc(lua_State *L) {
-#ifdef LUA_SCRIPT_DEBUG_ENABLED
-	print_format("meta_instance__gc nothing to do");
-#endif
+	//NOTHING TODO
 	return 0;
 }
 int LuaBindingHelper::meta_instance__tostring(lua_State *L) {
-#ifdef LUA_SCRIPT_DEBUG_ENABLED
-	print_format("meta_instance__tostring");
-#endif
 	LuaScriptInstance *p_instance = luaL_getinstance(L, 1);
 	lua_pushstring(L, String(Variant(p_instance->get_owner())).ascii().get_data());
 	return 1;
@@ -923,15 +802,6 @@ int LuaBindingHelper::meta_instance__tostring(lua_State *L) {
 int LuaBindingHelper::meta_instance__index(lua_State *L) {
 	LuaScriptInstance *p_instance = luaL_getinstance(L, 1);
 	const char *index_name = l_get_key(L, 2);
-	//print_format("meta_instance__index:%s instance:%s", lua_tostring(L, 2), String(Variant(p_instance->get_owner())).ascii().get_data());
-	//1.如果是变量，压入
-	// bool success = false;
-	// Variant variant;
-	// success = p_instance->get(index_name, variant);
-	// if (success) {
-	// 	l_push_variant(L, variant);
-	// 	return 1;
-	// }
 	lua_pushlightuserdata(L, (void *)&GD_CLASS);
 	lua_rawget(L, LUA_REGISTRYINDEX);
 	{
@@ -940,7 +810,7 @@ int LuaBindingHelper::meta_instance__index(lua_State *L) {
 		lua_getfield(L, -1, index_name);
 		if (!lua_isnil(L, -1)) {
 
-			//1.如果拥有变量，压入
+			//1.is a variant get form getter
 			const ClassDB::PropertySetGet *setget = (const ClassDB::PropertySetGet *)lua_touserdata(L, -1);
 			if (setget && setget->_getptr) {
 				MethodBind *mb = setget->_getptr;
@@ -953,21 +823,13 @@ int LuaBindingHelper::meta_instance__index(lua_State *L) {
 					l_method_error(L, err);
 				}
 			}
-			//2.如果是方法，压入
-
+			//2.if is method just return
 			return 1;
 		}
 	}
 	lua_pop(L, 1);
 
-	// MethodBind *mb = ClassDB::get_method(p_instance->owner->get_class_name(), index_name);
-	// if (mb != NULL) {
-	// 	lua_pushlightuserdata(L, mb);
-	// 	lua_pushcclosure(L, l_methodbind_wrapper, 1);
-	// 	return 1;
-	// }
-
-	//3.类方法获取
+	//3.from luascirpt base get method
 	Variant var;
 	//get class
 	l_push_luascript_ref(L, p_instance->script->lua_ref);
@@ -977,19 +839,13 @@ int LuaBindingHelper::meta_instance__index(lua_State *L) {
 	if (!lua_isnil(L, -1))
 		return 1;
 	return 0;
-	// //4.普通获取--因为inde是在原本没有才会调用的
-	// lua_pop(L, 2); //pop script and result
-	// lua_rawget(L, -2);
-	// return 1;
 }
 int LuaBindingHelper::meta_instance__newindex(lua_State *L) {
 	LuaScriptInstance *p_instance = luaL_getinstance(L, 1);
 	const char *index_name = l_get_key(L, 2);
 	int idx = 3;
 	int t = lua_type(L, idx);
-#ifdef LUA_SCRIPT_DEBUG_ENABLED
-	print_format("meta_instance__newindex:%s lua_typ:%s ", lua_tostring(L, 2), lua_typename(L, t));
-#endif
+
 	if (LUA_TNONE == t || LUA_TTHREAD == t || LUA_TLIGHTUSERDATA == t || LUA_TTABLE == t) {
 		//p_instance->add_lua_property_type(index_name, t);
 		lua_rawset(L, 1);
@@ -1043,10 +899,7 @@ int l_base_methodbind_wrapper(lua_State *L) {
 }
 
 int meta_base_cls__index(lua_State *L) {
-	//压入方法来调用
-	//
 	StringName *class_name = (StringName *)lua_touserdata(L, lua_upvalueindex(1));
-	//Object *pushobj = (Object *)lua_touserdata(L, lua_upvalueindex(2));
 
 	const char *index_name = l_get_key(L, 2);
 	MethodBind *mb = ClassDB::get_method(*class_name, index_name);
@@ -1060,9 +913,7 @@ int meta_base_cls__index(lua_State *L) {
 
 void LuaBindingHelper::helper_push_instance(void *object) {
 	LuaScriptInstance *p_instance = (LuaScriptInstance *)object;
-#ifdef LUA_SCRIPT_DEBUG_ENABLED
-	print_debug("helper_push_instance:%d s:%s", p_instance->lua_ref, String(Variant(p_instance->get_owner())).ascii().get_data());
-#endif
+
 	lua_newtable(L);
 	//==base
 	lua_newtable(L);
@@ -1103,15 +954,9 @@ void LuaBindingHelper::l_ref_instance(lua_State *L, void *object) {
 	lua_pushvalue(L, -2);
 	p_instance->lua_ref = luaL_ref(L, -2);
 	lua_pop(L, 1);
-#ifdef LUA_SCRIPT_DEBUG_ENABLED
-	print_debug("l_ref_instance:%d s:%s", p_instance->lua_ref, String(Variant(p_instance->get_owner())).ascii().get_data());
-#endif
 }
 
 void LuaBindingHelper::l_push_instance_ref(lua_State *L, int ref) {
-#ifdef LUA_SCRIPT_DEBUG_ENABLED
-	print_format("l_push_instance_ref :%d ", ref);
-#endif
 	lua_pushlightuserdata(L, (void *)&GD_INSTANCE_REF);
 	lua_rawget(L, LUA_REGISTRYINDEX);
 	lua_rawgeti(L, -1, ref);
@@ -1120,9 +965,6 @@ void LuaBindingHelper::l_push_instance_ref(lua_State *L, int ref) {
 
 void LuaBindingHelper::l_unref_instance(void *object) {
 	LuaScriptInstance *p_instance = (LuaScriptInstance *)object;
-#ifdef LUA_SCRIPT_DEBUG_ENABLED
-	print_format("l_unref_instance:%d s:%s", p_instance->lua_ref, String(Variant(p_instance->get_owner())).ascii().get_data());
-#endif
 	lua_pushlightuserdata(L, (void *)&GD_INSTANCE_REF);
 	lua_rawget(L, LUA_REGISTRYINDEX);
 	luaL_unref(L, -1, p_instance->lua_ref);
@@ -1181,10 +1023,6 @@ int LuaBindingHelper::pcall_callback_err_fun(lua_State *L) {
 
 Variant LuaBindingHelper::instance_call(ScriptInstance *p_instance, const StringName &p_method, const Variant **p_args, int p_argcount, Variant::CallError &r_error) {
 	LuaScriptInstance *p_si = (LuaScriptInstance *)p_instance;
-#ifdef LUA_SCRIPT_DEBUG_ENABLED
-	print_format("instance_call: script:%d argc:%d", p_si->script.ptr(), p_argcount);
-#endif
-
 #ifdef DEBUG_ENABLED
 	//error
 	lua_pushcfunction(L, pcall_callback_err_fun);
@@ -1204,7 +1042,6 @@ Variant LuaBindingHelper::instance_call(ScriptInstance *p_instance, const String
 		for (int i = 0; i < p_argcount; i++) {
 			l_push_variant(L, *p_args[i]);
 		}
-		//pcall
 		//5.3可以换成pcallk
 #ifdef DEBUG_ENABLED
 		if (lua_pcall(L, p_argcount + 1, 1, pos_err) == 0) {
@@ -1218,34 +1055,11 @@ Variant LuaBindingHelper::instance_call(ScriptInstance *p_instance, const String
 #endif
 
 	} else {
-#ifdef LUA_SCRIPT_DEBUG_ENABLED
-		print_format("script cannot get function:%s", String(p_method).ascii().get_data());
-#endif
 		r_error.error = Variant::CallError::CALL_ERROR_INVALID_METHOD;
 	}
 	r_error.argument = p_argcount;
 	lua_settop(L, 0);
 	return var;
-}
-
-void LuaBindingHelper::openLibs(lua_State *L) {
-	luaL_Reg lualibs[] = {
-		{ "", luaopen_base },
-		//{LUA_LOADLIBNAME, luaopen_package},
-		//{LUA_TABLIBNAME, luaopen_table},
-		//{LUA_IOLIBNAME, luaopen_io},
-		//{LUA_OSLIBNAME, luaopen_os},
-		//{LUA_STRLIBNAME, luaopen_string},
-		//{ LUA_MATHLIBNAME, luaopen_math },
-		{ LUA_DBLIBNAME, luaopen_debug },
-		//{"lua-utf8", luaopen_utf8},
-		{ NULL, NULL }
-	};
-
-	const luaL_Reg *lib = lualibs;
-	for (; lib->func; lib++) {
-		luaL_register(L, lib->name, lib);
-	}
 }
 
 int l_load(lua_State *L) {
@@ -1271,18 +1085,14 @@ void LuaBindingHelper::godotbind() {
 	lua_pushcfunction(L, meta_bultins__pairs);
 	lua_setfield(L, -2, "pairs");
 	lua_pop(L, 1);
+
+	//TODO:: some basic engine func should bind in this
 }
 
 void LuaBindingHelper::register_class(lua_State *L, const ClassDB::ClassInfo *cls) {
-	// if (!(String(cls->name) == "Object" || String(cls->name) == "Node" || String(cls->name) == "_OS" || String(cls->name) == "Node2D"))
-	// 	return;
-#ifdef LUA_SCRIPT_DEBUG_ENABLED
-	printf("regist:[%s:%s]\n", String(cls->name).ascii().get_data(), String(cls->inherits).ascii().get_data());
-#endif
-
 	CharString s = String(cls->name).ascii();
 	const char *typeName = s.get_data();
-	//原生调用
+	//namespace GD
 	lua_getfield(L, LUA_GLOBALSINDEX, "GD");
 
 	lua_newtable(L);
@@ -1298,8 +1108,6 @@ void LuaBindingHelper::register_class(lua_State *L, const ClassDB::ClassInfo *cl
 
 	lua_pop(L, 2);
 
-	//需要遍历
-	//
 	lua_pushlightuserdata(L, (void *)&GD_CLASS);
 	lua_rawget(L, LUA_REGISTRYINDEX);
 	{
@@ -1340,11 +1148,7 @@ void LuaBindingHelper::regitser_builtins(lua_State *L) {
 
 void LuaBindingHelper::initialize() {
 	L = luaL_newstate();
-	// luaopen_base(L);
-	// luaopen_table(L);
-	// luaopen_math(L);
-	// luaopen_debug(L);
-	// luaopen_jit(L);
+
 	luaL_openlibs(L);
 	lua_settop(L, 0);
 
@@ -1388,7 +1192,6 @@ void LuaBindingHelper::initialize() {
 	lua_rawset(L, LUA_REGISTRYINDEX);
 
 	//Object binding
-	//luaL_newmetatable(L, "LuaObject");
 	lua_pushlightuserdata(L, (void *)&LUAOBJECT);
 	lua_newtable(L);
 	{
@@ -1500,7 +1303,6 @@ void LuaBindingHelper::link__index_class(lua_State *L, const ClassDB::ClassInfo 
 	{
 		const ClassDB::ClassInfo *top = cls;
 		while (top) {
-			// const char *topname = String(top->name).ascii().get_data();
 			if (top->inherits_ptr == NULL) {
 				break;
 			}
@@ -1510,7 +1312,6 @@ void LuaBindingHelper::link__index_class(lua_State *L, const ClassDB::ClassInfo 
 				lua_newtable(L);
 				lua_pushlightuserdata(L, (void *)top->inherits_ptr);
 				lua_rawget(L, -4);
-				//lua_getfield(L, -3, String(top->inherits_ptr->name).ascii().get_data());
 				lua_setfield(L, -2, "__index");
 				lua_setmetatable(L, -2);
 			} else {
@@ -1530,34 +1331,23 @@ void LuaBindingHelper::uninitialize() {
 
 Error LuaBindingHelper::script(const String &p_source) {
 	ERR_FAIL_NULL_V(L, ERR_DOES_NOT_EXIST);
+	bind_script_function("extends", this, LuaBindingHelper::l_extends);
 	luaL_loadstring(L, p_source.utf8());
-#ifdef DEBUG_ENABLED
-	if (lua_pcall(L, 0, LUA_MULTRET, 0)) {
-		lua_getfield(L, LUA_GLOBALSINDEX, "debug");
-		if (!lua_istable(L, -1)) {
-			lua_pop(L, 1);
-			return ERR_SCRIPT_FAILED;
-		}
-		lua_getfield(L, -1, "traceback");
-		if (!lua_isfunction(L, -1)) {
-			lua_pop(L, 2);
-			return ERR_SCRIPT_FAILED;
-		}
-		lua_pushvalue(L, 1); /* pass error message */
-		lua_pushinteger(L, 2); /* skip this function and traceback */
-		lua_call(L, 2, 1); /* call debug.traceback */
-		print_line(lua_tostring(L, -1));
-		return ERR_SCRIPT_FAILED;
-	}
-#else
-	lua_pcall(L, 0, LUA_MULTRET);
-#endif
-
-	return OK;
+	Error err = luacall();
+	unbind_script_function("extends");
+	return err;
 }
 
 Error LuaBindingHelper::bytecode(const Vector<uint8_t> &p_bytecode) {
+	ERR_FAIL_NULL_V(L, ERR_DOES_NOT_EXIST);
+	bind_script_function("extends", this, LuaBindingHelper::l_extends);
 	luaL_loadbufferx(L, (const char *)p_bytecode.ptr(), p_bytecode.size(), "", "b");
+	Error err = luacall();
+	unbind_script_function("extends");
+	return err;
+}
+
+Error LuaBindingHelper::luacall() {
 #ifdef DEBUG_ENABLED
 	if (lua_pcall(L, 0, LUA_MULTRET, 0)) {
 		lua_getfield(L, LUA_GLOBALSINDEX, "debug");

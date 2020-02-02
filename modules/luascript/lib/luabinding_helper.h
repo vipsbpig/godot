@@ -25,7 +25,6 @@ public:
 	static const char GD_SCRIPT_REF;
 	static const char GD_INSTANCE_REF;
 
-
 	static int l_print(lua_State *L);
 
 	//===lua methods
@@ -42,17 +41,10 @@ public:
 	static int script_pushobject(lua_State *L, Object *object);
 	static void push_strong_ref(lua_State *L, Object *object);
 	static void del_strong_ref(lua_State *L, Object *Object);
-	// static void *script_toobject(lua_State *L, int index);
-	// static void script_deleteobject(lua_State *L, Object *object);
+
 
 private:
 	//===LuaObject lua meta methods
-
-	// static int meta__gc(lua_State *L);
-	// static int meta__tostring(lua_State *L);
-	// static int meta__index(lua_State *L);
-	// static int meta__newindex(lua_State *L);
-
 	static int meta_object__gc(lua_State *L);
 	static int meta_object__tostring(lua_State *L);
 	static int meta_object__index(lua_State *L);
@@ -118,7 +110,6 @@ private:
 	static int pcall_callback_err_fun(lua_State *L);
 
 public:
-	// Variant initialize_call(ScriptInstance *p_instance, const Variant **p_args, int p_argcount, Variant::CallError &r_error);
 	Variant instance_call(ScriptInstance *p_instance, const StringName &p_method, const Variant **p_args, int p_argcount, Variant::CallError &r_error);
 
 private:
@@ -139,6 +130,7 @@ public:
 
 	Error script(const String &p_source);
 	Error bytecode(const Vector<uint8_t> &p_source);
+	Error luacall();
 
 public:
 	static void stackDump(lua_State *L) {

@@ -1,5 +1,4 @@
 #include "luabuiltin.h"
-#include "../debug.h"
 #include "core/core_string_names.h"
 #include "luabinding_helper.h"
 

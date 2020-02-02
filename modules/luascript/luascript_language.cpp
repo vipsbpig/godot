@@ -1,6 +1,5 @@
 #include "luascript_language.h"
 #include "core/os/file_access.h"
-#include "debug.h"
 #include "luascript.h"
 
 LuaScriptLanguage *LuaScriptLanguage::singleton = NULL;
@@ -21,7 +20,6 @@ String LuaScriptLanguage::get_name() const {
 /* LANGUAGE FUNCTIONS */
 void LuaScriptLanguage::init() {
 	binding->initialize();
-	//execute_file("luadebug.lua");
 }
 
 String LuaScriptLanguage::get_extension() const {
@@ -90,10 +88,6 @@ void LuaScriptLanguage::get_reserved_words(List<String> *p_words) const {
 		w++;
 	}
 
-	//TODO::到时候需要绑定godot的数学库添加些基础功能
-	//for (int i = 0; i < GDScriptFunctions::FUNC_MAX; i++) {
-	//	p_words->push_back(GDScriptFunctions::get_func_name(GDScriptFunctions::Function(i)));
-	//}
 }
 
 void LuaScriptLanguage::get_comment_delimiters(List<String> *p_delimiters) const {

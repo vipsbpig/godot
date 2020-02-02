@@ -65,9 +65,6 @@ StringName LuaScript::get_instance_base_type() const {
 	return StringName();
 }
 ScriptInstance *LuaScript::instance_create(Object *p_this) {
-#ifdef LUA_SCRIPT_DEBUG_ENABLED
-	print_debug("LuaScript::instance_create");
-#endif
 
 	LuaScript *top = this;
 	while (top->_base)
@@ -75,10 +72,6 @@ ScriptInstance *LuaScript::instance_create(Object *p_this) {
 
 	if (top->native.is_valid()) {
 		if (!ClassDB::is_parent_class(p_this->get_class_name(), top->native->get_name())) {
-
-			// if (ScriptDebugger::get_singleton()) {
-			// 	LuaScriptLanguage::get_singleton()->debug_break_parse(get_path(), 0, "Script inherits from native type '" + String(top->native->get_name()) + "', so it can't be instanced in object of type: '" + p_this->get_class() + "'");
-			// }
 			ERR_EXPLAIN("Script inherits from native type '" + String(top->native->get_name()) + "', so it can't be instanced in object of type: '" + p_this->get_class() + "'");
 			ERR_FAIL_V(NULL);
 		}
@@ -93,17 +86,10 @@ ScriptLanguage *LuaScript::get_language() const {
 }
 
 String LuaScript::get_source_code() const {
-#ifdef LUA_SCRIPT_DEBUG_ENABLED
-	print_debug("LuaScript::get_source_code");
-#endif
-
 	return source;
 }
 
 void LuaScript::set_source_code(const String &p_code) {
-#ifdef LUA_SCRIPT_DEBUG_ENABLED
-	print_debug("LuaScript::set_source_code");
-#endif
 	if (source == p_code)
 		return;
 	source = p_code;
@@ -113,16 +99,6 @@ void LuaScript::set_source_code(const String &p_code) {
 }
 
 Error LuaScript::reload(bool p_keep_state) {
-	//完成绑定等内容和调整
-	//传入调用等内容
-	//extends 的设计 是谁的
-	//只要是绑定到node的可以通过
-	//临时创建extendts来绑定到脚本类上面
-	//只会在reload的时候进行更替，在引擎运行之前都会正确调用
-
-#ifdef LUA_SCRIPT_DEBUG_ENABLED
-	print_debug("LuaScript::reload");
-#endif
 	if (!byte) {
 		bool has_instances = instances.size();
 		ERR_FAIL_COND_V(!p_keep_state && has_instances, ERR_ALREADY_IN_USE);
@@ -134,9 +110,7 @@ Error LuaScript::reload(bool p_keep_state) {
 		if (basedir != "")
 			basedir = basedir.get_base_dir();
 
-		LuaScriptLanguage::get_singleton()->binding->bind_script_function("extends", this, LuaBindingHelper::l_extends);
 		Error err = LuaScriptLanguage::get_singleton()->binding->script(source);
-		LuaScriptLanguage::get_singleton()->binding->unbind_script_function("extends");
 		valid = (err == OK);
 		return err;
 	}
@@ -150,20 +124,7 @@ void LuaScript::add_lua_method(const StringName &method_name) {
 bool LuaScript::has_method(const StringName &p_method) const {
 	return methods_name.has(p_method);
 }
-// bool LuaScript::has_method_with_cls(const String &p_method) const {
-// 	bool ret = has_method(p_method);
-// 	if (has_method(p_method) || cls == NULL)
-// 		return ret;
-// 	else {
-// 		auto *top = this->cls;
-// 		while (top) {
-// 			if (top->method_map.has(p_method))
-// 				return true;
-// 			top = top->inherits_ptr;
-// 		}
-// 		return false;
-// 	}
-// }
+
 void LuaScript::add_property_default_value(const StringName &p_property, const Variant &p_value) {
 	properties_default_value[p_property] = p_value;
 }
@@ -177,11 +138,6 @@ void LuaScript::add_lua_property_type(const StringName &name, int type) {
 }
 Error LuaScript::load_source_code(const String &p_path) {
 
-#ifdef LUA_SCRIPT_DEBUG_ENABLED
-	print_debug("LuaScript::load_source_code");
-#endif
-
-	//把脚本传进来加载内容
 	PoolVector<uint8_t> sourcef;
 	Error err;
 	FileAccess *f = FileAccess::open(p_path, FileAccess::READ, &err);
@@ -215,7 +171,6 @@ Error LuaScript::load_source_code(const String &p_path) {
 }
 
 Error LuaScript::load_byte_code(const String &p_path) {
-	//把脚本传进来加载内容
 	Vector<uint8_t> bytecode;
 
 	if (p_path.ends_with("luace")) {
@@ -264,30 +219,11 @@ Error LuaScript::load_byte_code(const String &p_path) {
 		basedir = basedir.get_base_dir();
 
 	valid = false;
-	// GDScriptParser parser;
-	// Error err = parser.parse_bytecode(bytecode, basedir, get_path());
-	// if (err) {
-	// 	_err_print_error("GDScript::load_byte_code", path.empty() ? "built-in" : (const char *)path.utf8().get_data(), parser.get_error_line(), ("Parse Error: " + parser.get_error()).utf8().get_data(), ERR_HANDLER_SCRIPT);
-	// 	ERR_FAIL_V(ERR_PARSE_ERROR);
-	// }
 
-	// GDScriptCompiler compiler;
-	// err = compiler.compile(&parser, this);
-
-	// if (err) {
-	// 	_err_print_error("GDScript::load_byte_code", path.empty() ? "built-in" : (const char *)path.utf8().get_data(), compiler.get_error_line(), ("Compile Error: " + compiler.get_error()).utf8().get_data(), ERR_HANDLER_SCRIPT);
-	// 	ERR_FAIL_V(ERR_COMPILATION_FAILED);
-	// }
 	byte = true;
-	LuaScriptLanguage::get_singleton()->binding->bind_script_function("extends", this, LuaBindingHelper::l_extends);
 	Error err = LuaScriptLanguage::get_singleton()->binding->bytecode(bytecode);
-	LuaScriptLanguage::get_singleton()->binding->unbind_script_function("extends");
 	valid = (err == OK);
 	return err;
-	// for (Map<StringName, Ref<GDScript> >::Element *E = subclasses.front(); E; E = E->next()) {
-
-	// 	_set_subclass_path(E->get(), path);
-	// }
 }
 
 //========luascript loader=========
@@ -295,9 +231,6 @@ Error LuaScript::load_byte_code(const String &p_path) {
 Ref<Resource>
 LuaScriptResourceFormatLoader::load(const String &p_path, const String &p_original_path, Error *r_error) {
 
-#ifdef LUA_SCRIPT_DEBUG_ENABLED
-	print_debug("LuaScriptResourceFormatLoader::load( p_path = " + p_path + ", p_original_path = " + p_original_path + " )");
-#endif
 	LuaScript *script = memnew(LuaScript);
 	if (!script) {
 		if (r_error)
@@ -305,10 +238,6 @@ LuaScriptResourceFormatLoader::load(const String &p_path, const String &p_origin
 	}
 
 	if (p_path.ends_with(".luac")) {
-#ifdef LUA_SCRIPT_DEBUG_ENABLED
-		print_debug("LuaScriptResourceFormatLoader::load luajit");
-#endif
-		//TODO:: luajit or lua byte code
 		Error err = script->load_byte_code(p_path);
 		ERR_FAIL_COND_V(err != OK, RES());
 		script->set_path(p_original_path);
@@ -325,35 +254,22 @@ LuaScriptResourceFormatLoader::load(const String &p_path, const String &p_origin
 }
 
 void LuaScriptResourceFormatLoader::get_recognized_extensions(List<String> *p_extensions) const {
-	//print_debug("LuaScriptResourceFormatLoader::get_recognized_extensions");
-
 	p_extensions->push_back("lua");
-	//TODO::luajit
 	p_extensions->push_back("luac");
 }
 
 bool LuaScriptResourceFormatLoader::handles_type(const String &p_type) const {
-#ifdef LUA_SCRIPT_DEBUG_ENABLED
-	print_debug("LuaScriptResourceFormatLoader::handles_type( p_type = " + p_type + " )");
-#endif
-
 	return (p_type == "Script" || p_type == "LuaScript");
 }
 
 String LuaScriptResourceFormatLoader::get_resource_type(const String &p_path) const {
-#ifdef LUA_SCRIPT_DEBUG_ENABLED
-	print_debug("LuaScriptResourceFormatLoader::get_resource_type( p_path = " + p_path + " )");
-#endif
 	String el = p_path.get_extension().to_lower();
-	if (el == "lua") //luajit || el == LUAJIT_EXTENSION )
+	if (el == "lua" || el == "luac")
 		return "LuaScript";
 	return "";
 }
 
 Error LuaScriptResourceFormatSaver::save(const String &p_path, const Ref<Resource> &p_resource, uint32_t p_flags) {
-#ifdef LUA_SCRIPT_DEBUG_ENABLED
-	print_debug("LuaScriptResourceFormatSaver::save( p_path = " + p_path + " )");
-#endif
 	Ref<LuaScript> script = p_resource;
 
 	ERR_FAIL_COND_V(script.is_null(), ERR_INVALID_PARAMETER);
@@ -381,19 +297,13 @@ Error LuaScriptResourceFormatSaver::save(const String &p_path, const Ref<Resourc
 }
 
 void LuaScriptResourceFormatSaver::get_recognized_extensions(const Ref<Resource> &p_resource, List<String> *p_extensions) const {
-#ifdef LUA_SCRIPT_DEBUG_ENABLED
-	print_debug("LuaScriptResourceFormatSaver::get_recognized_extensions");
-#endif
+
 	if (Object::cast_to<LuaScript>(*p_resource)) {
 		p_extensions->push_back("lua");
-		//TODO:: luajit
-		//p_extensions->push_back(LUAJIT_EXTENSION);
+		p_extensions->push_back("luac");
 	}
 }
 
 bool LuaScriptResourceFormatSaver::recognize(const Ref<Resource> &p_resource) const {
-#ifdef LUA_SCRIPT_DEBUG_ENABLED
-	print_debug("LuaScriptResourceFormatSaver::recognize");
-#endif
 	return Object::cast_to<LuaScript>(*p_resource) != nullptr;
 }
