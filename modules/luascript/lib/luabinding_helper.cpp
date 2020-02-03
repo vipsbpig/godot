@@ -654,7 +654,7 @@ int LuaBindingHelper::meta_variants__index(lua_State *L) {
 		lua_replace(L, -3);
 		lua_setfield(L, -3, index_name);
 	}
-	lua_pushcclosure(L, l_variants_caller_wrapper, 1);
+	lua_pushcclosure(L, l_variants_method__wrapper, 1);
 
 	return 1;
 }
@@ -702,7 +702,7 @@ int LuaBindingHelper::meta_variants__pairs(lua_State *L) {
 	return 0;
 }
 
-int LuaBindingHelper::l_variants_caller_wrapper(lua_State *L) {
+int LuaBindingHelper::l_variants_method__wrapper(lua_State *L) {
 	const StringName *key = *(StringName **)lua_touserdata(L, lua_upvalueindex(1));
 	int top = lua_gettop(L);
 
@@ -1409,6 +1409,7 @@ Error LuaBindingHelper::script(const String &p_source) {
 }
 
 Error LuaBindingHelper::script(void *p_script, const String &p_source) {
+	//TODO::
 	ERR_FAIL_NULL_V(L, ERR_DOES_NOT_EXIST);
 	bind_script_function("extends", p_script, LuaBindingHelper::l_extends);
 	bind_script_function("tools", p_script, LuaBindingHelper::l_tools);
@@ -1422,9 +1423,11 @@ Error LuaBindingHelper::script(void *p_script, const String &p_source) {
 Error LuaBindingHelper::bytecode(void *p_script, const Vector<uint8_t> &p_bytecode) {
 	ERR_FAIL_NULL_V(L, ERR_DOES_NOT_EXIST);
 	bind_script_function("extends", p_script, LuaBindingHelper::l_extends);
+	bind_script_function("tools", p_script, LuaBindingHelper::l_tools);
 	luaL_loadbufferx(L, (const char *)p_bytecode.ptr(), p_bytecode.size(), "", "b");
 	Error err = luacall();
 	unbind_script_function("extends");
+	unbind_script_function("tools");
 	return err;
 }
 

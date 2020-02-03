@@ -41,6 +41,7 @@ void shallow_copy(lua_State *L, int index) {
 	}
 }
 
+const char LuaBuiltin::GD_VARIANTS_FUNC = 0;
 const char LuaBuiltin::GD_VECTOR2 = 0;
 const char LuaBuiltin::GD_RECT2 = 1;
 const char LuaBuiltin::GD_VECTOR3 = 2;
@@ -69,26 +70,29 @@ void LuaBuiltin::regitser_builtins(lua_State *L) {
 	typedef struct {
 		const char *type;
 		Variant::Type vt;
+		void *ptr;
 	} BulitinTypes;
 	const BulitinTypes buildIns[] = {
-		{ "Vector2", Variant::VECTOR2 }, //0
-		{ "Rect2", Variant::RECT2 }, //1
-		{ "Color", Variant::COLOR }, //2
-		{ "Vector3", Variant::VECTOR3 }, //3
-		{ "Basis", Variant::BASIS }, //4
-		{ "Quat", Variant::QUAT }, //5
-		{ "RID", Variant::_RID }, //6
-		{ "Transform2D", Variant::TRANSFORM2D }, //7
-		{ "Plane", Variant::PLANE }, //8
-		{ "AABB", Variant::AABB }, //9
-		{ "Transform", Variant::TRANSFORM }, //10
-		{ "PoolByteArray", Variant::POOL_BYTE_ARRAY }, //11
-		{ "PoolIntArray", Variant::POOL_INT_ARRAY }, //12
-		{ "PoolRealArray", Variant::POOL_REAL_ARRAY }, //13
-		{ "PoolStringArray", Variant::POOL_STRING_ARRAY }, //14
-		{ "PoolVector2Array", Variant::POOL_VECTOR2_ARRAY }, //15
-		{ "PoolVector3Array", Variant::POOL_VECTOR3_ARRAY }, //16
-		{ "PoolColorArray", Variant::POOL_COLOR_ARRAY }, //17
+		{ "Vector2", Variant::VECTOR2, (void *)&LuaBuiltin::GD_VECTOR2 },
+		{ "Rect2", Variant::RECT2, (void *)&LuaBuiltin::GD_RECT2 },
+		{ "Vector3", Variant::VECTOR3, (void *)&LuaBuiltin::GD_VECTOR3 },
+		{ "Transform2D", Variant::TRANSFORM2D, (void *)&LuaBuiltin::GD_TRANSFORM2D },
+		{ "Plane", Variant::PLANE, (void *)&LuaBuiltin::GD_PLANE },
+		{ "Quat", Variant::QUAT, (void *)&LuaBuiltin::GD_QUAT },
+		{ "AABB", Variant::AABB, (void *)&LuaBuiltin::GD_AABB },
+		{ "Basis", Variant::BASIS, (void *)&LuaBuiltin::GD_BASIS },
+		{ "Transform", Variant::TRANSFORM, (void *)&LuaBuiltin::GD_TRANSFORM },
+		{ "Color", Variant::COLOR, (void *)&LuaBuiltin::GD_COLOR },
+		{ "RID", Variant::_RID, NULL },
+		{ "Dictionary", Variant::DICTIONARY, (void *)&LuaBuiltin::GD_DICTIONARY },
+		{ "Array", Variant::ARRAY, (void *)&LuaBuiltin::GD_ARRAY },
+		{ "PoolByteArray", Variant::POOL_BYTE_ARRAY, NULL },
+		{ "PoolIntArray", Variant::POOL_INT_ARRAY, NULL },
+		{ "PoolRealArray", Variant::POOL_REAL_ARRAY, NULL },
+		{ "PoolStringArray", Variant::POOL_STRING_ARRAY, NULL },
+		{ "PoolVector2Array", Variant::POOL_VECTOR2_ARRAY, NULL },
+		{ "PoolVector3Array", Variant::POOL_VECTOR3_ARRAY, NULL },
+		{ "PoolColorArray", Variant::POOL_COLOR_ARRAY, NULL },
 	};
 
 	const Char_Psn tmp[] = {
@@ -117,6 +121,18 @@ void LuaBuiltin::regitser_builtins(lua_State *L) {
 	};
 
 	memcpy(quickSearch, tmp, sizeof(tmp));
+	//TODO::
+	// (void*)_VariantCall::type_funcs;
+	// auto func =_VariantCall::type_funcs[0].functions[""];
+	// func.call()
+	//buildIns 添加缺失的，然后在遍历的时候，创建一个另外的VariantMethods的注册表table，
+	//然后在里面添加对应lightud转为VariantType那个key，值就是对应的func
+	//我们在Variant的直接gettype来取对应func表
+	//
+	//Variant FuncTable binding
+	lua_pushlightuserdata(L, (void *)&LuaBuiltin::GD_VARIANTS_FUNC);
+	lua_newtable(L);
+	lua_rawset(L, LUA_REGISTRYINDEX);
 
 	//Variant binding
 	lua_newtable(L);
@@ -148,109 +164,25 @@ void LuaBuiltin::regitser_builtins(lua_State *L) {
 		static luaL_Reg meta_methods[] = {
 			{ "__index", meta_builtins__index },
 			{ "__tostring", meta_builtins__tostring },
-			// { "__pairs", meta_bultins__pairs },
 			{ NULL, NULL },
 		};
 		luaL_setfuncs(L, meta_methods, 0);
 	}
-	//TODO::
-	// (void*)_VariantCall::type_funcs;
-	// auto func =_VariantCall::type_funcs[0].functions[""];
-	// func.call()
-	//buildIns 添加缺失的，然后在遍历的时候，创建一个另外的VariantMethods的注册表table，
-	//然后在里面添加对应lightud转为VariantType那个key，值就是对应的func
-	//我们在Variant的直接gettype来取对应func表
-	//
 
-	//GD_VECTOR2 binding
-	lua_pushlightuserdata(L, (void *)&LuaBuiltin::GD_VECTOR2);
-	shallow_copy(L, -2);
-	lua_pushlightuserdata(L, (void *)&LuaBindingHelper::TABLE_TYPE);
-	lua_pushvalue(L, -3);
-	lua_rawset(L, -3);
-	lua_rawset(L, LUA_REGISTRYINDEX);
-	//GD_RECT2 binding
-	lua_pushlightuserdata(L, (void *)&LuaBuiltin::GD_RECT2);
-	shallow_copy(L, -2);
-	lua_pushlightuserdata(L, (void *)&LuaBindingHelper::TABLE_TYPE);
-	lua_pushvalue(L, -3);
-	lua_rawset(L, -3);
-	lua_rawset(L, LUA_REGISTRYINDEX);
-	//GD_VECTOR3 binding
-	lua_pushlightuserdata(L, (void *)&LuaBuiltin::GD_VECTOR3);
-	shallow_copy(L, -2);
-	lua_pushlightuserdata(L, (void *)&LuaBindingHelper::TABLE_TYPE);
-	lua_pushvalue(L, -3);
-	lua_rawset(L, -3);
-	lua_rawset(L, LUA_REGISTRYINDEX);
-	//GD_TRANSFORM2D binding
-	lua_pushlightuserdata(L, (void *)&LuaBuiltin::GD_TRANSFORM2D);
-	shallow_copy(L, -2);
-	lua_pushlightuserdata(L, (void *)&LuaBindingHelper::TABLE_TYPE);
-	lua_pushvalue(L, -3);
-	;
-	lua_rawset(L, -3);
-	lua_rawset(L, LUA_REGISTRYINDEX);
-	//GD_PLANE binding
-	lua_pushlightuserdata(L, (void *)&LuaBuiltin::GD_PLANE);
-	shallow_copy(L, -2);
-	lua_pushlightuserdata(L, (void *)&LuaBindingHelper::TABLE_TYPE);
-	lua_pushvalue(L, -3);
-	lua_rawset(L, -3);
-	lua_rawset(L, LUA_REGISTRYINDEX);
-	//GD_QUAT binding
-	lua_pushlightuserdata(L, (void *)&LuaBuiltin::GD_QUAT);
-	shallow_copy(L, -2);
-	lua_pushlightuserdata(L, (void *)&LuaBindingHelper::TABLE_TYPE);
-	lua_pushvalue(L, -3);
-	lua_rawset(L, -3);
-	lua_rawset(L, LUA_REGISTRYINDEX);
-	//GD_AABB binding
-	lua_pushlightuserdata(L, (void *)&LuaBuiltin::GD_AABB);
-	shallow_copy(L, -2);
-	lua_pushlightuserdata(L, (void *)&LuaBindingHelper::TABLE_TYPE);
-	lua_pushvalue(L, -3);
-	lua_rawset(L, -3);
-	lua_rawset(L, LUA_REGISTRYINDEX);
-	//GD_BASIS binding
-	lua_pushlightuserdata(L, (void *)&LuaBuiltin::GD_BASIS);
-	shallow_copy(L, -2);
-	lua_pushlightuserdata(L, (void *)&LuaBindingHelper::TABLE_TYPE);
-	lua_pushvalue(L, -3);
-	lua_rawset(L, -3);
-	lua_rawset(L, LUA_REGISTRYINDEX);
-	//GD_TRANSFORM binding
-	lua_pushlightuserdata(L, (void *)&LuaBuiltin::GD_TRANSFORM);
-	shallow_copy(L, -2);
-	lua_pushlightuserdata(L, (void *)&LuaBindingHelper::TABLE_TYPE);
-	lua_pushvalue(L, -3);
-	lua_rawset(L, LUA_REGISTRYINDEX);
-	//GD_COLOR binding
-	lua_pushlightuserdata(L, (void *)&LuaBuiltin::GD_COLOR);
-	shallow_copy(L, -2);
-	lua_pushlightuserdata(L, (void *)&LuaBindingHelper::TABLE_TYPE);
-	lua_pushvalue(L, -3);
-	lua_rawset(L, -3);
-	lua_rawset(L, LUA_REGISTRYINDEX);
-	//GD_DICTIONARY binding
-	lua_pushlightuserdata(L, (void *)&LuaBuiltin::GD_DICTIONARY);
-	shallow_copy(L, -2);
-	lua_pushlightuserdata(L, (void *)&LuaBindingHelper::TABLE_TYPE);
-	lua_pushvalue(L, -3);
-	lua_rawset(L, -3);
-	lua_rawset(L, LUA_REGISTRYINDEX);
-	//GD_ARRAY binding
-	lua_pushlightuserdata(L, (void *)&LuaBuiltin::GD_ARRAY);
-	shallow_copy(L, -2);
-	lua_pushlightuserdata(L, (void *)&LuaBindingHelper::TABLE_TYPE);
-	lua_pushvalue(L, -3);
-	lua_rawset(L, -3);
-	lua_rawset(L, LUA_REGISTRYINDEX);
-
+	int len = sizeof(buildIns) / sizeof(BulitinTypes);
+	for (int i = 0; i < len; i++) {
+		if (buildIns[i].ptr != NULL) {
+			lua_pushlightuserdata(L, buildIns[i].ptr);
+			shallow_copy(L, -2);
+			lua_pushlightuserdata(L, (void *)&LuaBindingHelper::TABLE_TYPE);
+			lua_pushvalue(L, -3);
+			lua_rawset(L, -3);
+			lua_rawset(L, LUA_REGISTRYINDEX);
+		}
+	}
 	lua_pop(L, 1);
 
 	lua_getfield(L, LUA_GLOBALSINDEX, "GD");
-	int len = sizeof(buildIns) / sizeof(BulitinTypes);
 	for (int i = 0; i < len; i++) {
 		lua_newtable(L);
 		lua_newtable(L);
@@ -263,6 +195,20 @@ void LuaBuiltin::regitser_builtins(lua_State *L) {
 		}
 		lua_setmetatable(L, -2);
 
+		//methods
+		for (auto E = _VariantCall::type_funcs[buildIns[i].vt].functions.front(); E != NULL; E = E->next()) {
+			lua_pushlightuserdata(L, &E->value());
+			lua_pushcclosure(L, l_builtins_methods__wrapper, 1);
+			if (buildIns[i].ptr != NULL) {
+				lua_pushlightuserdata(L, (void *)&GD_VARIANTS_FUNC);
+				lua_rawget(L, LUA_REGISTRYINDEX);
+				lua_pushlightuserdata(L, buildIns[i].ptr);
+				lua_pushvalue(L, -3);
+				lua_rawset(L, -3);
+				lua_pop(L, 1);
+			}
+			lua_setfield(L, -2, String(E->key()).ascii().get_data());
+		}
 		//const value
 		for (auto E = _VariantCall::constant_data[buildIns[i].vt].value.front(); E != NULL; E = E->next()) {
 			lua_pushinteger(L, E->value());
@@ -360,35 +306,20 @@ int LuaBuiltin::meta_builtins__index(lua_State *L) {
 
 	const char *index_name = lua_tostring(L, 2);
 
-	//buildins methods
-	lua_getfield(L, LUA_REGISTRYINDEX, "VariantMethods");
-	if (lua_isnil(L, -1)) {
-		lua_newtable(L);
-		lua_pushvalue(L, -1);
-		lua_replace(L, -3);
-		lua_setfield(L, LUA_REGISTRYINDEX, "VariantMethods");
-	}
-	lua_getfield(L, -1, index_name);
-	if (lua_isnil(L, -1)) {
-		LuaBindingHelper::l_push_stringname(L, index_name);
-		lua_pushvalue(L, -1);
-		lua_replace(L, -3);
-		lua_setfield(L, -3, index_name);
-	}
-	lua_pushcclosure(L, l_variants_caller_wrapper, 1);
 	return 1;
 }
 
-int LuaBuiltin::l_variants_caller_wrapper(lua_State *L) {
-	const StringName *key = *(StringName **)lua_touserdata(L, lua_upvalueindex(1));
+int LuaBuiltin::l_builtins_methods__wrapper(lua_State *L) {
+	_VariantCall::FuncData *p_func = (_VariantCall::FuncData *)lua_touserdata(L, lua_upvalueindex(1));
 	int top = lua_gettop(L);
 
 	Variant var;
+	Variant ret;
 	l_get_variant(L, 1, var);
 	Variant::CallError err;
-
+	err.error = Variant::CallError::CALL_OK;
 	if (top == 1) {
-		Variant &&ret = var.call(*key, NULL, 0, err);
+		p_func->call(ret, var, NULL, 0, err);
 		if (Variant::CallError::CALL_OK == err.error) {
 			l_push_variant(L, ret);
 			return 1;
@@ -401,7 +332,7 @@ int LuaBuiltin::l_variants_caller_wrapper(lua_State *L) {
 			args[idx - 2] = &var;
 			l_get_variant(L, idx, var);
 		}
-		Variant &&ret = var.call(*key, (const Variant **)(args), top - 1, err);
+		p_func->call(ret, var, (const Variant **)(args), top - 1, err);
 		memdelete_arr(vars);
 		if (Variant::CallError::CALL_OK == err.error) {
 			l_push_variant(L, ret);

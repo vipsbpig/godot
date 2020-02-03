@@ -70,7 +70,7 @@ private:
 	static int meta_variants__index(lua_State *L);
 	static int meta_variants__newindex(lua_State *L);
 	static int meta_variants__pairs(lua_State *L);
-	static int l_variants_caller_wrapper(lua_State *L);
+	static int l_variants_method__wrapper(lua_State *L);
 
 	//TO BE CONFIRM
 	static int l_variants_iterator(lua_State *L);

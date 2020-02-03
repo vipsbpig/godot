@@ -12,6 +12,7 @@ class LuaBuiltin {
 	static Char_Psn quickSearch[];
 
 public:
+	static const char GD_VARIANTS_FUNC;
 	//====
 	static const char GD_VECTOR2;
 	static const char GD_RECT2;
@@ -35,7 +36,7 @@ public:
 	static int meta_builtins__evaluate(lua_State *L);
 	static int meta_builtins__tostring(lua_State *L);
 	static int meta_builtins__index(lua_State *L);
-	static int l_variants_caller_wrapper(lua_State *L);
+	static int l_builtins_methods__wrapper(lua_State *L);
 
 	//===builtin
 	static Variant l_get_vector2(lua_State *L, int idx);
