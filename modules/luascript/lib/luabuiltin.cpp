@@ -41,7 +41,6 @@ void shallow_copy(lua_State *L, int index) {
 	}
 }
 
-const char LuaBuiltin::GD_VARIANTS_FUNC = 0;
 const char LuaBuiltin::GD_VECTOR2 = 0;
 const char LuaBuiltin::GD_RECT2 = 1;
 const char LuaBuiltin::GD_VECTOR3 = 2;
@@ -130,9 +129,6 @@ void LuaBuiltin::regitser_builtins(lua_State *L) {
 	//我们在Variant的直接gettype来取对应func表
 	//
 	//Variant FuncTable binding
-	lua_pushlightuserdata(L, (void *)&LuaBuiltin::GD_VARIANTS_FUNC);
-	lua_newtable(L);
-	lua_rawset(L, LUA_REGISTRYINDEX);
 
 	//Variant binding
 	lua_newtable(L);
@@ -162,7 +158,7 @@ void LuaBuiltin::regitser_builtins(lua_State *L) {
 		}
 
 		static luaL_Reg meta_methods[] = {
-			{ "__index", meta_builtins__index },
+			//{ "__index", meta_builtins__index },
 			{ "__tostring", meta_builtins__tostring },
 			{ NULL, NULL },
 		};
@@ -174,7 +170,11 @@ void LuaBuiltin::regitser_builtins(lua_State *L) {
 		if (buildIns[i].ptr != NULL) {
 			lua_pushlightuserdata(L, buildIns[i].ptr);
 			shallow_copy(L, -2);
+			lua_pushvalue(L, -1);
+			//==
+			lua_setfield(L, -2, "__index");
 			lua_pushlightuserdata(L, (void *)&LuaBindingHelper::TABLE_TYPE);
+			//==
 			lua_pushvalue(L, -3);
 			lua_rawset(L, -3);
 			lua_rawset(L, LUA_REGISTRYINDEX);
@@ -200,9 +200,9 @@ void LuaBuiltin::regitser_builtins(lua_State *L) {
 			lua_pushlightuserdata(L, &E->value());
 			lua_pushcclosure(L, l_builtins_methods__wrapper, 1);
 			if (buildIns[i].ptr != NULL) {
-				lua_pushlightuserdata(L, (void *)&GD_VARIANTS_FUNC);
+				lua_pushlightuserdata(L, (void *)buildIns[i].ptr);
 				lua_rawget(L, LUA_REGISTRYINDEX);
-				lua_pushlightuserdata(L, buildIns[i].ptr);
+				lua_pushstring(L, String(E->key()).ascii().get_data());
 				lua_pushvalue(L, -3);
 				lua_rawset(L, -3);
 				lua_pop(L, 1);
@@ -306,32 +306,13 @@ int LuaBuiltin::meta_builtins__index(lua_State *L) {
 
 	const char *index_name = lua_tostring(L, 2);
 
-	// void *t = NULL;
-	// if (lua_getmetatable(L, 1)) {
-	// 	lua_pushlightuserdata(L, (void *)&LuaBindingHelper::TABLE_TYPE);
-	// 	lua_rawget(L, -2);
-	// 	t = lua_isuserdata(L, -1) ? lua_touserdata(L, -1) : NULL;
-	// 	lua_pop(L, 2);
-	// }
-	// if (t == NULL) {
-	// 	luaL_error(L, "not builtin");
-	// 	return 0;
-	// }
-
-	//lua_pushlightuserdata(L, (void *)&GD_VARIANTS_FUNC);
-	lua_pushstring(L, "GD");
-	lua_rawget(L, LUA_GLOBALSINDEX);
-	{
-		lua_pushstring(L, Variant::get_type_name(var.get_type()).ascii().get_data());
-		lua_rawget(L, -2);
+	if (lua_getmetatable(L, 1)) {
 		lua_getfield(L, -1, index_name);
-		LuaBindingHelper::stackDump(L);
 		if (!lua_isnil(L, -1)) {
 			//2.is a methed just return
 			return 1;
 		}
 	}
-	lua_pop(L, 1);
 	return 0;
 }
 

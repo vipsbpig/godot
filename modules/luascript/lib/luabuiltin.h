@@ -12,7 +12,6 @@ class LuaBuiltin {
 	static Char_Psn quickSearch[];
 
 public:
-	static const char GD_VARIANTS_FUNC;
 	//====
 	static const char GD_VECTOR2;
 	static const char GD_RECT2;
