@@ -306,7 +306,33 @@ int LuaBuiltin::meta_builtins__index(lua_State *L) {
 
 	const char *index_name = lua_tostring(L, 2);
 
-	return 1;
+	// void *t = NULL;
+	// if (lua_getmetatable(L, 1)) {
+	// 	lua_pushlightuserdata(L, (void *)&LuaBindingHelper::TABLE_TYPE);
+	// 	lua_rawget(L, -2);
+	// 	t = lua_isuserdata(L, -1) ? lua_touserdata(L, -1) : NULL;
+	// 	lua_pop(L, 2);
+	// }
+	// if (t == NULL) {
+	// 	luaL_error(L, "not builtin");
+	// 	return 0;
+	// }
+
+	//lua_pushlightuserdata(L, (void *)&GD_VARIANTS_FUNC);
+	lua_pushstring(L, "GD");
+	lua_rawget(L, LUA_GLOBALSINDEX);
+	{
+		lua_pushstring(L, Variant::get_type_name(var.get_type()).ascii().get_data());
+		lua_rawget(L, -2);
+		lua_getfield(L, -1, index_name);
+		LuaBindingHelper::stackDump(L);
+		if (!lua_isnil(L, -1)) {
+			//2.is a methed just return
+			return 1;
+		}
+	}
+	lua_pop(L, 1);
+	return 0;
 }
 
 int LuaBuiltin::l_builtins_methods__wrapper(lua_State *L) {
