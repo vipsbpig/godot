@@ -850,7 +850,7 @@ int LuaBindingHelper::meta_instance__index(lua_State *L) {
 	lua_pushlightuserdata(L, (void *)&GD_CLASS);
 	lua_rawget(L, LUA_REGISTRYINDEX);
 	{
-		lua_pushlightuserdata(L, ClassDB::classes.getptr(p_instance->owner->get_class_name()));
+		lua_pushlightuserdata(L, (void *)p_instance->script->cls);
 		lua_rawget(L, -2);
 		lua_getfield(L, -1, index_name);
 		if (!lua_isnil(L, -1)) {
