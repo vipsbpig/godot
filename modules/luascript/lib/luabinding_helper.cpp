@@ -60,6 +60,9 @@ int l_methodbind_wrapper(lua_State *L) {
 			if (&LuaBindingHelper::LUAINSTANCE == lua_touserdata(L, -1)) {
 				LuaScriptInstance *p_instance = luaL_getinstance(L, 1);
 				obj = p_instance->get_owner();
+			} else if (&LuaBindingHelper::CLSBASE == lua_touserdata(L, -1)) {
+				LuaScriptInstance *p_instance = luaL_getinstance(L, 1);
+				obj = p_instance->get_owner();
 			}
 			lua_pop(L, 2);
 		}
@@ -331,6 +334,7 @@ const char LuaBindingHelper::LUAOBJECT = 0;
 const char LuaBindingHelper::LUAVARIANT = 1;
 const char LuaBindingHelper::LUASCRIPT = 2;
 const char LuaBindingHelper::LUAINSTANCE = 3;
+const char LuaBindingHelper::CLSBASE = 3;
 
 const char LuaBindingHelper::GD_CLASS = 4;
 const char LuaBindingHelper::WEAK_UBOX = 5;
@@ -377,6 +381,18 @@ int LuaBindingHelper::l_extends(lua_State *L) {
 		return 0;
 	}
 	return 0;
+}
+
+int LuaBindingHelper::l_tools(lua_State *L) {
+	LuaScript *p_script = (LuaScript *)lua_touserdata(L, lua_upvalueindex(1));
+	if (lua_isboolean(L, 1)) {
+		if (lua_toboolean(L, 1) == 1) {
+			p_script->tool = true;
+			return 1;
+		}
+	}
+	p_script->tool = false;
+	return 1;
 }
 
 void LuaBindingHelper::bind_script_function(const char *name, void *p_script, lua_CFunction fn) {
@@ -898,58 +914,31 @@ int LuaBindingHelper::meta_instance__newindex(lua_State *L) {
 	return 0;
 }
 
-int l_base_methodbind_wrapper(lua_State *L) {
-	//TODO::fix base speed
-	MethodBind *mb = (MethodBind *)lua_touserdata(L, lua_upvalueindex(1));
-	Object *obj = (Object *)lua_touserdata(L, lua_upvalueindex(2));
-	Variant::CallError err;
-
-	int top = lua_gettop(L);
-	if (top >= 2) {
-
-		Variant *vars = memnew_arr(Variant, top - 1);
-		Variant *args[128];
-		for (int idx = 2; idx <= top; idx++) {
-
-			Variant &var = vars[idx - 2];
-			args[idx - 2] = &var;
-			l_get_variant(L, idx, var);
-		}
-		Variant &&ret = mb->call(obj, (const Variant **)args, top - 1, err);
-		memdelete_arr(vars);
-		if (Variant::CallError::CALL_OK == err.error) {
-			l_push_variant(L, ret);
-			return 1;
-		}
-	} else {
-		Variant &&ret = mb->call(obj, NULL, 0, err);
-		if (Variant::CallError::CALL_OK == err.error) {
-			l_push_variant(L, ret);
+int meta_base_cls__index(lua_State *L) {
+	ClassDB::ClassInfo *cls = (ClassDB::ClassInfo *)lua_touserdata(L, lua_upvalueindex(1));
+	const char *index_name = l_get_key(L, 2);
+	lua_pushlightuserdata(L, (void *)&LuaBindingHelper::GD_CLASS);
+	lua_rawget(L, LUA_REGISTRYINDEX);
+	{
+		lua_pushlightuserdata(L, cls);
+		lua_rawget(L, -2);
+		lua_getfield(L, -1, index_name);
+		if (!lua_isnil(L, -1)) {
+			//2.is a methed just return
 			return 1;
 		}
 	}
-	l_method_error(L, err);
+	lua_pop(L, 1);
 	return 0;
 }
 
-int meta_base_cls__index(lua_State *L) {
-	//TODO::fix base speed
-	StringName *class_name = (StringName *)lua_touserdata(L, lua_upvalueindex(1));
-	Object *obj = (Object *)lua_touserdata(L, lua_upvalueindex(2));
-
-	const char *index_name = l_get_key(L, 2);
-	MethodBind *mb = ClassDB::get_method(*class_name, index_name);
-	if (mb != NULL) {
-		lua_pushlightuserdata(L, mb);
-		lua_pushlightuserdata(L, obj);
-		lua_pushcclosure(L, l_base_methodbind_wrapper, 2);
-		return 1;
-	}
-	return 0;
+int meta_base_cls__tostring(lua_State *L) {
+	ClassDB::ClassInfo *cls = (ClassDB::ClassInfo *)lua_touserdata(L, lua_upvalueindex(1));
+	lua_pushstring(L, String(cls->name).ascii().get_data());
+	return 1;
 }
 
 void LuaBindingHelper::helper_push_instance(void *object) {
-	//TODO::fix base speed
 	LuaScriptInstance *p_instance = (LuaScriptInstance *)object;
 
 	lua_newtable(L);
@@ -957,13 +946,21 @@ void LuaBindingHelper::helper_push_instance(void *object) {
 	lua_newtable(L);
 	if (p_instance->script->cls != NULL) {
 		lua_newtable(L);
-		lua_pushvalue(L, -1);
-		lua_pushlightuserdata(L, (void *)&p_instance->script->cls->name);
-		lua_pushlightuserdata(L, p_instance->owner);
-		lua_pushcclosure(L, meta_base_cls__index, 2);
 		lua_pushstring(L, "__index");
+		lua_pushlightuserdata(L, (void *)p_instance->script->cls);
+		lua_pushcclosure(L, meta_base_cls__index, 1);
+		lua_rawset(L, -3);
+		lua_pushstring(L, "__tostring");
+		lua_pushlightuserdata(L, (void *)p_instance->script->cls);
+		lua_pushcclosure(L, meta_base_cls__tostring, 1);
+		lua_rawset(L, -3);
+		lua_pushlightuserdata(L, (void *)&TABLE_TYPE);
+		lua_pushlightuserdata(L, (void *)&CLSBASE);
 		lua_rawset(L, -3);
 		lua_setmetatable(L, -2);
+
+		lua_pushlightuserdata(L, object);
+		lua_setfield(L, -2, ".c_instance");
 	} else {
 		//TODO::Set BaseScriptFunction caller here
 	}
@@ -1414,9 +1411,11 @@ Error LuaBindingHelper::script(const String &p_source) {
 Error LuaBindingHelper::script(void *p_script, const String &p_source) {
 	ERR_FAIL_NULL_V(L, ERR_DOES_NOT_EXIST);
 	bind_script_function("extends", p_script, LuaBindingHelper::l_extends);
+	bind_script_function("tools", p_script, LuaBindingHelper::l_tools);
 	luaL_loadstring(L, p_source.utf8());
 	Error err = luacall();
 	unbind_script_function("extends");
+	unbind_script_function("tools");
 	return err;
 }
 

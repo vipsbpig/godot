@@ -20,6 +20,7 @@ public:
 	static const char LUAVARIANT;
 	static const char LUASCRIPT;
 	static const char LUAINSTANCE;
+	static const char CLSBASE;
 	//=====
 	static const char GD_CLASS;
 	static const char WEAK_UBOX;
@@ -32,6 +33,7 @@ public:
 private:
 	//===lua methods
 	static int l_extends(lua_State *L);
+	static int l_tools(lua_State *L);
 
 	void bind_script_function(const char *name, void *p_script, lua_CFunction fn);
 	void unbind_script_function(const char *name);
