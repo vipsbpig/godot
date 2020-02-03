@@ -83,7 +83,7 @@ int l_methodbind_wrapper(lua_State *L) {
 		}
 	}
 	if (obj == NULL) {
-		luaL_error(L, "First param is not Object.Forget use ':' to call method?");
+		luaL_error(L, "First param is not Object.use ':' instead of '.'");
 		return 0;
 	}
 	Variant::CallError err;
@@ -313,7 +313,7 @@ void l_get_variant(lua_State *L, int idx, Variant &var) {
 							var = obj;
 						}
 						return;
-					} else if (&LuaBindingHelper::LUAOBJECT == t) {
+					} else if (&LuaBindingHelper::LUAVARIANT == t) {
 						var = **((Variant **)ud);
 					}
 					lua_pop(L, 2);
@@ -640,23 +640,19 @@ int LuaBindingHelper::meta_variants__index(lua_State *L) {
 		return 1;
 	}
 	//buildins methods
-	lua_getfield(L, LUA_REGISTRYINDEX, "VariantMethods");
-	if (lua_isnil(L, -1)) {
-		lua_newtable(L);
-		lua_pushvalue(L, -1);
-		lua_replace(L, -3);
-		lua_setfield(L, LUA_REGISTRYINDEX, "VariantMethods");
+	lua_pushstring(L, "GD");
+	lua_rawget(L, LUA_GLOBALSINDEX);
+	{
+		lua_pushstring(L, Variant::get_type_name(var->get_type()).ascii().get_data());
+		lua_rawget(L, -2);
+		lua_getfield(L, -1, index_name);
+		if (!lua_isnil(L, -1)) {
+			//2.is a methed just return
+			return 1;
+		}
 	}
-	lua_getfield(L, -1, index_name);
-	if (lua_isnil(L, -1)) {
-		l_push_stringname(L, index_name);
-		lua_pushvalue(L, -1);
-		lua_replace(L, -3);
-		lua_setfield(L, -3, index_name);
-	}
-	lua_pushcclosure(L, l_variants_method__wrapper, 1);
-
-	return 1;
+	lua_pop(L, 1);
+	return 0;
 }
 int LuaBindingHelper::meta_variants__newindex(lua_State *L) {
 	Variant *var = luaL_checkvariant(L, 1);

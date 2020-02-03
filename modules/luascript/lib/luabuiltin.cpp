@@ -323,6 +323,10 @@ int LuaBuiltin::l_builtins_methods__wrapper(lua_State *L) {
 	Variant var;
 	Variant ret;
 	l_get_variant(L, 1, var);
+	if (var.get_type() == Variant::NIL) {
+		luaL_error(L, "First Param is NIL,use ':' instead of '.'");
+		return 0;
+	}
 	Variant::CallError err;
 	err.error = Variant::CallError::CALL_OK;
 	if (top == 1) {
