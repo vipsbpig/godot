@@ -165,50 +165,86 @@ void LuaBuiltin::regitser_builtins(lua_State *L) {
 	//GD_VECTOR2 binding
 	lua_pushlightuserdata(L, (void *)&LuaBuiltin::GD_VECTOR2);
 	shallow_copy(L, -2);
+	lua_pushlightuserdata(L, (void *)&LuaBindingHelper::TABLE_TYPE);
+	lua_pushvalue(L, -3);
+	lua_rawset(L, -3);
 	lua_rawset(L, LUA_REGISTRYINDEX);
 	//GD_RECT2 binding
 	lua_pushlightuserdata(L, (void *)&LuaBuiltin::GD_RECT2);
 	shallow_copy(L, -2);
+	lua_pushlightuserdata(L, (void *)&LuaBindingHelper::TABLE_TYPE);
+	lua_pushvalue(L, -3);
+	lua_rawset(L, -3);
 	lua_rawset(L, LUA_REGISTRYINDEX);
 	//GD_VECTOR3 binding
 	lua_pushlightuserdata(L, (void *)&LuaBuiltin::GD_VECTOR3);
 	shallow_copy(L, -2);
+	lua_pushlightuserdata(L, (void *)&LuaBindingHelper::TABLE_TYPE);
+	lua_pushvalue(L, -3);
+	lua_rawset(L, -3);
 	lua_rawset(L, LUA_REGISTRYINDEX);
 	//GD_TRANSFORM2D binding
 	lua_pushlightuserdata(L, (void *)&LuaBuiltin::GD_TRANSFORM2D);
 	shallow_copy(L, -2);
+	lua_pushlightuserdata(L, (void *)&LuaBindingHelper::TABLE_TYPE);
+	lua_pushvalue(L, -3);
+	;
+	lua_rawset(L, -3);
 	lua_rawset(L, LUA_REGISTRYINDEX);
 	//GD_PLANE binding
 	lua_pushlightuserdata(L, (void *)&LuaBuiltin::GD_PLANE);
 	shallow_copy(L, -2);
+	lua_pushlightuserdata(L, (void *)&LuaBindingHelper::TABLE_TYPE);
+	lua_pushvalue(L, -3);
+	lua_rawset(L, -3);
 	lua_rawset(L, LUA_REGISTRYINDEX);
 	//GD_QUAT binding
 	lua_pushlightuserdata(L, (void *)&LuaBuiltin::GD_QUAT);
 	shallow_copy(L, -2);
+	lua_pushlightuserdata(L, (void *)&LuaBindingHelper::TABLE_TYPE);
+	lua_pushvalue(L, -3);
+	lua_rawset(L, -3);
 	lua_rawset(L, LUA_REGISTRYINDEX);
 	//GD_AABB binding
 	lua_pushlightuserdata(L, (void *)&LuaBuiltin::GD_AABB);
 	shallow_copy(L, -2);
+	lua_pushlightuserdata(L, (void *)&LuaBindingHelper::TABLE_TYPE);
+	lua_pushvalue(L, -3);
+	lua_rawset(L, -3);
 	lua_rawset(L, LUA_REGISTRYINDEX);
 	//GD_BASIS binding
 	lua_pushlightuserdata(L, (void *)&LuaBuiltin::GD_BASIS);
 	shallow_copy(L, -2);
+	lua_pushlightuserdata(L, (void *)&LuaBindingHelper::TABLE_TYPE);
+	lua_pushvalue(L, -3);
+	lua_rawset(L, -3);
 	lua_rawset(L, LUA_REGISTRYINDEX);
 	//GD_TRANSFORM binding
 	lua_pushlightuserdata(L, (void *)&LuaBuiltin::GD_TRANSFORM);
 	shallow_copy(L, -2);
+	lua_pushlightuserdata(L, (void *)&LuaBindingHelper::TABLE_TYPE);
+	lua_pushvalue(L, -3);
 	lua_rawset(L, LUA_REGISTRYINDEX);
 	//GD_COLOR binding
 	lua_pushlightuserdata(L, (void *)&LuaBuiltin::GD_COLOR);
 	shallow_copy(L, -2);
+	lua_pushlightuserdata(L, (void *)&LuaBindingHelper::TABLE_TYPE);
+	lua_pushvalue(L, -3);
+	lua_rawset(L, -3);
 	lua_rawset(L, LUA_REGISTRYINDEX);
 	//GD_DICTIONARY binding
 	lua_pushlightuserdata(L, (void *)&LuaBuiltin::GD_DICTIONARY);
 	shallow_copy(L, -2);
+	lua_pushlightuserdata(L, (void *)&LuaBindingHelper::TABLE_TYPE);
+	lua_pushvalue(L, -3);
+	lua_rawset(L, -3);
 	lua_rawset(L, LUA_REGISTRYINDEX);
 	//GD_ARRAY binding
 	lua_pushlightuserdata(L, (void *)&LuaBuiltin::GD_ARRAY);
 	shallow_copy(L, -2);
+	lua_pushlightuserdata(L, (void *)&LuaBindingHelper::TABLE_TYPE);
+	lua_pushvalue(L, -3);
+	lua_rawset(L, -3);
 	lua_rawset(L, LUA_REGISTRYINDEX);
 
 	lua_pop(L, 1);

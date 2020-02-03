@@ -14,6 +14,7 @@ class LuaBindingHelper {
 	lua_State *L;
 
 public:
+	static const char TABLE_TYPE;
 	static const char LUAOBJECT;
 	static const char LUAVARIANT;
 	static const char LUASCRIPT;

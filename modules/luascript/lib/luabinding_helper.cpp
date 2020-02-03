@@ -213,18 +213,6 @@ void l_push_bulltins_type(lua_State *L, const Variant &var) {
 	lua_setmetatable(L, -2);
 }
 
-bool is_registry_gd_built(lua_State *L, int idx, const void *p_builtin, Variant (*func)(lua_State *, int), Variant &var) {
-	lua_pushlightuserdata(L, (void *)p_builtin);
-	lua_rawget(L, LUA_REGISTRYINDEX);
-	if (lua_rawequal(L, -1, -2)) {
-		var = func(L, idx);
-		lua_pop(L, 2);
-		return true;
-	}
-	lua_pop(L, 1);
-	return false;
-}
-
 void l_get_variant(lua_State *L, int idx, Variant &var) {
 	switch (lua_type(L, idx)) {
 		case LUA_TNONE:
@@ -237,22 +225,37 @@ void l_get_variant(lua_State *L, int idx, Variant &var) {
 
 		case LUA_TTABLE: {
 			if (lua_getmetatable(L, idx)) {
-				if (is_registry_gd_built(L, idx, &LuaBuiltin::GD_VECTOR2, LuaBuiltin::l_get_vector2, var)) return;
-				if (is_registry_gd_built(L, idx, &LuaBuiltin::GD_RECT2, LuaBuiltin::l_get_rect2, var)) return;
-				if (is_registry_gd_built(L, idx, &LuaBuiltin::GD_VECTOR3, LuaBuiltin::l_get_vector3, var)) return;
-				if (is_registry_gd_built(L, idx, &LuaBuiltin::GD_TRANSFORM2D, LuaBuiltin::l_get_transform2d, var)) return;
-				if (is_registry_gd_built(L, idx, &LuaBuiltin::GD_PLANE, LuaBuiltin::l_get_Plane, var)) return;
-				if (is_registry_gd_built(L, idx, &LuaBuiltin::GD_QUAT, LuaBuiltin::l_get_quat, var)) return;
-				if (is_registry_gd_built(L, idx, &LuaBuiltin::GD_AABB, LuaBuiltin::l_get_aabb, var)) return;
-				if (is_registry_gd_built(L, idx, &LuaBuiltin::GD_BASIS, LuaBuiltin::l_get_basis, var)) return;
-				if (is_registry_gd_built(L, idx, &LuaBuiltin::GD_TRANSFORM, LuaBuiltin::l_get_transform, var)) return;
-				if (is_registry_gd_built(L, idx, &LuaBuiltin::GD_COLOR, LuaBuiltin::l_get_color, var)) return;
-				if (is_registry_gd_built(L, idx, &LuaBuiltin::GD_DICTIONARY, LuaBuiltin::l_get_dict, var)) return;
-				if (is_registry_gd_built(L, idx, &LuaBuiltin::GD_ARRAY, LuaBuiltin::l_get_array, var)) return;
-
-				lua_pushlightuserdata(L, (void *)&LuaBindingHelper::LUAINSTANCE);
-				lua_rawget(L, LUA_REGISTRYINDEX);
-				if (lua_rawequal(L, -1, -2)) {
+				lua_pushlightuserdata(L, (void *)&LuaBindingHelper::TABLE_TYPE);
+				lua_rawget(L, -2);
+				auto t = lua_isuserdata(L, -1) ? lua_touserdata(L, -1) : NULL;
+				if (t == NULL) {
+					return;
+				}
+				if (t == &LuaBuiltin::GD_VECTOR2) {
+					var = LuaBuiltin::l_get_vector2(L, idx);
+				} else if (t == &LuaBuiltin::GD_RECT2) {
+					var = LuaBuiltin::l_get_rect2(L, idx);
+				} else if (t == &LuaBuiltin::GD_VECTOR3) {
+					var = LuaBuiltin::l_get_vector3(L, idx);
+				} else if (t == &LuaBuiltin::GD_TRANSFORM2D) {
+					var = LuaBuiltin::l_get_transform2d(L, idx);
+				} else if (t == &LuaBuiltin::GD_PLANE) {
+					var = LuaBuiltin::l_get_transform2d(L, idx);
+				} else if (t == &LuaBuiltin::GD_TRANSFORM2D) {
+					var = LuaBuiltin::l_get_Plane(L, idx);
+				} else if (t == &LuaBuiltin::GD_QUAT) {
+					var = LuaBuiltin::l_get_quat(L, idx);
+				} else if (t == &LuaBuiltin::GD_AABB) {
+					var = LuaBuiltin::l_get_aabb(L, idx);
+				} else if (t == &LuaBuiltin::GD_TRANSFORM) {
+					var = LuaBuiltin::l_get_transform(L, idx);
+				} else if (t == &LuaBuiltin::GD_COLOR) {
+					var = LuaBuiltin::l_get_color(L, idx);
+				} else if (t == &LuaBuiltin::GD_DICTIONARY) {
+					var = LuaBuiltin::l_get_dict(L, idx);
+				} else if (t == &LuaBuiltin::GD_ARRAY) {
+					var = LuaBuiltin::l_get_array(L, idx);
+				} else if (t == &LuaBindingHelper::LUAINSTANCE) {
 					LuaScriptInstance *p_instance = luaL_getinstance(L, 1);
 					var = p_instance->get_owner();
 				}
@@ -318,6 +321,8 @@ void l_get_variant(lua_State *L, int idx, Variant &var) {
 const char *l_get_key(lua_State *L, int idx) {
 	return lua_tostring(L, idx);
 }
+
+const char LuaBindingHelper::TABLE_TYPE = 0;
 
 const char LuaBindingHelper::LUAOBJECT = 0;
 const char LuaBindingHelper::LUAVARIANT = 1;
@@ -1327,6 +1332,9 @@ void LuaBindingHelper::initialize() {
 			{ NULL, NULL },
 		};
 		luaL_setfuncs(L, meta_methods, 0);
+		lua_pushlightuserdata(L, (void *)&TABLE_TYPE);
+		lua_pushlightuserdata(L, (void *)&LUAINSTANCE);
+		lua_rawset(L, -3);
 	}
 	lua_rawset(L, LUA_REGISTRYINDEX);
 
