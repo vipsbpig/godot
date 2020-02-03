@@ -55,9 +55,9 @@ int l_methodbind_wrapper(lua_State *L) {
 	int t = lua_type(L, 1);
 	if (LUA_TTABLE == t) {
 		if (lua_getmetatable(L, 1)) {
-			lua_pushlightuserdata(L, (void *)&LuaBindingHelper::LUAINSTANCE);
-			lua_rawget(L, LUA_REGISTRYINDEX);
-			if (lua_rawequal(L, -1, -2)) {
+			lua_pushlightuserdata(L, (void *)&LuaBindingHelper::TABLE_TYPE);
+			lua_rawget(L, -2);
+			if (&LuaBindingHelper::LUAINSTANCE == lua_touserdata(L, -1)) {
 				LuaScriptInstance *p_instance = luaL_getinstance(L, 1);
 				obj = p_instance->get_owner();
 			}
@@ -65,8 +65,23 @@ int l_methodbind_wrapper(lua_State *L) {
 		}
 
 	} else if (LUA_TUSERDATA == t) {
-		Object **ud = (Object **)lua_touserdata(L, 1);
-		obj = *ud;
+		if (lua_getmetatable(L, 1)) {
+			lua_pushlightuserdata(L, (void *)&LuaBindingHelper::UD_TYPE);
+			lua_rawget(L, -2);
+			auto t = lua_touserdata(L, -1);
+			if (&LuaBindingHelper::LUAOBJECT == t) {
+				Object **ud = (Object **)lua_touserdata(L, 1);
+				obj = *ud;
+			} else if (&LuaBindingHelper::LUAOBJECT == t) {
+				Variant **ud = (Variant **)lua_touserdata(L, 1);
+				obj = (*ud)->operator Object *();
+			}
+			lua_pop(L, 2);
+		}
+	}
+	if (obj == NULL) {
+		luaL_error(L, "First param is not Object.Forget use ':' to call method?");
+		return 0;
 	}
 	Variant::CallError err;
 
@@ -282,14 +297,10 @@ void l_get_variant(lua_State *L, int idx, Variant &var) {
 			void *ud = lua_touserdata(L, idx);
 			if (ud != NULL) {
 				if (lua_getmetatable(L, idx)) {
-					lua_pushlightuserdata(L, (void *)&LuaBindingHelper::LUAOBJECT);
-					lua_rawget(L, LUA_REGISTRYINDEX);
-					if (lua_rawequal(L, -1, -2)) {
-						lua_pop(L, 2);
-						if (ud == NULL) {
-							var = Variant();
-							return;
-						}
+					lua_pushlightuserdata(L, (void *)&LuaBindingHelper::UD_TYPE);
+					lua_rawget(L, -2);
+					auto t = lua_touserdata(L, -1);
+					if (&LuaBindingHelper::LUAOBJECT == t) {
 						Object *obj = *((Object **)ud);
 						if (obj->is_class_ptr(Reference::get_class_ptr_static())) {
 							Reference *ref = Object::cast_to<Reference>(obj);
@@ -299,20 +310,11 @@ void l_get_variant(lua_State *L, int idx, Variant &var) {
 							var = obj;
 						}
 						return;
-					}
-					lua_pop(L, 1);
-
-					lua_pushlightuserdata(L, (void *)&LuaBindingHelper::LUAVARIANT);
-					lua_rawget(L, LUA_REGISTRYINDEX);
-					if (lua_rawequal(L, -1, -2)) {
-
-						lua_pop(L, 2);
+					} else if (&LuaBindingHelper::LUAOBJECT == t) {
 						var = **((Variant **)ud);
-						return;
 					}
-					lua_pop(L, 1);
+					lua_pop(L, 2);
 				}
-				lua_pop(L, 1);
 			}
 		} break;
 	}
@@ -322,6 +324,7 @@ const char *l_get_key(lua_State *L, int idx) {
 	return lua_tostring(L, idx);
 }
 
+const char LuaBindingHelper::UD_TYPE = 0;
 const char LuaBindingHelper::TABLE_TYPE = 0;
 
 const char LuaBindingHelper::LUAOBJECT = 0;
@@ -1262,6 +1265,9 @@ void LuaBindingHelper::initialize() {
 			{ NULL, NULL },
 		};
 		luaL_setfuncs(L, meta_methods, 0);
+		lua_pushlightuserdata(L, (void *)&UD_TYPE);
+		lua_pushlightuserdata(L, (void *)&LUAOBJECT);
+		lua_rawset(L, -3);
 	}
 	lua_rawset(L, LUA_REGISTRYINDEX);
 
@@ -1302,6 +1308,9 @@ void LuaBindingHelper::initialize() {
 			{ NULL, NULL },
 		};
 		luaL_setfuncs(L, meta_methods, 0);
+		lua_pushlightuserdata(L, (void *)&UD_TYPE);
+		lua_pushlightuserdata(L, (void *)&LUAVARIANT);
+		lua_rawset(L, -3);
 	}
 	lua_rawset(L, LUA_REGISTRYINDEX);
 
@@ -1317,6 +1326,9 @@ void LuaBindingHelper::initialize() {
 			{ NULL, NULL },
 		};
 		luaL_setfuncs(L, meta_methods, 0);
+		lua_pushlightuserdata(L, (void *)&TABLE_TYPE);
+		lua_pushlightuserdata(L, (void *)&LUASCRIPT);
+		lua_rawset(L, -3);
 	}
 	lua_rawset(L, LUA_REGISTRYINDEX);
 
