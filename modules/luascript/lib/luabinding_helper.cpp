@@ -75,17 +75,19 @@ int l_methodbind_wrapper(lua_State *L) {
 			if (&LuaBindingHelper::LUAOBJECT == t) {
 				Object **ud = (Object **)lua_touserdata(L, 1);
 				obj = *ud;
-			} else if (&LuaBindingHelper::LUAOBJECT == t) {
+			} else if (&LuaBindingHelper::LUAVARIANT == t) {
 				Variant **ud = (Variant **)lua_touserdata(L, 1);
 				obj = (*ud)->operator Object *();
 			}
 			lua_pop(L, 2);
 		}
 	}
+#ifdef DEBUG_ENABLED
 	if (obj == NULL) {
 		luaL_error(L, "First param is not Object.use ':' instead of '.'");
 		return 0;
 	}
+#endif
 	Variant::CallError err;
 
 	int top = lua_gettop(L);
@@ -112,7 +114,9 @@ int l_methodbind_wrapper(lua_State *L) {
 			return 1;
 		}
 	}
+#ifdef DEBUG_ENABLED
 	l_method_error(L, err);
+#endif
 	return 0;
 }
 
@@ -245,10 +249,14 @@ void l_get_variant(lua_State *L, int idx, Variant &var) {
 			if (lua_getmetatable(L, idx)) {
 				lua_pushlightuserdata(L, (void *)&LuaBindingHelper::TABLE_TYPE);
 				lua_rawget(L, -2);
+#ifdef DEBUG_ENABLED
 				auto t = lua_isuserdata(L, -1) ? lua_touserdata(L, -1) : NULL;
 				if (t == NULL) {
 					return;
 				}
+#else
+				auto t = lua_touserdata(L, -1);
+#endif
 				if (t == &LuaBuiltin::GD_VECTOR2) {
 					var = LuaBuiltin::l_get_vector2(L, idx);
 				} else if (t == &LuaBuiltin::GD_RECT2) {
@@ -359,10 +367,12 @@ int LuaBindingHelper::l_extends(lua_State *L) {
 		lua_pushstring(L, ".clsinfo");
 		lua_rawget(L, -2);
 		const ClassDB::ClassInfo *cls = (ClassDB::ClassInfo *)lua_touserdata(L, -1);
+#ifdef DEBUG_ENABLED
 		if (cls == NULL) {
 			luaL_error(L, "Extends Wrong Type");
 			return 0;
 		}
+#endif
 
 		p_script->cls = cls;
 
@@ -493,11 +503,12 @@ int LuaBindingHelper::meta_object__index(lua_State *L) {
 	Object **ud = (Object **)lua_touserdata(L, 1);
 	Object *obj = *ud;
 	const char *index_name = l_get_key(L, 2);
+#ifdef DEBUG_ENABLED
 	if (obj == NULL) {
 		luaL_error(L, "Faild To Get %s Form NULL Object", index_name);
 		return 0;
 	}
-
+#endif
 	lua_pushlightuserdata(L, (void *)&GD_CLASS);
 	lua_rawget(L, LUA_REGISTRYINDEX);
 	{
@@ -512,12 +523,16 @@ int LuaBindingHelper::meta_object__index(lua_State *L) {
 				MethodBind *mb = setget->_getptr;
 				Variant::CallError err;
 				Variant variant = mb->call(obj, NULL, 0, err);
+#ifdef DEBUG_ENABLED
 				if (err.error == Variant::CallError::CALL_OK) {
 					l_push_variant(L, variant);
 					return 1;
 				} else {
 					l_method_error(L, err);
 				}
+#else
+				l_push_variant(L, variant);
+#endif
 			}
 
 			//2.is a methed just return
@@ -537,11 +552,13 @@ int LuaBindingHelper::meta_object__newindex(lua_State *L) {
 
 	Object **ud = (Object **)lua_touserdata(L, 1);
 	Object *obj = *ud;
+#ifdef DEBUG_ENABLED
 	if (obj == NULL) {
 		const char *index_name = lua_tostring(L, 2);
 		luaL_error(L, "Failed To Set Field :'%s' To NULL Object", index_name);
 		return 0;
 	}
+#endif
 
 	lua_pushlightuserdata(L, (void *)&GD_CLASS);
 	lua_rawget(L, LUA_REGISTRYINDEX);
@@ -584,11 +601,16 @@ int LuaBindingHelper::l_object_free(lua_State *L) {
 	return 0;
 }
 void LuaBindingHelper::l_add_reference(Object *p_reference) {
+#ifdef DEBUG_ENABLED
 	printf("l_add_reference ref:%s\n", String(Variant(p_reference)).ascii().get_data());
+#endif
 	//push_strong_ref(L, p_reference);
 }
 bool LuaBindingHelper::l_del_reference(Object *p_reference) {
+#ifdef DEBUG_ENABLED
 	printf("l_del_reference ref:%s\n", String(Variant(p_reference)).ascii().get_data());
+#endif
+
 	//del_strong_ref(L, p_reference);
 	return true;
 }
@@ -668,10 +690,10 @@ int LuaBindingHelper::meta_variants__newindex(lua_State *L) {
 		var->set(*sn, value, &valid);
 	else
 		var->set(index_name, value, &valid);
-
+#ifdef DEBUG_ENABLED
 	if (!valid)
 		luaL_error(L, "Unable to set field: '%s'", lua_tostring(L, 2));
-
+#endif
 	return 0;
 }
 int LuaBindingHelper::meta_variants__pairs(lua_State *L) {
@@ -726,7 +748,9 @@ int LuaBindingHelper::l_variants_method__wrapper(lua_State *L) {
 			return 1;
 		}
 	}
+#ifdef DEBUG_ENABLED
 	l_method_error(L, err);
+#endif
 	return 0;
 }
 
@@ -861,12 +885,16 @@ int LuaBindingHelper::meta_instance__index(lua_State *L) {
 				MethodBind *mb = setget->_getptr;
 				Variant::CallError err;
 				Variant variant = mb->call(p_instance->owner, NULL, 0, err);
+#ifdef DEBUG_ENABLED
 				if (err.error == Variant::CallError::CALL_OK) {
 					l_push_variant(L, variant);
 					return 1;
 				} else {
 					l_method_error(L, err);
 				}
+#else
+				l_push_variant(L, variant);
+#endif
 			}
 			//2.if is method just return
 			return 1;
@@ -903,9 +931,11 @@ int LuaBindingHelper::meta_instance__newindex(lua_State *L) {
 		//set
 
 		bool success = p_instance->set(index_name, var);
+#ifdef DEBUG_ENABLED
 		if (!success) {
 			luaL_error(L, "set %s.%s = %s error", String(Variant(p_instance->owner)).ascii().get_data(), String(index_name).ascii().get_data(), String(var).ascii().get_data());
 		}
+#endif
 	}
 	return 0;
 }
@@ -1447,7 +1477,7 @@ Error LuaBindingHelper::luacall() {
 		return ERR_SCRIPT_FAILED;
 	}
 #else
-	lua_pcall(L, 0, LUA_MULTRET);
+	lua_call(L, 0, LUA_MULTRET);
 #endif
 
 	return OK;

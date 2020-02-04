@@ -350,7 +350,9 @@ int LuaBuiltin::l_builtins_methods__wrapper(lua_State *L) {
 			return 1;
 		}
 	}
+#ifdef DEBUG_ENABLED
 	l_method_error(L, err);
+#endif
 	return 0;
 }
 
